@@ -271,7 +271,7 @@ def cmd_route(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="hermes-reach", description="Hermes-native internet capability doctor and queue")
+    parser = argparse.ArgumentParser(prog="hermes-reach", description="Map what Hermes can search/read across hard-to-reach internet sources")
     parser.add_argument("--version", action="version", version=f"hermes-reach {__version__}")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
@@ -282,12 +282,12 @@ def build_parser() -> argparse.ArgumentParser:
         p.add_argument("--channel", help="Comma-separated channel keys")
         p.add_argument("--tag", help="Comma-separated tags")
 
-    doctor = sub.add_parser("doctor", help="Check all channel capabilities")
+    doctor = sub.add_parser("doctor", help="Check all reach channels")
     add_common(doctor)
     doctor.add_argument("--strict", action="store_true", help="Return nonzero on any warn/off result")
     doctor.set_defaults(func=cmd_doctor)
 
-    queue = sub.add_parser("queue", help="Show prioritized channel/setup gaps")
+    queue = sub.add_parser("queue", help="Show prioritized reach/setup gaps")
     add_common(queue)
     queue.add_argument("--all", action="store_true", help="Include green checks too")
     queue.add_argument("--top", type=int, help="Limit queue length")
@@ -297,7 +297,7 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("channel")
     plan.set_defaults(func=cmd_plan)
 
-    radar = sub.add_parser("capability-radar", help="Summarize install-vs-capability state")
+    radar = sub.add_parser("capability-radar", help="Summarize install-vs-reach state")
     radar.add_argument("--format", choices=["text", "json"], default="text")
     radar.set_defaults(func=cmd_capability_radar)
 
@@ -305,7 +305,7 @@ def build_parser() -> argparse.ArgumentParser:
     brief.add_argument("--format", choices=["text", "json"], default="text")
     brief.set_defaults(func=cmd_agent_brief)
 
-    routes = sub.add_parser("routes", help="List task-class routing rules learned from competitor analysis")
+    routes = sub.add_parser("routes", help="List task routes for web, social, browser, and extraction sources")
     routes.add_argument("--format", choices=["text", "json"], default="text")
     routes.set_defaults(func=cmd_routes)
 

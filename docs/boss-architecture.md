@@ -1,6 +1,6 @@
 # Hermes Reach Boss-Version Architecture
 
-Hermes Reach is not meant to be a clone of Agent-Reach. Agent-Reach is a useful generic scaffold: it installs/probes external tools so agents can read more of the internet. Hermes Reach should become something sharper: a **Hermes-native operator intelligence layer** that tells the agent which capability path to use, what is broken, what requires approval, and what changed upstream.
+Hermes Reach is not meant to be a clone of Agent-Reach. Agent-Reach is a useful generic scaffold: it installs/probes external tools so agents can read more of the internet. Hermes Reach should become something sharper: a **Hermes-native reach map** that tells the agent which hard-to-access sources are reachable, which path to use, what is not configured, what requires approval, and what changed upstream.
 
 ## Upstream Agent-Reach weaknesses to exploit
 
@@ -102,4 +102,4 @@ Expose Hermes Reach as an MCP server or native Hermes toolset so the agent can a
 
 ## Competitive position
 
-Agent-Reach gives agents more internet tools. Hermes Reach gives Hermes a **capability control plane**. That is the better product for this environment.
+Agent-Reach gives agents more internet tools. Hermes Reach should give Hermes a verified **reach map**: what sources are reachable, what path works, what is missing, and what evidence proves the result.

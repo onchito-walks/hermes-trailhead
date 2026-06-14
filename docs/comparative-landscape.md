@@ -42,7 +42,7 @@ The research is enough to identify product direction, not enough to benchmark ru
 
 ## Hard self-critique
 
-Hermes Reach is not yet a boss product. It is currently a good **diagnostic shell** with the beginnings of policy awareness. The risk is that it becomes a prettier `doctor` command and stops there. That would be a miss.
+Hermes Reach is not yet a boss product. It is currently a useful **reach diagnostic** with the beginnings of coverage and policy awareness. The risk is that it becomes a prettier `doctor` command and stops there. That would be a miss.
 
 The best systems in this landscape separate four planes:
 
@@ -51,9 +51,9 @@ The best systems in this landscape separate four planes:
 3. **Execution plane** — what runtime actually performs the action?
 4. **Governance plane** — what policy, approval, audit, and rollback rules apply?
 
-Hermes Reach currently has a partial governance plane and a tiny local catalog. It does not yet have discovery import, auth brokerage, execution runtime, persistent audit, scoring, or historical reliability. So the honest critique is: **Hermes Reach is a channel doctor with ambitions, not yet a capability control plane.**
+Hermes Reach currently has a partial governance plane and a small local catalog. It does not yet have real cross-platform search commands, discovery import, auth brokerage, execution runtime, persistent audit, scoring, or historical reliability. So the honest critique is: **Hermes Reach is a reach map and channel doctor, not yet a full hard-to-reach internet search layer.**
 
-That is fixable. The right next move is not to copy Agent-Reach’s installer energy. It is to make Hermes Reach the layer that decides *which* surface Hermes should use, *why*, *what evidence is needed*, and *which actions require approval*.
+That is fixable. The right next move is not to copy Agent-Reach’s installer energy. It is to make Hermes Reach the layer that decides *which* hard-to-reach surface Hermes should use, *why*, *what coverage exists*, *what evidence is needed*, and *which actions require approval*.
 
 ## What competitors do better
 
@@ -77,7 +77,7 @@ These projects win at discovery. Glama/PulseMCP make the scale obvious: tens of 
 
 ### Firecrawl / Crawl4AI
 
-They win at crawling/extraction. Hermes Reach should stop pretending it can become a crawler by adding channel entries. It should route crawl/extract tasks to the right engines and insist on evidence: schema, fixture URL, parser output, failure mode.
+They win at crawling/extraction. Hermes Reach should not try to become a crawler by adding channel entries. It should route crawl/extract tasks to the right engines and insist on evidence: schema, fixture URL, parser output, failure mode.
 
 Crawl4AI’s no-LLM CSS/XPath/Regex extraction is especially important: deterministic extraction should precede expensive LLM extraction.
 
@@ -93,7 +93,7 @@ Hermes Reach should borrow their realism but not their unsafe defaults.
 
 ## What Hermes Reach should uniquely be
 
-Hermes Reach should be the **capability control plane for Hermes Agent**.
+Hermes Reach should be the **reach map for Hermes Agent**.
 
 That means:
 
@@ -104,7 +104,7 @@ That means:
 
 The product should answer:
 
-> “Given this task and this Hermes install, what capability should the agent use, what are the fallbacks, what should it avoid, and what evidence must it collect before claiming success?”
+> “Given this task and this Hermes install, which source families can the agent actually search/read, what path should it use, what is missing, and what evidence must it collect before claiming success?”
 
 ## Implemented from this critique
 

@@ -1,6 +1,6 @@
 # Notices
 
-Hermes Reach is original code, built as a local Hermes-native capability control plane.
+Hermes Reach is original code, built as a local Hermes-native reach map for searching, reading, and verifying internet sources that are often difficult for agents to access reliably.
 
 It was inspired by prior work in agent reach, MCP, browser automation, crawl/extract tooling, and local-agent harnesses. This file records those influences so downstream users can see what shaped the project.
 
@@ -15,13 +15,13 @@ It was inspired by prior work in agent reach, MCP, browser automation, crawl/ext
 
 Hermes Reach does **not** vendor Agent-Reach code. It reimplements the useful pattern for Hermes:
 
-1. Maintain a registry of internet/capability channels.
+1. Maintain a registry of internet reach channels.
 2. Provide doctor checks.
 3. Provide setup plans.
 4. Prefer mature upstream tools over bespoke scraping.
 5. Keep agent-facing instructions durable.
 
-Hermes Reach differs by making local policy, approval gates, and evidence requirements first-class.
+Hermes Reach differs by making local coverage state, approval boundaries, and evidence requirements first-class.
 
 ## Adjacent agent capability systems
 

@@ -1,12 +1,12 @@
 # Hermes Reach
 
-Hermes Reach is a local map of what your Hermes can search, read, browse, and verify across the internet.
+Hermes Reach is a local map of what Hermes can search, read, browse, and verify across hard-to-reach parts of the internet.
 
 The human goal is simple:
 
-> Maximize useful reach across X/Twitter, Reddit, TikTok, Instagram, YouTube, GitHub, the open web, PDFs, docs, browser-only sites, and future MCP/API tools — then tell the agent the best path to use and what proof is required.
+> Help Hermes search and read sources that general web search often misses or handles poorly: X/Twitter, Reddit, TikTok, Instagram, YouTube, GitHub, the open web, PDFs, docs, browser-only sites, and future MCP/API tools. For each task, show the best available path, what is not configured, and what evidence proves the result worked.
 
-Safety is not the mission. Safety is the constraint that keeps broad reach from turning into dumb account scraping, broken links, hallucinated coverage, or accidental posting.
+Safety is not the main selling point. It is the operating constraint: broad reach should not become account scraping, broken links, overstated coverage, or accidental posting.
 
 ## Why it exists
 
@@ -23,7 +23,7 @@ Modern agents have a lot of possible internet surfaces:
 - MCP servers and SaaS integration catalogs
 - local CLIs and privacy frontends
 
-The hard part is not “can the agent touch the internet?” The hard part is knowing **which surface gives the best coverage for this task**, whether that surface is currently configured, and whether the resulting links/data actually work.
+The hard part is not simply “can the agent access the internet?” The hard part is knowing **which surface gives the best coverage for this task**, whether that surface is currently configured, and whether the resulting links/data actually work.
 
 Hermes Reach exists to keep that reach visible.
 
@@ -36,31 +36,31 @@ Hermes Reach has four jobs:
 3. **Expose gaps** — say plainly when TikTok, Instagram, X, Reddit, or another channel is not really covered yet.
 4. **Require evidence** — make the agent prove retrieved links/data work before claiming success.
 
-It is not supposed to be a philosophical policy toy. It is supposed to answer practical questions like:
+It is supposed to answer practical questions like:
 
 - “Can my agent actually search X right now?”
 - “Can it read Reddit without giving me dead links?”
-- “Do I have a TikTok or Instagram path, or am I pretending?”
+- “Do I have a TikTok or Instagram path, or is that source family not configured yet?”
 - “Should this use web search, Redlib, Nitter, a browser session, Firecrawl, or an MCP tool?”
 - “What should I install/configure next to increase reach?”
 
-## Current channel map
+## Reach map
 
-| Channel | Best current path | Status model |
+| Source family | Best current path | What Hermes Reach should report |
 |---|---|---|
-| Open web | Hermes `web_search`, `web_extract` | low-risk default |
-| Known URL/PDF | `web_extract`, Jina Reader fallback | low-risk default |
-| X/Twitter | `x_search` if credentialed, Nitter fallback | high-value, account-sensitive |
-| Reddit | `reddit-search`, Redlib links | medium risk; validate links |
-| TikTok | `site:tiktok.com` search, media/frontends/browser when configured | gap until a reliable reader exists |
-| Instagram | `site:instagram.com` search, frontend/browser when configured | gap until a reliable reader exists |
-| YouTube | media tools / `yt-dlp` when available | transcript/metadata path |
-| GitHub | GitHub MCP / `gh` | code/repo workflow |
-| Dynamic sites | Hermes browser tools, Browserbase, Stagehand, browser-use | approval for account/session work |
-| Crawl/extract | Firecrawl, Crawl4AI, Exa, Jina Reader | route to specialist tools |
-| External tools | MCP catalogs, Agent-Reach-like tools, SaaS connectors | sandbox/approval first |
+| Open web | Hermes `web_search`, `web_extract` | available path, query count, extracted sources |
+| Known URL/PDF | `web_extract`, Jina Reader fallback | source URL, extraction status, failure reason if any |
+| X/Twitter | `x_search` if credentialed, Nitter fallback | credential/frontend status, retrieved posts, working links |
+| Reddit | `reddit-search`, Redlib links | subreddits/queries checked, retrieved posts, working Redlib links |
+| TikTok | `site:tiktok.com` search, media/frontends/browser when configured | whether a real reader exists; otherwise mark as a gap |
+| Instagram | `site:instagram.com` search, frontend/browser when configured | whether a real reader exists; otherwise mark as a gap |
+| YouTube | media tools / `yt-dlp` when available | video results, transcript/metadata availability |
+| GitHub | GitHub MCP / `gh` | repo/issue/PR path and auth boundary |
+| Dynamic sites | Hermes browser tools, Browserbase, Stagehand, browser-use | account/session boundary and screenshot/log evidence |
+| Crawl/extract | Firecrawl, Crawl4AI, Exa, Jina Reader | chosen extractor, fixture URL, schema/output evidence |
+| External tools | MCP catalogs, Agent-Reach-like tools, SaaS connectors | setup status, required credentials, approval boundary |
 
-The important behavior: if a channel is missing, Hermes Reach should say **missing**, not hide behind generic “policy” language.
+The important behavior: if a source family is not actually reachable yet, Hermes Reach should say **not configured** or **gap**, not imply coverage.
 
 ## Install
 
@@ -123,7 +123,7 @@ Output shape:
 Task: Current social/maintainer/community signal across X, Reddit, TikTok, Instagram, YouTube, and the public web
 Primary: x_search/Nitter for X, Redlib/reddit-search for Reddit, yt-dlp/media tools for YouTube, privacy-frontends or supervised browser for TikTok/Instagram
 Fallbacks: social-search, Nitter profile pagination, reddit-search with structured metadata, ProxiTok/alternative TikTok frontends when available, Bibliogram/Instagram frontends when available, web_search site:x.com/site:reddit.com/site:tiktok.com/site:instagram.com
-Avoid: posting, cookie auth, claiming all posts from one page, pretending TikTok/Instagram coverage exists when no frontend/API/browser path is configured
+Avoid: posting, cookie auth, claiming all posts from one page, reporting TikTok/Instagram coverage when no frontend/API/browser path is configured
 Approval required: yes
 
 Evidence required before claiming success:
@@ -134,7 +134,7 @@ Evidence required before claiming success:
 - dead-link/coverage caveat
 ```
 
-That is the product: **maximum reach, explicit gaps, working links, and proof**.
+That is the product: **broader reach, explicit gaps, working links, and evidence**.
 
 ## Architecture
 
@@ -149,7 +149,7 @@ Router
    ↓
 Capability channel
    ↓
-Evidence / dead-link / coverage check
+Coverage, link, and evidence check
 ```
 
 The code is split into three pieces:
@@ -199,7 +199,7 @@ Hermes Reach prefers search paths that do not require personal logins when the t
 
 ## Prior art
 
-Hermes Reach is not pretending to be first. It is a local reach-and-routing take on ideas from several strong projects.
+Hermes Reach is not claiming to be first. It is a local reach-and-routing take on ideas from several strong projects.
 
 ### Agent capability and MCP ecosystems
 
@@ -225,7 +225,7 @@ Hermes Reach does not replace these tools. It routes to them when they fit.
 
 ### Social/current-signal tools
 
-This is the piece the project should care about most for the original goal: broad current-world search.
+This is central to the project goal: broad current-world search across sources that are often difficult for agents to access reliably.
 
 - X/Twitter search APIs and Nitter-style frontends.
 - Reddit search and Redlib-style frontends.
