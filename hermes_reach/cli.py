@@ -271,7 +271,7 @@ def cmd_route(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="hermes-reach", description="Map what Hermes can search/read across hard-to-reach internet sources")
+    parser = argparse.ArgumentParser(prog="hermes-reach", description="Help Hermes search/read hard-to-reach internet sources")
     parser.add_argument("--version", action="version", version=f"hermes-reach {__version__}")
     sub = parser.add_subparsers(dest="cmd", required=True)
 

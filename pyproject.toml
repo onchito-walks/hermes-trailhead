@@ -1,7 +1,7 @@
 [project]
 name = "hermes-reach"
 version = "0.1.0"
-description = "Hermes-native reach map for searching and reading hard-to-access internet sources"
+description = "Help Hermes and command-line agents search hard-to-reach internet sources"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "BSD-3-Clause"}

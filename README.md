@@ -1,12 +1,18 @@
 # Hermes Reach
 
-Hermes Reach is a local map of what Hermes can search, read, browse, and verify across hard-to-reach parts of the internet.
+Hermes Reach helps Hermes and other command-line agents search and read the hard-to-reach parts of the internet.
 
-The human goal is simple:
+It is for sources that general web search and basic page fetchers often miss, block, truncate, or return poorly:
 
-> Help Hermes search and read sources that general web search often misses or handles poorly: X/Twitter, Reddit, TikTok, Instagram, YouTube, GitHub, the open web, PDFs, docs, browser-only sites, and future MCP/API tools. For each task, show the best available path, what is not configured, and what evidence proves the result worked.
+- X/Twitter posts, timelines, and maintainer discussion
+- Reddit posts and comment threads
+- TikTok, Instagram, and YouTube creator/media surfaces
+- GitHub repositories, issues, PRs, and release activity
+- PDFs, docs, dynamic pages, browser-only sites, and future MCP/API tools
 
-Safety is not the main selling point. It is the operating constraint: broad reach should not become account scraping, broken links, overstated coverage, or accidental posting.
+For each task, Hermes Reach tells the agent which path to use, what is not configured yet, what requires approval, and what evidence proves the result worked.
+
+The “reach map” is the mechanism: a local inventory of source families, available tools, fallback routes, setup gaps, and proof requirements. The point is broader, more reliable internet reach.
 
 ## Why it exists
 
@@ -25,7 +31,7 @@ Modern agents have a lot of possible internet surfaces:
 
 The hard part is not simply “can the agent access the internet?” The hard part is knowing **which surface gives the best coverage for this task**, whether that surface is currently configured, and whether the resulting links/data actually work.
 
-Hermes Reach exists to keep that reach visible.
+Hermes Reach exists to make hard-to-reach sources usable from an agent harness without overstating what is actually configured.
 
 ## What it does
 
