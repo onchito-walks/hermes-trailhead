@@ -110,6 +110,9 @@ python3 -m hermes_reach search all "Hermes Agent discussion" --format json
 python3 -m hermes_reach search reddit "Hermes Agent" --format json
 python3 -m hermes_reach search tiktok "Hermes Agent" --live
 
+# Execute the search through loginless public search paths and return real hits
+python3 -m hermes_reach search all "Hermes Agent discussion" --execute --limit 3 --format json
+
 # List all routing rules
 python3 -m hermes_reach routes
 
@@ -124,7 +127,7 @@ python3 -m hermes_reach plan instagram
 
 ## Hermes-usable search plans
 
-`hermes-reach search` is the agent-facing command. It does not pretend the CLI can call Hermes tools directly. Instead it emits a structured action plan that Hermes can execute with its own tools (`web_search`, `web_extract`, `x_search`, GitHub MCP, browser tools, media tools) without requiring paid APIs by default.
+`hermes-reach search` is the agent-facing command. By default it emits a structured action plan that Hermes can execute with its own tools (`web_search`, `web_extract`, `x_search`, GitHub MCP, browser tools, media tools) without requiring paid APIs. With `--execute`, it also executes search through loginless public search pages rendered by Jina Reader and returns real retrieved links.
 
 ```bash
 python3 -m hermes_reach search all "Hermes Agent discussion" --format json
@@ -154,6 +157,30 @@ Output contract:
 ```
 
 The point: Hermes can read this JSON and know exactly what to call next, what requires approval, and what evidence must be collected before claiming success.
+
+To execute immediately:
+
+```bash
+python3 -m hermes_reach search all "Prusa XL PLA curling edges" --execute --limit 3 --format json
+```
+
+Executed output wraps the plan plus per-platform executions:
+
+```json
+{
+  "plan": {"mode": "hermes_action_plan"},
+  "executions": [
+    {
+      "platform": "reddit",
+      "status": "ok",
+      "executed_query": "site:reddit.com Prusa XL PLA curling edges",
+      "engine": "jina_duckduckgo",
+      "result_count": 3,
+      "hits": [{"title": "...", "url": "...", "snippet": "..."}]
+    }
+  ]
+}
+```
 
 Supported source families:
 

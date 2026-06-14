@@ -1,22 +1,23 @@
-"""Hermes-usable search routing for hard-to-reach internet sources.
+"""Hermes Reach search planning and execution for hard-to-reach internet sources.
 
-The CLI cannot call Hermes tools directly when it runs as a subprocess, so this module
-emits structured, machine-readable search actions that Hermes can execute with its own
-`web_search`, `web_extract`, `x_search`, GitHub MCP, browser, or media tools.
-
-Default paths avoid paid API dependencies. Paid/API-backed tools may appear only as
-optional accelerators or when already configured by the user's Hermes environment.
+`search_run()` returns a Hermes action plan. `execute_search()` executes that plan through
+loginless public search pages rendered by Jina Reader. This keeps the default path free of
+paid APIs while still producing real retrieved links when the network path is available.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
-from typing import Literal
-from urllib.parse import quote_plus
+from dataclasses import asdict, dataclass
+import html
+import re
+from typing import Callable, Literal
+from urllib.parse import parse_qs, quote_plus, unquote, urlparse
+import urllib.request
 
-from .channels import CheckResult, check_reddit, check_x_search
+from .channels import check_reddit, check_x_search
 
 Platform = Literal["all", "web", "x", "reddit", "tiktok", "instagram", "youtube", "github"]
 SearchStatus = Literal["ready", "planned", "gap", "approval_required"]
+ExecutionStatus = Literal["ok", "gap", "blocked"]
 
 
 @dataclass(frozen=True)
@@ -57,7 +58,54 @@ class SearchRun:
         }
 
 
+@dataclass(frozen=True)
+class SearchHit:
+    title: str
+    url: str
+    snippet: str = ""
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class SearchExecution:
+    platform: str
+    status: ExecutionStatus
+    query: str
+    executed_query: str
+    engine: str
+    result_count: int
+    hits: tuple[SearchHit, ...]
+    error: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "platform": self.platform,
+            "status": self.status,
+            "query": self.query,
+            "executed_query": self.executed_query,
+            "engine": self.engine,
+            "result_count": self.result_count,
+            "hits": [hit.to_dict() for hit in self.hits],
+            "error": self.error,
+        }
+
+
+@dataclass(frozen=True)
+class ExecutedSearchRun:
+    plan: SearchRun
+    executions: tuple[SearchExecution, ...]
+
+    def to_dict(self) -> dict:
+        return {
+            "plan": self.plan.to_dict(),
+            "executions": [execution.to_dict() for execution in self.executions],
+        }
+
+
 PLATFORMS: tuple[str, ...] = ("web", "x", "reddit", "tiktok", "instagram", "youtube", "github")
+Fetch = Callable[[str, int], str]
 
 
 def _site_query(site: str, query: str) -> str:
@@ -76,13 +124,83 @@ def _search_url(engine: str, query: str) -> str:
     return ""
 
 
+def _jina_duckduckgo_url(query: str) -> str:
+    return f"https://r.jina.ai/http://duckduckgo.com/html/?q={quote_plus(query)}"
+
+
+def _fetch_text(url: str, timeout: int = 20) -> str:
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 Hermes-Reach/0.1",
+            "Accept": "text/plain,text/markdown,*/*",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as response:
+        return response.read().decode("utf-8", errors="replace")
+
+
+def _clean_title(raw: str) -> str:
+    text = re.sub(r"<[^>]+>", "", raw)
+    return html.unescape(text).strip()
+
+
+def _normalize_result_url(url: str) -> str:
+    url = html.unescape(url).strip()
+    if url.startswith("//"):
+        url = "https:" + url
+    parsed = urlparse(url)
+    if "duckduckgo.com" in parsed.netloc.lower() and parsed.path.startswith("/l/"):
+        target = parse_qs(parsed.query).get("uddg", [""])[0]
+        if target:
+            return unquote(target)
+    return url
+
+
+def _is_noise_url(url: str) -> bool:
+    parsed = urlparse(url)
+    host = parsed.netloc.lower()
+    return (
+        not url.startswith(("http://", "https://"))
+        or "duckduckgo.com" in host
+        or "google.com/search" in url
+        or "bing.com/search" in url
+        or "javascript:" in url.lower()
+    )
+
+
+def _parse_markdown_search_results(markdown: str, limit: int) -> tuple[SearchHit, ...]:
+    hits: list[SearchHit] = []
+    lines = markdown.splitlines()
+    for i, line in enumerate(lines):
+        match = re.match(r"^##+\s+\[(.+?)\]\((https?://[^)]+)\)", line.strip())
+        if not match:
+            continue
+        title = _clean_title(match.group(1))
+        url = _normalize_result_url(match.group(2))
+        if _is_noise_url(url):
+            continue
+        snippet_parts: list[str] = []
+        for next_line in lines[i + 1 : i + 4]:
+            stripped = next_line.strip()
+            if not stripped or stripped.startswith("##"):
+                break
+            if stripped.startswith("[") and "](" in stripped:
+                continue
+            snippet_parts.append(stripped)
+        hits.append(SearchHit(title=title, url=url, snippet=" ".join(snippet_parts)[:300]))
+        if len(hits) >= limit:
+            break
+    return tuple(hits)
+
+
 def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction:
     if platform == "web":
         return SearchAction(
             platform="web",
             status="ready",
             query=query,
-            recommended_tool="web_search",
+            recommended_tool="web_search or hermes-reach --execute",
             site_query=query,
             paid_api_required=False,
             evidence_needed=("query", "result_count", "extracted_source_count", "source URLs"),
@@ -104,7 +222,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="x",
             status=status,
             query=query,
-            recommended_tool="x_search or web_search",
+            recommended_tool="x_search, Nitter, or hermes-reach --execute site search",
             direct_url=_search_url("nitter", query),
             site_query=_site_query("x.com", query),
             frontend_url="http://localhost:8788",
@@ -128,7 +246,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="reddit",
             status=status,
             query=query,
-            recommended_tool="web_search or reddit-search",
+            recommended_tool="Redlib, reddit-search, web_search, or hermes-reach --execute site search",
             direct_url=_search_url("redlib", query),
             site_query=_site_query("reddit.com", query),
             frontend_url="https://redlib.perennialte.ch",
@@ -142,7 +260,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="tiktok",
             status="gap",
             query=query,
-            recommended_tool="web_search then supervised browser/media tool if needed",
+            recommended_tool="hermes-reach --execute site search, then supervised browser/media tool if needed",
             site_query=_site_query("tiktok.com", query),
             approval_required=True,
             paid_api_required=False,
@@ -155,7 +273,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="instagram",
             status="gap",
             query=query,
-            recommended_tool="web_search then supervised browser if needed",
+            recommended_tool="hermes-reach --execute site search, then supervised browser if needed",
             site_query=_site_query("instagram.com", query),
             approval_required=True,
             paid_api_required=False,
@@ -168,7 +286,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="youtube",
             status="planned",
             query=query,
-            recommended_tool="web_search, media tools, or yt-dlp if installed",
+            recommended_tool="hermes-reach --execute site search, media tools, or yt-dlp if installed",
             direct_url=_search_url("youtube", query),
             site_query=_site_query("youtube.com", query),
             paid_api_required=False,
@@ -181,7 +299,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="github",
             status="ready",
             query=query,
-            recommended_tool="GitHub MCP, gh CLI, or web_search site:github.com",
+            recommended_tool="GitHub MCP, gh CLI, or hermes-reach --execute site search",
             direct_url=_search_url("github", query),
             site_query=_site_query("github.com", query),
             paid_api_required=False,
@@ -204,3 +322,42 @@ def search_run(platform: Platform, query: str, *, live: bool = False) -> SearchR
         paid_api_required=any(action.paid_api_required for action in actions),
         actions=actions,
     )
+
+
+def execute_action(action: SearchAction, *, limit: int = 5, fetch: Fetch | None = None) -> SearchExecution:
+    executed_query = action.site_query or action.query
+    engine = "jina_duckduckgo"
+    url = _jina_duckduckgo_url(executed_query)
+    fetcher = fetch or _fetch_text
+    try:
+        markdown = fetcher(url, 20)
+        hits = _parse_markdown_search_results(markdown, limit=limit)
+        status: ExecutionStatus = "ok" if hits else "gap"
+        error = "" if hits else "No parseable search results returned."
+        return SearchExecution(
+            platform=action.platform,
+            status=status,
+            query=action.query,
+            executed_query=executed_query,
+            engine=engine,
+            result_count=len(hits),
+            hits=hits,
+            error=error,
+        )
+    except Exception as exc:
+        return SearchExecution(
+            platform=action.platform,
+            status="blocked",
+            query=action.query,
+            executed_query=executed_query,
+            engine=engine,
+            result_count=0,
+            hits=(),
+            error=str(exc),
+        )
+
+
+def execute_search(platform: Platform, query: str, *, live: bool = False, limit: int = 5, fetch: Fetch | None = None) -> ExecutedSearchRun:
+    plan = search_run(platform, query, live=live)
+    executions = tuple(execute_action(action, limit=limit, fetch=fetch) for action in plan.actions)
+    return ExecutedSearchRun(plan=plan, executions=executions)

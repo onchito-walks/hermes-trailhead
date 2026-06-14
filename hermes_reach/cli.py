@@ -27,7 +27,7 @@ from .formatters import (
     format_radar_text,
 )
 from .router import all_routes, route_for
-from .search import PLATFORMS, Platform, search_run, SearchRun
+from .search import PLATFORMS, Platform, execute_search, search_run, ExecutedSearchRun, SearchRun
 
 
 RADAR_KEYS = [
@@ -65,6 +65,11 @@ def queue_data(top: int | None = None) -> list[tuple[Channel, CheckResult]]:
 def search_data(platform: str, query: str, *, live: bool = False) -> SearchRun:
     """Return a Hermes-usable search action plan without printing."""
     return search_run(cast(Platform, platform), query, live=live)
+
+
+def search_execute_data(platform: str, query: str, *, live: bool = False, limit: int = 5) -> ExecutedSearchRun:
+    """Execute a Hermes Reach search through loginless public search paths."""
+    return execute_search(cast(Platform, platform), query, live=live, limit=limit)
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
@@ -141,6 +146,29 @@ def cmd_route(args: argparse.Namespace) -> int:
 
 
 def cmd_search(args: argparse.Namespace) -> int:
+    if args.execute:
+        executed = search_execute_data(args.platform, args.query, live=args.live, limit=args.limit)
+        if args.format == "json":
+            print(json.dumps(executed.to_dict(), indent=2))
+            return 0
+        print(f"# Hermes Reach executed search: {args.platform}\n")
+        print(f"Query: {executed.plan.query}")
+        print(f"Paid API required: {'yes' if executed.plan.paid_api_required else 'no'}")
+        print()
+        for execution in executed.executions:
+            print(f"## {execution.platform} — {execution.status} ({execution.result_count} results)\n")
+            print(f"Executed query: {execution.executed_query}")
+            print(f"Engine: {execution.engine}")
+            if execution.error:
+                print(f"Error: {execution.error}")
+            for i, hit in enumerate(execution.hits, start=1):
+                print(f"{i}. {hit.title}")
+                print(f"   {hit.url}")
+                if hit.snippet:
+                    print(f"   {hit.snippet}")
+            print()
+        return 0
+
     run = search_data(args.platform, args.query, live=args.live)
     if args.format == "json":
         print(json.dumps(run.to_dict(), indent=2))
@@ -219,13 +247,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     search = sub.add_parser(
         "search",
-        help="Build a Hermes-usable search plan for hard-to-reach sources",
-        description="Build a Hermes-usable search plan for hard-to-reach sources",
+        help="Build or execute a Hermes-usable search for hard-to-reach sources",
+        description="Build an action plan, or execute it via loginless public search paths with --execute.",
     )
     search.add_argument("platform", choices=["all", *PLATFORMS], help="Source family to search")
     search.add_argument("query", help="Search query / topic")
     search.add_argument("--format", choices=["text", "json"], default="text")
     search.add_argument("--live", action="store_true", help="Probe configured live frontends where supported")
+    search.add_argument("--execute", action="store_true", help="Execute search using loginless public search paths and return real hits")
+    search.add_argument("--limit", type=int, default=5, help="Max hits per platform when --execute is used")
     search.set_defaults(func=cmd_search)
 
     return parser
