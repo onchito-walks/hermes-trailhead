@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, asdict
 
 
@@ -122,7 +123,7 @@ def match_routes(query: str) -> list[Route]:
     scored: list[tuple[int, int, Route]] = []
     for route in ROUTES:
         haystack = " ".join([route.key, route.task, route.primary, route.rationale, " ".join(route.fallbacks)]).lower()
-        text_score = sum(1 for token in tokens if token in haystack)
+        text_score = sum(1 for token in tokens if re.search(r'\b' + re.escape(token) + r'\b', haystack))
         keyword_score = sum(3 for token in tokens if token in ROUTE_KEYWORDS.get(route.key, ()))
         score = text_score + keyword_score
         if score:
@@ -132,8 +133,12 @@ def match_routes(query: str) -> list[Route]:
     return [route for _, _, route in sorted(scored, key=lambda pair: (-pair[0], -pair[1], pair[2].key))]
 
 
-def route_for(query: str) -> Route:
+def route_for_ranked(query: str, top: int = 3) -> list[Route]:
     matches = match_routes(query)
     if matches:
-        return matches[0]
-    return ROUTES[1]  # discovery-search is the safest default for unknown research intents
+        return matches[:top]
+    return [ROUTES[1]]  # discovery-search is the safest default for unknown research intents
+
+
+def route_for(query: str) -> Route:
+    return route_for_ranked(query, top=1)[0]

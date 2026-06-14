@@ -6,7 +6,7 @@ import sys
 from typing import Iterable
 
 from . import __version__
-from .channels import CHANNELS, Channel, CheckResult, check_all, get_channel
+from .channels import CHANNELS, Channel, CheckResult, check_all, check_all_live, get_channel
 from .router import all_routes, route_for
 
 
@@ -128,7 +128,8 @@ def _emit(rows: list[tuple[Channel, CheckResult]], fmt: str, title: str = "Herme
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
-    rows = _filter_rows(check_all(), only=args.only, risk=args.risk, channel=args.channel, tag=args.tag)
+    all_rows = check_all_live() if args.live else check_all()
+    rows = _filter_rows(all_rows, only=args.only, risk=args.risk, channel=args.channel, tag=args.tag)
     _emit(rows, args.format, title="Hermes Reach doctor")
     return _exit_code(rows, strict=args.strict)
 
@@ -212,7 +213,7 @@ def cmd_agent_brief(args: argparse.Namespace) -> int:
         },
         "approval_required": [ch.key for ch, res in rows if ch.approval_required or res.approval_required],
         "warnings": [{"key": ch.key, "status": res.status, "detail": res.detail, "action": res.action} for ch, res in rows if res.status != "ok"],
-        "capability_radar": {key: by_key[key][1].detail for key in ["hermes-upstream", "docs-watcher", "newsletter"] if key in by_key},
+        "capability_radar": {key: by_key[key][1].detail for key in ["hermes-upstream", "docs-watcher", "newsletter", "x-search", "agent-reach", "tiktok", "instagram", "youtube", "reddit", "github", "web-search", "web-extract"] if key in by_key},
     }
     if args.format == "json":
         print(json.dumps(brief, indent=2))
@@ -285,6 +286,7 @@ def build_parser() -> argparse.ArgumentParser:
     doctor = sub.add_parser("doctor", help="Check all reach channels")
     add_common(doctor)
     doctor.add_argument("--strict", action="store_true", help="Return nonzero on any warn/off result")
+    doctor.add_argument("--live", action="store_true", help="Probe live Nitter/Redlib endpoints for reachability evidence")
     doctor.set_defaults(func=cmd_doctor)
 
     queue = sub.add_parser("queue", help="Show prioritized reach/setup gaps")

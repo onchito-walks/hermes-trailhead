@@ -98,6 +98,10 @@ def test_agent_brief_json_schema_stable(capsys):
     assert "page_or_pdf_extraction" in data["use_first"]
     assert "x-search" in data["approval_required"]
     assert "agent-reach" in data["approval_required"]
+    radar_keys = set(data["capability_radar"])
+    for key in ["hermes-upstream", "docs-watcher", "newsletter", "x-search", "agent-reach",
+                "tiktok", "instagram", "youtube", "reddit", "github", "web-search", "web-extract"]:
+        assert key in radar_keys, f"capability_radar missing key: {key}"
 
 
 def test_plan_unknown_channel_exits_2_and_lists_known_channels(capsys):

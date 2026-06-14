@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import subprocess
+import urllib.request
 from typing import Callable, Literal
 
 
@@ -175,9 +176,36 @@ def check_github() -> CheckResult:
     return _result("warn", "gh CLI not installed or not on PATH.", action="Use GitHub MCP first; install gh only if terminal workflow needs it.", evidence=(Evidence("command", "gh not found on PATH", command="which gh", return_code=127),))
 
 
-def check_x_search() -> CheckResult:
+def check_x_search(live: bool = False) -> CheckResult:
     if os.environ.get("XAI_API_KEY"):
         return _result("ok", "XAI_API_KEY present; prefer Hermes x_search for current X discussion.", evidence=(Evidence("env", "XAI_API_KEY is present"),))
+
+    if live:
+        try:
+            req = urllib.request.Request("http://localhost:8788", method="HEAD")
+            resp = urllib.request.urlopen(req, timeout=5)
+            return _result(
+                "ok",
+                f"Local Nitter instance reachable at localhost:8788 (HTTP {resp.status}); live X search fallback available.",
+                evidence=(
+                    Evidence("http", f"Nitter responded HTTP {resp.status}", command="HEAD http://localhost:8788", return_code=resp.status),
+                    Evidence("policy", "Cookie auth and posting are high-risk actions"),
+                ),
+                approval_required=True,
+            )
+        except Exception as exc:
+            return _result(
+                "warn",
+                f"Local Nitter at localhost:8788 not reachable ({exc}); no XAI_API_KEY in environment.",
+                action="Do not scrape cookies automatically; ask before configuring X auth.",
+                evidence=(
+                    Evidence("env", "XAI_API_KEY absent"),
+                    Evidence("http", f"Nitter probe failed: {exc}", command="HEAD http://localhost:8788"),
+                    Evidence("policy", "Cookie auth and posting are high-risk actions"),
+                ),
+                approval_required=True,
+            )
+
     nitter_hint = "local Nitter expected at localhost:8788 per Hermes memory; use fallback extraction if reachable."
     return _result(
         "warn",
@@ -188,8 +216,31 @@ def check_x_search() -> CheckResult:
     )
 
 
-def check_reddit() -> CheckResult:
+def check_reddit(live: bool = False) -> CheckResult:
     redlib = "https://redlib.perennialte.ch"
+
+    if live:
+        try:
+            req = urllib.request.Request(redlib, method="GET")
+            resp = urllib.request.urlopen(req, timeout=5)
+            body_preview = resp.read(512).decode("utf-8", errors="replace")[:100]
+            return _result(
+                "ok",
+                f"Redlib frontend is live and responding at {redlib} (HTTP {resp.status}).",
+                evidence=(
+                    Evidence("http", f"Redlib responded HTTP {resp.status}, body preview: {body_preview}", command=f"GET {redlib}", return_code=resp.status),
+                ),
+            )
+        except Exception as exc:
+            return _result(
+                "warn",
+                f"Redlib frontend at {redlib} not reachable ({exc}); fall back to existing reddit-search tooling.",
+                evidence=(
+                    Evidence("http", f"Redlib probe failed: {exc}", command=f"GET {redlib}"),
+                    Evidence("memory", "Configured Redlib frontend", path=redlib),
+                ),
+            )
+
     return _result("ok", f"Prefer Redlib/privacy frontend or existing reddit-search tooling. Known Redlib: {redlib}", evidence=(Evidence("memory", "Configured Redlib frontend", path=redlib),))
 
 
@@ -305,3 +356,15 @@ def get_channel(key: str) -> Channel:
 
 def check_all() -> list[tuple[Channel, CheckResult]]:
     return [(channel, channel.check()) for channel in CHANNELS]
+
+
+def check_all_live() -> list[tuple[Channel, CheckResult]]:
+    results: list[tuple[Channel, CheckResult]] = []
+    for channel in CHANNELS:
+        if channel.key == "x-search":
+            results.append((channel, check_x_search(live=True)))
+        elif channel.key == "reddit":
+            results.append((channel, check_reddit(live=True)))
+        else:
+            results.append((channel, channel.check()))
+    return results
