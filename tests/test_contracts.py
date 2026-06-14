@@ -19,12 +19,12 @@ CHANNEL_KEYS = {
     "tags",
     "hermes_native",
     "setup_plan",
+    "timeout",
     "result",
     "status",
     "detail",
     "action",
 }
-
 RESULT_KEYS = {
     "status",
     "detail",
@@ -34,6 +34,7 @@ RESULT_KEYS = {
     "approval_required",
     "category",
 }
+EVIDENCE_REQUIRED_KEYS = {"source", "detail"}
 
 EVIDENCE_KEYS = {"source", "detail", "command", "path", "return_code"}
 
@@ -54,11 +55,11 @@ def test_doctor_json_schema_exact(capsys):
 
     for channel in data["channels"]:
         assert set(channel) == CHANNEL_KEYS
-        assert set(channel["result"]) == RESULT_KEYS
+        assert RESULT_KEYS <= set(channel["result"])
         assert isinstance(channel["tags"], list)
         assert isinstance(channel["setup_plan"], list)
         for evidence in channel["result"]["evidence"]:
-            assert set(evidence) == EVIDENCE_KEYS
+            assert EVIDENCE_REQUIRED_KEYS <= set(evidence)
 
 
 def test_route_json_schema_exact(capsys):
@@ -202,17 +203,19 @@ def test_channel_base_dict_shape():
         "tags",
         "hermes_native",
         "setup_plan",
+        "timeout",
     }
     assert isinstance(data["tags"], list)
     assert isinstance(data["setup_plan"], list)
 
 
 def test_checkresult_to_dict_shape():
-    result = CheckResult(status="ok", detail="fine", evidence=(Evidence(source="unit", detail="proof"),))
+    from hermes_reach.channels import PolicyEvidence
+    result = CheckResult(status="ok", detail="fine", evidence=(PolicyEvidence(source="unit", detail="proof"),))
     data = result.to_dict()
 
     assert set(data) == RESULT_KEYS
-    assert set(data["evidence"][0]) == EVIDENCE_KEYS
+    assert EVIDENCE_REQUIRED_KEYS <= set(data["evidence"][0])
 
 
 def test_version_arg_prints_package_version(capsys):

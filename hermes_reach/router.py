@@ -33,6 +33,17 @@ ROUTE_KEYWORDS: dict[str, tuple[str, ...]] = {
     "external-tool-enable": ("install", "enable", "configure", "setup", "tool", "mcp", "server", "package"),
 }
 
+# Terms that, when present in the query, penalise a route (demotion signal).
+# Each match subtracts 5 from the score. Applied before priority sorting.
+NEGATIVE_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "interactive-browser": ("read", "fetch", "extract", "pdf", "url", "markdown"),
+    "social-current-signal": ("login", "session", "fill", "form", "checkout"),
+    "known-url-read": ("discover", "social", "community", "sentiment"),
+    "discovery-search": ("login", "fill", "form", "click", "checkout"),
+    "structured-extraction": ("login", "search", "discover"),
+    "external-tool-enable": ("read", "fetch", "extract", "search"),
+}
+
 # Higher number wins when mixed intents touch safety-sensitive surfaces.
 ROUTE_PRIORITY: dict[str, int] = {
     "interactive-browser": 100,
@@ -125,7 +136,8 @@ def match_routes(query: str) -> list[Route]:
         haystack = " ".join([route.key, route.task, route.primary, route.rationale, " ".join(route.fallbacks)]).lower()
         text_score = sum(1 for token in tokens if re.search(r'\b' + re.escape(token) + r'\b', haystack))
         keyword_score = sum(3 for token in tokens if token in ROUTE_KEYWORDS.get(route.key, ()))
-        score = text_score + keyword_score
+        negative_score = sum(5 for token in tokens if token in NEGATIVE_KEYWORDS.get(route.key, ()))
+        score = text_score + keyword_score - negative_score
         if score:
             scored.append((score, ROUTE_PRIORITY.get(route.key, 0), route))
     if not scored:

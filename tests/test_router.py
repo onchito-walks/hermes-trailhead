@@ -42,3 +42,18 @@ def test_route_for_ranked_no_match_defaults():
     routes = route_for_ranked("zzzunknownquery", top=3)
     assert len(routes) == 1
     assert routes[0].key == "discovery-search"
+
+
+def test_route_for_social_demotes_on_browser_terms():
+    """Query with 'x' (social keyword) but 'login'/'fill'/'form' (browser terms)
+    should route to interactive-browser, not social-current-signal, because
+    negative-keyword penalties demote social."""
+    route = route_for("login to x and fill a form")
+    assert route.key == "interactive-browser"
+
+
+def test_negative_keywords_demote_known_url_read():
+    """Query heavy on discovery terms should demote known-url-read
+    so discovery-search wins, even when known-url-read also matches."""
+    route = route_for("search discover find research sources")
+    assert route.key == "discovery-search"
