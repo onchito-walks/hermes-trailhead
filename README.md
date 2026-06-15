@@ -1,74 +1,42 @@
-# SourceScout
+# Hermes Trailhead
 
-SourceScout helps command-line agents search and read the hard-to-reach parts of the internet without requiring paid APIs for the default read/search paths.
+**Hermes Trailhead makes the hard-to-reach, high-signal internet part of Hermes' normal research plane.**
 
-It is for sources that general web search and basic page fetchers often miss, block, truncate, or return poorly:
+Ask Hermes a research question. Hermes Trailhead maps the likely source terrain, takes the best free-first routes into the places where frontier/practitioner signal actually lives — X/Twitter, Reddit, TikTok, Instagram, YouTube, GitHub, forums, docs, PDFs, and niche communities — then returns with real links, evidence, source caveats, and the blind spots it could not close.
 
-- X/Twitter posts, timelines, and maintainer discussion
-- Reddit posts and comment threads
-- TikTok, Instagram, and YouTube creator/media surfaces
-- GitHub repositories, issues, PRs, and release activity
-- PDFs, docs, dynamic pages, browser-only sites, and future MCP/API tools
+It exists because generic web search overweights SEO pages, stale summaries, and easy-to-index content. The useful answer is often buried in a maintainer post, a Reddit thread, a creator demo, a GitHub issue, a forum reply, or a platform-native conversation that normal search misses or ranks poorly.
 
-For each task, SourceScout tells the agent which path to use, what is not configured yet, what requires approval, and what evidence proves the result worked.
+## Mission
 
-The default paths prefer open-source tools, public pages, privacy frontends, local CLIs, and existing agent tools. Paid APIs can be modeled as optional accelerators, but SourceScout should not depend on them for its core promise.
+Hermes Trailhead should make Hermes feel like it knows where the good internet lives:
 
-The “reach map” is the mechanism: a local inventory of source families, available tools, fallback routes, setup gaps, and proof requirements. The point is broader, more reliable internet reach.
+1. **Find the terrain** — identify which high-signal surfaces matter for a question.
+2. **Take working routes** — use free/open/loginless paths first, with paid APIs only as optional accelerators.
+3. **Bring back goods** — return links, excerpts, comments, transcripts, issue threads, and other usable evidence where reachable.
+4. **Rank signal over sludge** — prefer practitioner/frontier/maintainer/firsthand sources over SEO filler.
+5. **Be honest about blocked paths** — report weak, dead, blocked, or shallow coverage instead of pretending every platform was deeply searched.
 
-## Why it exists
+## Launchpad and inspiration
 
-Modern agents have a lot of possible internet surfaces:
+Hermes Trailhead was launched from an earlier project named SourceScout, which itself began as a Hermes-specific response to **[Panniantong/Agent-Reach](https://github.com/Panniantong/Agent-Reach)**.
 
-- web search
-- page/PDF extraction
-- X/Twitter search and Nitter fallbacks
-- Reddit search and Redlib fallbacks
-- TikTok / Instagram / YouTube discovery
-- GitHub repos, issues, and PRs
-- crawlers such as Firecrawl and Crawl4AI
-- browser automation through Hermes browser tools, Browserbase, Stagehand, or browser-use
-- MCP servers and SaaS integration catalogs
-- local CLIs and privacy frontends
+Agent-Reach is the honest launchpad: it showed the right access doctrine for agent internet reach — choose the best current upstream tools, probe them, keep fallback routes, and teach the agent how to use them instead of pretending one scraper can own every platform. Hermes Trailhead keeps that lesson and gives explicit credit.
 
-The hard part is not simply “can the agent access the internet?” The hard part is knowing **which surface gives the best coverage for this task**, whether that surface is currently configured, and whether the resulting links/data actually work.
+The mission is different and narrower: Agent-Reach is a broad capability bootstrapper for many agents; Hermes Trailhead is a Hermes-native research trailhead. Its job is not merely to install tools. Its job is to make Hermes' answers better by making hard-to-reach, high-signal sources part of the research experience.
 
-SourceScout exists to make hard-to-reach sources usable from an agent harness without overstating what is actually configured.
+## Source terrain
 
-## What it does
+Hermes Trailhead focuses on sources that general web search and basic page fetchers often miss, block, truncate, or return poorly:
 
-SourceScout has four jobs:
+- X/Twitter posts, timelines, maintainer discussion, and frontier builder chatter
+- Reddit posts and comment threads where practitioners debug real problems
+- TikTok, Instagram, and YouTube creator/media surfaces where demos appear early
+- GitHub repositories, issues, PRs, releases, and maintainer discussions
+- forums, PDFs, docs, dynamic pages, browser-only sites, and future MCP/API tools
 
-1. **Inventory reach** — show what channels are available, missing, weak, or risky.
-2. **Route tasks** — choose the best search/read/browser/social path for a given request.
-3. **Expose gaps** — say plainly when TikTok, Instagram, X, Reddit, or another channel is not really covered yet.
-4. **Require evidence** — make the agent prove retrieved links/data work before claiming success.
+For each task, Hermes Trailhead tells the agent which route to use, what is not configured yet, what requires approval, what evidence proves the result worked, and where the map is still incomplete.
 
-It is supposed to answer practical questions like:
-
-- “Can my agent actually search X right now?”
-- “Can it read Reddit without giving me dead links?”
-- “Do I have a TikTok or Instagram path, or is that source family not configured yet?”
-- “Should this use web search, Redlib, Nitter, a browser session, Firecrawl, or an MCP tool?”
-- “What should I install/configure next to increase reach?”
-
-## Reach map
-
-| Source family | Best current path | What SourceScout should report |
-|---|---|---|
-| Open web | Hermes `web_search`, `web_extract` | available path, query count, extracted sources |
-| Known URL/PDF | `web_extract`, Jina Reader fallback | source URL, extraction status, failure reason if any |
-| X/Twitter | `x_search` if credentialed, Nitter fallback | credential/frontend status, retrieved posts, working links |
-| Reddit | `reddit-search`, Redlib links | subreddits/queries checked, retrieved posts, working Redlib links |
-| TikTok | `site:tiktok.com` search, media/frontends/browser when configured | whether a real reader exists; otherwise mark as a gap |
-| Instagram | `site:instagram.com` search, frontend/browser when configured | whether a real reader exists; otherwise mark as a gap |
-| YouTube | media tools / `yt-dlp` when available | video results, transcript/metadata availability |
-| GitHub | GitHub MCP / `gh` | repo/issue/PR path and auth boundary |
-| Dynamic sites | Hermes browser tools, Browserbase, Stagehand, browser-use | account/session boundary and screenshot/log evidence |
-| Crawl/extract | Firecrawl, Crawl4AI, Exa, Jina Reader | chosen extractor, fixture URL, schema/output evidence |
-| External tools | MCP catalogs, Agent-Reach-like tools, SaaS connectors | setup status, required credentials, approval boundary |
-
-The important behavior: if a source family is not actually reachable yet, SourceScout should say **not configured** or **gap**, not imply coverage.
+The default paths prefer open-source tools, public pages, privacy frontends, local CLIs, and existing Hermes tools. Paid APIs can be modeled as optional accelerators, but Hermes Trailhead should not depend on them for its core promise.
 
 ## Install
 
@@ -76,7 +44,7 @@ From a checkout:
 
 ```bash
 python3 -m pytest -q
-python3 -m source_scout doctor
+python3 -m hermes_trailhead doctor
 ```
 
 Editable install:
@@ -85,52 +53,52 @@ Editable install:
 uv venv .venv
 . .venv/bin/activate
 uv pip install -e .
-source-scout doctor
+hermes-trailhead doctor
 ```
 
 ## Core commands
 
 ```bash
 # Check capability health with evidence
-python3 -m source_scout doctor
-python3 -m source_scout doctor --format json
+python3 -m hermes_trailhead doctor
+python3 -m hermes_trailhead doctor --format json
 
 # Show prioritized gaps
-python3 -m source_scout queue
-python3 -m source_scout queue --risk high --top 3
+python3 -m hermes_trailhead queue
+python3 -m hermes_trailhead queue --risk high --top 3
 
 # Ask the router what path a task should use
-python3 -m source_scout route "search X, TikTok, Instagram, Reddit, and YouTube for Hermes Agent discussion"
-python3 -m source_scout route "read this known url as markdown"
-python3 -m source_scout route "login to a site and fill a form"
-python3 -m source_scout route "extract schema from website"
+python3 -m hermes_trailhead route "search X, TikTok, Instagram, Reddit, and YouTube for Hermes Agent discussion"
+python3 -m hermes_trailhead route "read this known url as markdown"
+python3 -m hermes_trailhead route "login to a site and fill a form"
+python3 -m hermes_trailhead route "extract schema from website"
 
 # Build a agent-usable search action plan
-python3 -m source_scout search all "Hermes Agent discussion" --format json
-python3 -m source_scout search reddit "Hermes Agent" --format json
-python3 -m source_scout search tiktok "Hermes Agent" --live
+python3 -m hermes_trailhead search all "Hermes Agent discussion" --format json
+python3 -m hermes_trailhead search reddit "Hermes Agent" --format json
+python3 -m hermes_trailhead search tiktok "Hermes Agent" --live
 
 # Execute the search through loginless public search paths and return real hits
-python3 -m source_scout search all "Hermes Agent discussion" --execute --limit 3 --format json
+python3 -m hermes_trailhead search all "Hermes Agent discussion" --execute --limit 3 --format json
 
 # List all routing rules
-python3 -m source_scout routes
+python3 -m hermes_trailhead routes
 
 # Emit an agent-facing brief
-python3 -m source_scout agent-brief
+python3 -m hermes_trailhead agent-brief
 
 # Print a safe setup plan for one channel
-python3 -m source_scout plan x-search
-python3 -m source_scout plan tiktok
-python3 -m source_scout plan instagram
+python3 -m hermes_trailhead plan x-search
+python3 -m hermes_trailhead plan tiktok
+python3 -m hermes_trailhead plan instagram
 ```
 
 ## agent-usable search plans
 
-`source-scout search` is the agent-facing command. By default it emits a structured action plan that Hermes can execute with its own tools (`web_search`, `web_extract`, `x_search`, GitHub MCP, browser tools, media tools) without requiring paid APIs. With `--execute`, it also executes search through loginless public search pages rendered by Jina Reader and returns real retrieved links.
+`hermes-trailhead search` is the agent-facing command. By default it emits a structured action plan that Hermes can execute with its own tools (`web_search`, `web_extract`, `x_search`, GitHub MCP, browser tools, media tools) without requiring paid APIs. With `--execute`, it also executes search through loginless public search pages rendered by Jina Reader and returns real retrieved links.
 
 ```bash
-python3 -m source_scout search all "Hermes Agent discussion" --format json
+python3 -m hermes_trailhead search all "Hermes Agent discussion" --format json
 ```
 
 Output contract:
@@ -139,7 +107,7 @@ Output contract:
 {
   "query": "Hermes Agent discussion",
   "platform": "all",
-  "mode": "source_scout_action_plan",
+  "mode": "hermes_trailhead_action_plan",
   "paid_api_required": false,
   "actions": [
     {
@@ -161,14 +129,14 @@ The point: Hermes can read this JSON and know exactly what to call next, what re
 To execute immediately:
 
 ```bash
-python3 -m source_scout search all "Prusa XL PLA curling edges" --execute --limit 3 --format json
+python3 -m hermes_trailhead search all "Prusa XL PLA curling edges" --execute --limit 3 --format json
 ```
 
 Executed output wraps the plan plus per-platform executions:
 
 ```json
 {
-  "plan": {"mode": "source_scout_action_plan"},
+  "plan": {"mode": "hermes_trailhead_action_plan"},
   "executions": [
     {
       "platform": "reddit",
@@ -185,7 +153,7 @@ Executed output wraps the plan plus per-platform executions:
 Supported source families:
 
 ```bash
-python3 -m source_scout search --help
+python3 -m hermes_trailhead search --help
 ```
 
 ```text
@@ -195,13 +163,13 @@ python3 -m source_scout search --help
 ## Example: broad social/current search
 
 ```bash
-python3 -m source_scout route "search X, Reddit, TikTok, Instagram, YouTube and the web for current Hermes Agent discussion"
+python3 -m hermes_trailhead route "search X, Reddit, TikTok, Instagram, YouTube and the web for current Hermes Agent discussion"
 ```
 
 Output shape:
 
 ```text
-# SourceScout route: social-current-signal
+# Hermes Trailhead route: social-current-signal
 
 Task: Current social/maintainer/community signal across X, Reddit, TikTok, Instagram, YouTube, and the public web
 Primary: x_search/Nitter for X, Redlib/reddit-search for Reddit, yt-dlp/media tools for YouTube, privacy-frontends or supervised browser for TikTok/Instagram
@@ -221,7 +189,7 @@ That is the product: **broader reach, explicit gaps, working links, and evidence
 
 ## Architecture
 
-SourceScout is intentionally boring.
+Hermes Trailhead is intentionally boring.
 
 ```text
 User task
@@ -239,15 +207,15 @@ The code is split into three pieces:
 
 | File | Purpose |
 |---|---|
-| `source_scout/channels.py` | Capability inventory and setup plans. |
-| `source_scout/router.py` | Task-class routing rules. |
-| `source_scout/cli.py` | Human and machine-readable commands. |
+| `hermes_trailhead/channels.py` | Capability inventory and setup plans. |
+| `hermes_trailhead/router.py` | Task-class routing rules. |
+| `hermes_trailhead/cli.py` | Human and machine-readable commands. |
 
 The main data model is plain Python dataclasses. Output is text, Markdown, or JSON.
 
 ## Safety model
 
-SourceScout is read-only by default.
+Hermes Trailhead is read-only by default.
 
 It does **not** automatically:
 
@@ -272,7 +240,7 @@ Examples of high-risk work:
 
 ## Loginless-first search
 
-SourceScout prefers search paths that do not require personal logins when the task allows it:
+Hermes Trailhead prefers search paths that do not require personal logins when the task allows it:
 
 1. Search with public or configured search surfaces.
 2. Read pages with clean readers like `web_extract` or Jina Reader.
@@ -282,7 +250,7 @@ SourceScout prefers search paths that do not require personal logins when the ta
 
 ## Prior art
 
-SourceScout is not claiming to be first. It is a local reach-and-routing take on ideas from several strong projects.
+Hermes Trailhead is not claiming to be first. It is a local reach-and-routing take on ideas from several strong projects.
 
 ### Agent capability and MCP ecosystems
 
@@ -295,7 +263,7 @@ SourceScout is not claiming to be first. It is a local reach-and-routing take on
 
 ### Browser, crawl, and extraction engines
 
-SourceScout does not replace these tools. It routes to them when they fit.
+Hermes Trailhead does not replace these tools. It routes to them when they fit.
 
 - [Firecrawl](https://docs.firecrawl.dev/) for crawl/search/extract APIs.
 - [Crawl4AI](https://docs.crawl4ai.com/) for open, deterministic crawl/extract workflows.
@@ -316,9 +284,9 @@ This is central to the project goal: broad current-world search across sources t
 - YouTube transcript/metadata tools.
 - Site-specific web search when a dedicated reader is missing.
 
-## What SourceScout is not
+## What Hermes Trailhead is not
 
-SourceScout is not:
+Hermes Trailhead is not:
 
 - a public MCP registry
 - a SaaS integration marketplace
@@ -333,7 +301,7 @@ It is the small local layer that tells an agent which of those things to use, wh
 ## Tests
 
 ```bash
-python3 -m py_compile source_scout/*.py
+python3 -m py_compile hermes_trailhead/*.py
 python3 -m pytest -q
 ```
 
@@ -359,6 +327,6 @@ A healthy reach map needs maintenance. The intended weekly loop is:
 
 ## License and attribution
 
-SourceScout is open source under the BSD 3-Clause License. You may use, modify, and redistribute it, but you must preserve the copyright notice and license text.
+Hermes Trailhead is open source under the BSD 3-Clause License. You may use, modify, and redistribute it, but you must preserve the copyright notice and license text.
 
 See `NOTICE.md` for prior-art acknowledgments.

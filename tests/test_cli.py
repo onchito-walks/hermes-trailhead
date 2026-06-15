@@ -1,4 +1,4 @@
-from source_scout.cli import main
+from hermes_trailhead.cli import main
 
 
 def test_doctor_json_contract(capsys):

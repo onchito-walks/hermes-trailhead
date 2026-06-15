@@ -1,6 +1,6 @@
 # Contributing
 
-SourceScout is intentionally small. Contributions should make the router safer, clearer, or more useful for agents.
+Hermes Trailhead is intentionally small. Contributions should make the router safer, clearer, or more useful for agents.
 
 ## Good contributions
 
@@ -21,10 +21,10 @@ SourceScout is intentionally small. Contributions should make the router safer, 
 ## Development
 
 ```bash
-python3 -m py_compile source_scout/*.py
+python3 -m py_compile hermes_trailhead/*.py
 python3 -m pytest -q
-python3 -m source_scout doctor --format json
-python3 -m source_scout routes --format json
+python3 -m hermes_trailhead doctor --format json
+python3 -m hermes_trailhead routes --format json
 ```
 
 ## Design rule

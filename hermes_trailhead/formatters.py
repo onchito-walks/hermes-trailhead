@@ -1,4 +1,4 @@
-"""Formatters for SourceScout output: text, markdown, JSON."""
+"""Formatters for Hermes Trailhead output: text, markdown, JSON."""
 from __future__ import annotations
 
 import json
@@ -70,7 +70,7 @@ def format_json(rows: list[tuple[Channel, CheckResult]]) -> str:
     )
 
 
-def format_markdown(rows: list[tuple[Channel, CheckResult]], title: str = "SourceScout doctor") -> str:
+def format_markdown(rows: list[tuple[Channel, CheckResult]], title: str = "Hermes Trailhead doctor") -> str:
     counts = summary(rows)
     lines = [f"# {title}", ""]
     lines.append(f"Summary: ✅ {counts['ok']} · ⚠️ {counts['warn']} · ⬜ {counts['off']} · ❌ {counts['fail']}")
@@ -105,7 +105,7 @@ def format_markdown(rows: list[tuple[Channel, CheckResult]], title: str = "Sourc
     return "\n".join(lines)
 
 
-def format_text(rows: list[tuple[Channel, CheckResult]], title: str = "SourceScout doctor") -> str:
+def format_text(rows: list[tuple[Channel, CheckResult]], title: str = "Hermes Trailhead doctor") -> str:
     counts = summary(rows)
     lines = [
         f"{title} v{__version__}",
@@ -138,7 +138,7 @@ def format_text(rows: list[tuple[Channel, CheckResult]], title: str = "SourceSco
     return "\n".join(lines)
 
 
-def emit(rows: list[tuple[Channel, CheckResult]], fmt: str, title: str = "SourceScout doctor") -> str:
+def emit(rows: list[tuple[Channel, CheckResult]], fmt: str, title: str = "Hermes Trailhead doctor") -> str:
     if fmt == "json":
         return format_json(rows)
     elif fmt == "markdown":
@@ -148,7 +148,7 @@ def emit(rows: list[tuple[Channel, CheckResult]], fmt: str, title: str = "Source
 
 
 def format_queue_text(rows: list[tuple[Channel, CheckResult]]) -> str:
-    lines = ["SourceScout queue", ""]
+    lines = ["Hermes Trailhead queue", ""]
     if not rows:
         lines.append("No actionable channel gaps. All checks are green.")
         return "\n".join(lines)
@@ -202,7 +202,7 @@ def format_brief_json(rows: list[tuple[Channel, CheckResult]], radar_keys: list[
 
 def format_brief_text(rows: list[tuple[Channel, CheckResult]], radar_keys: list[str]) -> str:
     by_key = {ch.key: (ch, res) for ch, res in rows}
-    lines = ["# SourceScout agent brief", "", "Use this routing map before installing external internet tooling.", ""]
+    lines = ["# Hermes Trailhead agent brief", "", "Use this routing map before installing external internet tooling.", ""]
     lines.append("## Preferred paths")
     lines.append("")
     paths = {
@@ -237,7 +237,7 @@ def format_routes_json(routes) -> str:
 
 
 def format_routes_text(routes) -> str:
-    lines = ["# SourceScout task routes", ""]
+    lines = ["# Hermes Trailhead task routes", ""]
     for route in routes:
         lines.append(f"## {route.key}: {route.task}")
         lines.append("")
@@ -257,7 +257,7 @@ def format_route_json(route) -> str:
 
 
 def format_route_text(route) -> str:
-    lines = [f"# SourceScout route: {route.key}", ""]
+    lines = [f"# Hermes Trailhead route: {route.key}", ""]
     lines.append(f"Task: {route.task}")
     lines.append(f"Primary: {route.primary}")
     lines.append(f"Fallbacks: {', '.join(route.fallbacks)}")

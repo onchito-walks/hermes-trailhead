@@ -1,4 +1,4 @@
-"""SourceScout search planning and execution for hard-to-reach internet sources.
+"""Hermes Trailhead search planning and execution for hard-to-reach internet sources.
 
 `search_run()` returns an agent action plan. `execute_search()` executes that plan through
 loginless public search pages rendered by Jina Reader. This keeps the default path free of
@@ -132,7 +132,7 @@ def _fetch_text(url: str, timeout: int = 20) -> str:
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 SourceScout/0.1",
+            "User-Agent": "Mozilla/5.0 Hermes Trailhead/0.1",
             "Accept": "text/plain,text/markdown,*/*",
         },
     )
@@ -200,7 +200,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="web",
             status="ready",
             query=query,
-            recommended_tool="web_search or source-scout --execute",
+            recommended_tool="web_search or hermes-trailhead --execute",
             site_query=query,
             paid_api_required=False,
             evidence_needed=("query", "result_count", "extracted_source_count", "source URLs"),
@@ -222,7 +222,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="x",
             status=status,
             query=query,
-            recommended_tool="x_search, Nitter, or source-scout --execute site search",
+            recommended_tool="x_search, Nitter, or hermes-trailhead --execute site search",
             direct_url=_search_url("nitter", query),
             site_query=_site_query("x.com", query),
             frontend_url="http://localhost:8788",
@@ -246,7 +246,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="reddit",
             status=status,
             query=query,
-            recommended_tool="Redlib, reddit-search, web_search, or source-scout --execute site search",
+            recommended_tool="Redlib, reddit-search, web_search, or hermes-trailhead --execute site search",
             direct_url=_search_url("redlib", query),
             site_query=_site_query("reddit.com", query),
             frontend_url="https://redlib.perennialte.ch",
@@ -260,7 +260,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="tiktok",
             status="gap",
             query=query,
-            recommended_tool="source-scout --execute site search, then supervised browser/media tool if needed",
+            recommended_tool="hermes-trailhead --execute site search, then supervised browser/media tool if needed",
             site_query=_site_query("tiktok.com", query),
             approval_required=True,
             paid_api_required=False,
@@ -273,7 +273,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="instagram",
             status="gap",
             query=query,
-            recommended_tool="source-scout --execute site search, then supervised browser if needed",
+            recommended_tool="hermes-trailhead --execute site search, then supervised browser if needed",
             site_query=_site_query("instagram.com", query),
             approval_required=True,
             paid_api_required=False,
@@ -286,7 +286,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="youtube",
             status="planned",
             query=query,
-            recommended_tool="source-scout --execute site search, media tools, or yt-dlp if installed",
+            recommended_tool="hermes-trailhead --execute site search, media tools, or yt-dlp if installed",
             direct_url=_search_url("youtube", query),
             site_query=_site_query("youtube.com", query),
             paid_api_required=False,
@@ -299,7 +299,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="github",
             status="ready",
             query=query,
-            recommended_tool="GitHub MCP, gh CLI, or source-scout --execute site search",
+            recommended_tool="GitHub MCP, gh CLI, or hermes-trailhead --execute site search",
             direct_url=_search_url("github", query),
             site_query=_site_query("github.com", query),
             paid_api_required=False,
@@ -318,7 +318,7 @@ def search_run(platform: Platform, query: str, *, live: bool = False) -> SearchR
     return SearchRun(
         query=query,
         platform=platform,
-        mode="source_scout_action_plan",
+        mode="hermes_trailhead_action_plan",
         paid_api_required=any(action.paid_api_required for action in actions),
         actions=actions,
     )

@@ -1,10 +1,10 @@
 # Security Policy
 
-SourceScout is a local routing and diagnostics tool. It is designed to be read-only by default.
+Hermes Trailhead is a local routing and diagnostics tool. It is designed to be read-only by default.
 
 ## Security boundaries
 
-SourceScout must not automatically:
+Hermes Trailhead must not automatically:
 
 - read browser cookies
 - print secret values
@@ -32,10 +32,10 @@ If the report includes a real secret, private credential, account token, or expl
 ## Maintainer checklist before release
 
 ```bash
-python3 -m py_compile source_scout/*.py
+python3 -m py_compile hermes_trailhead/*.py
 python3 -m pytest -q
-python3 -m source_scout doctor --format json
-python3 -m source_scout routes --format json
+python3 -m hermes_trailhead doctor --format json
+python3 -m hermes_trailhead routes --format json
 ```
 
 Also run a real secret scanner or your platform's protected-secret checks before publishing. The expected result is no real secret values in tracked files or git history. Mentions of credential names or policy text are acceptable when they do not expose values.

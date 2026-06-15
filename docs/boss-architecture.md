@@ -1,28 +1,28 @@
-# SourceScout Boss-Version Architecture
+# Hermes Trailhead Boss-Version Architecture
 
-SourceScout is not meant to be a clone of Agent-Reach. Agent-Reach is a useful generic scaffold: it installs/probes external tools so agents can read more of the internet. SourceScout should become something sharper: a **agent-native reach map** that tells the agent which hard-to-access sources are reachable, which path to use, what is not configured, what requires approval, and what changed upstream.
+Hermes Trailhead is not meant to be a clone of Agent-Reach. Agent-Reach is a useful generic scaffold: it installs/probes external tools so agents can read more of the internet. Hermes Trailhead should become something sharper: a **agent-native reach map** that tells the agent which hard-to-access sources are reachable, which path to use, what is not configured, what requires approval, and what changed upstream.
 
 ## Upstream Agent-Reach weaknesses to exploit
 
 ### 1. CLI-first, not agent-native
 
-Agent-Reach mostly orchestrates shell tools and MCP servers. That is useful, but it leaves the model to infer policy from prose. SourceScout should expose structured, typed output: statuses, evidence, approval requirements, risks, fallbacks, and next actions. The model should not parse decorative text to decide whether it may touch cookies.
+Agent-Reach mostly orchestrates shell tools and MCP servers. That is useful, but it leaves the model to infer policy from prose. Hermes Trailhead should expose structured, typed output: statuses, evidence, approval requirements, risks, fallbacks, and next actions. The model should not parse decorative text to decide whether it may touch cookies.
 
 ### 2. Safety is advisory instead of enforced
 
-Agent-Reach documents privacy/safety, but it still revolves around installing packages, configuring browser-session tools, and handling cookies. SourceScout should default to read-only diagnostics and setup plans. Any path involving cookies, credentials, paid services, posting, or global installs must be marked `approval_required` in machine-readable output.
+Agent-Reach documents privacy/safety, but it still revolves around installing packages, configuring browser-session tools, and handling cookies. Hermes Trailhead should default to read-only diagnostics and setup plans. Any path involving cookies, credentials, paid services, posting, or global installs must be marked `approval_required` in machine-readable output.
 
 ### 3. Diagnostics lack durable history
 
-A doctor command is useful, but a one-shot doctor forgets. Hermes is strongest when state becomes memory. SourceScout should eventually write run snapshots into GBrain or a local state file so the system can see recurring failures, channels that flap, and upstream changes that repeatedly matter.
+A doctor command is useful, but a one-shot doctor forgets. Hermes is strongest when state becomes memory. Hermes Trailhead should eventually write run snapshots into GBrain or a local state file so the system can see recurring failures, channels that flap, and upstream changes that repeatedly matter.
 
 ### 4. Static channel model
 
-Agent-Reach’s channel/back-end model is source-code-driven. SourceScout should move toward declarative manifests: channel metadata, probes, fallback order, approval gates, and setup plans should be data. Code should provide probe primitives and policy enforcement.
+Agent-Reach’s channel/back-end model is source-code-driven. Hermes Trailhead should move toward declarative manifests: channel metadata, probes, fallback order, approval gates, and setup plans should be data. Code should provide probe primitives and policy enforcement.
 
 ### 5. Weak install-vs-capability loop
 
-Generic internet access is not enough. Hermes needs to know: “What can my current Hermes install already do, what did upstream add, and what should I adopt?” That is the differentiator. SourceScout should integrate with the docs watcher and daily briefing Capability Radar.
+Generic internet access is not enough. Hermes needs to know: “What can my current Hermes install already do, what did upstream add, and what should I adopt?” That is the differentiator. Hermes Trailhead should integrate with the docs watcher and daily briefing Capability Radar.
 
 ## agent-native product principles
 
@@ -73,9 +73,9 @@ setup_plan:
 Add:
 
 ```bash
-source-scout snapshot --output state/reach.json
-source-scout history
-source-scout diff --since yesterday
+hermes-trailhead snapshot --output state/reach.json
+hermes-trailhead history
+hermes-trailhead diff --since yesterday
 ```
 
 Then wire into GBrain or the morning newsletter.
@@ -85,15 +85,15 @@ Then wire into GBrain or the morning newsletter.
 Add safe, explicit remediation plans:
 
 ```bash
-source-scout apply x-search --dry-run
-source-scout apply youtube --project-venv /path/to/project
+hermes-trailhead apply x-search --dry-run
+hermes-trailhead apply youtube --project-venv /path/to/project
 ```
 
 No `--yes` for high-risk channels unless the user explicitly approved the action in the active turn.
 
 ### Phase 4 — Hermes MCP/service surface
 
-Expose SourceScout as an MCP server or native agent toolset so the agent can ask:
+Expose Hermes Trailhead as an MCP server or native agent toolset so the agent can ask:
 
 - “best channel for X?”
 - “what requires approval?”
@@ -102,4 +102,4 @@ Expose SourceScout as an MCP server or native agent toolset so the agent can ask
 
 ## Competitive position
 
-Agent-Reach gives agents more internet tools. SourceScout should give Hermes a verified **reach map**: what sources are reachable, what path works, what is missing, and what evidence proves the result.
+Agent-Reach gives agents more internet tools. Hermes Trailhead should give Hermes a verified **reach map**: what sources are reachable, what path works, what is missing, and what evidence proves the result.

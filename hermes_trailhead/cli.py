@@ -1,4 +1,4 @@
-"""SourceScout CLI — thin argparse layer over formatters, channels, router, and search."""
+"""Hermes Trailhead CLI — thin argparse layer over formatters, channels, router, and search."""
 from __future__ import annotations
 
 import argparse
@@ -68,14 +68,14 @@ def search_data(platform: str, query: str, *, live: bool = False) -> SearchRun:
 
 
 def search_execute_data(platform: str, query: str, *, live: bool = False, limit: int = 5) -> ExecutedSearchRun:
-    """Execute a SourceScout search through loginless public search paths."""
+    """Execute a Hermes Trailhead search through loginless public search paths."""
     return execute_search(cast(Platform, platform), query, live=live, limit=limit)
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
     all_rows = check_all_live() if args.live else check_all()
     rows = filter_rows(all_rows, only=args.only, risk=args.risk, channel=args.channel, tag=args.tag)
-    print(emit(rows, args.format, title="SourceScout doctor"))
+    print(emit(rows, args.format, title="Hermes Trailhead doctor"))
     return exit_code(rows, strict=args.strict)
 
 
@@ -89,7 +89,7 @@ def cmd_queue(args: argparse.Namespace) -> int:
     if args.format == "json":
         print(format_json(rows))
     elif args.format == "markdown":
-        print(emit(rows, "markdown", title="SourceScout queue"))
+        print(emit(rows, "markdown", title="Hermes Trailhead queue"))
     else:
         print(format_queue_text(rows))
     return 0
@@ -151,7 +151,7 @@ def cmd_search(args: argparse.Namespace) -> int:
         if args.format == "json":
             print(json.dumps(executed.to_dict(), indent=2))
             return 0
-        print(f"# SourceScout executed search: {args.platform}\n")
+        print(f"# Hermes Trailhead executed search: {args.platform}\n")
         print(f"Query: {executed.plan.query}")
         print(f"Paid API required: {'yes' if executed.plan.paid_api_required else 'no'}")
         print()
@@ -174,7 +174,7 @@ def cmd_search(args: argparse.Namespace) -> int:
         print(json.dumps(run.to_dict(), indent=2))
         return 0
 
-    print(f"# SourceScout search: {args.platform}\n")
+    print(f"# Hermes Trailhead search: {args.platform}\n")
     print(f"Query: {run.query}")
     print(f"Mode: {run.mode}")
     print(f"Paid API required: {'yes' if run.paid_api_required else 'no'}")
@@ -201,8 +201,8 @@ def cmd_search(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="source-scout", description="Help command-line agents search/read hard-to-reach sources without requiring paid APIs")
-    parser.add_argument("--version", action="version", version=f"source-scout {__version__}")
+    parser = argparse.ArgumentParser(prog="hermes-trailhead", description="Help command-line agents search/read hard-to-reach sources without requiring paid APIs")
+    parser.add_argument("--version", action="version", version=f"hermes-trailhead {__version__}")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     def add_common(p: argparse.ArgumentParser) -> None:

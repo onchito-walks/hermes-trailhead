@@ -540,7 +540,7 @@ def check_agent_reach_upstream() -> CheckResult:
     return _result(
         "warn",
         "Agent-Reach is a plausible MIT scaffold, but cookie/global-install flows should stay sandboxed.",
-        action="Use SourceScout first; sandbox Agent-Reach separately before installing anything into main Hermes.",
+        action="Use Hermes Trailhead first; sandbox Agent-Reach separately before installing anything into main Hermes.",
         evidence=(PolicyEvidence("upstream_review", "MIT repo inspected; broad cookie/global-install surfaces found"),),
         approval_required=True,
         category="external_tooling",

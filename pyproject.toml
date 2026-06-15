@@ -1,5 +1,5 @@
 [project]
-name = "source-scout"
+name = "hermes-trailhead"
 version = "0.1.0"
 description = "Help command-line agents search hard-to-reach internet sources without requiring paid APIs"
 readme = "README.md"
@@ -9,14 +9,14 @@ authors = [{name = "Raymond Delgado / Onchito"}]
 dependencies = []
 
 [project.scripts]
-source-scout = "source_scout.cli:main"
+hermes-trailhead = "hermes_trailhead.cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["source_scout"]
+packages = ["hermes_trailhead"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

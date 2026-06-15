@@ -1,6 +1,6 @@
 # Weekly Operating Loop
 
-SourceScout should be maintained like a small company, not a stale script.
+Hermes Trailhead should be maintained like a small company, not a stale script.
 
 Every week:
 

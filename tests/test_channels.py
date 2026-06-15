@@ -1,4 +1,4 @@
-from source_scout.channels import CHANNELS, get_channel
+from hermes_trailhead.channels import CHANNELS, get_channel
 
 
 def test_channels_have_unique_keys():
