@@ -1,6 +1,6 @@
-# Hermes Reach
+# SourceScout
 
-Hermes Reach helps Hermes and other command-line agents search and read the hard-to-reach parts of the internet without requiring paid APIs for the default read/search paths.
+SourceScout helps command-line agents search and read the hard-to-reach parts of the internet without requiring paid APIs for the default read/search paths.
 
 It is for sources that general web search and basic page fetchers often miss, block, truncate, or return poorly:
 
@@ -10,9 +10,9 @@ It is for sources that general web search and basic page fetchers often miss, bl
 - GitHub repositories, issues, PRs, and release activity
 - PDFs, docs, dynamic pages, browser-only sites, and future MCP/API tools
 
-For each task, Hermes Reach tells the agent which path to use, what is not configured yet, what requires approval, and what evidence proves the result worked.
+For each task, SourceScout tells the agent which path to use, what is not configured yet, what requires approval, and what evidence proves the result worked.
 
-The default paths prefer open-source tools, public pages, privacy frontends, local CLIs, and existing Hermes tools. Paid APIs can be modeled as optional accelerators, but Hermes Reach should not depend on them for its core promise.
+The default paths prefer open-source tools, public pages, privacy frontends, local CLIs, and existing agent tools. Paid APIs can be modeled as optional accelerators, but SourceScout should not depend on them for its core promise.
 
 The “reach map” is the mechanism: a local inventory of source families, available tools, fallback routes, setup gaps, and proof requirements. The point is broader, more reliable internet reach.
 
@@ -33,11 +33,11 @@ Modern agents have a lot of possible internet surfaces:
 
 The hard part is not simply “can the agent access the internet?” The hard part is knowing **which surface gives the best coverage for this task**, whether that surface is currently configured, and whether the resulting links/data actually work.
 
-Hermes Reach exists to make hard-to-reach sources usable from an agent harness without overstating what is actually configured.
+SourceScout exists to make hard-to-reach sources usable from an agent harness without overstating what is actually configured.
 
 ## What it does
 
-Hermes Reach has four jobs:
+SourceScout has four jobs:
 
 1. **Inventory reach** — show what channels are available, missing, weak, or risky.
 2. **Route tasks** — choose the best search/read/browser/social path for a given request.
@@ -54,7 +54,7 @@ It is supposed to answer practical questions like:
 
 ## Reach map
 
-| Source family | Best current path | What Hermes Reach should report |
+| Source family | Best current path | What SourceScout should report |
 |---|---|---|
 | Open web | Hermes `web_search`, `web_extract` | available path, query count, extracted sources |
 | Known URL/PDF | `web_extract`, Jina Reader fallback | source URL, extraction status, failure reason if any |
@@ -68,7 +68,7 @@ It is supposed to answer practical questions like:
 | Crawl/extract | Firecrawl, Crawl4AI, Exa, Jina Reader | chosen extractor, fixture URL, schema/output evidence |
 | External tools | MCP catalogs, Agent-Reach-like tools, SaaS connectors | setup status, required credentials, approval boundary |
 
-The important behavior: if a source family is not actually reachable yet, Hermes Reach should say **not configured** or **gap**, not imply coverage.
+The important behavior: if a source family is not actually reachable yet, SourceScout should say **not configured** or **gap**, not imply coverage.
 
 ## Install
 
@@ -76,7 +76,7 @@ From a checkout:
 
 ```bash
 python3 -m pytest -q
-python3 -m hermes_reach doctor
+python3 -m source_scout doctor
 ```
 
 Editable install:
@@ -85,52 +85,52 @@ Editable install:
 uv venv .venv
 . .venv/bin/activate
 uv pip install -e .
-hermes-reach doctor
+source-scout doctor
 ```
 
 ## Core commands
 
 ```bash
 # Check capability health with evidence
-python3 -m hermes_reach doctor
-python3 -m hermes_reach doctor --format json
+python3 -m source_scout doctor
+python3 -m source_scout doctor --format json
 
 # Show prioritized gaps
-python3 -m hermes_reach queue
-python3 -m hermes_reach queue --risk high --top 3
+python3 -m source_scout queue
+python3 -m source_scout queue --risk high --top 3
 
 # Ask the router what path a task should use
-python3 -m hermes_reach route "search X, TikTok, Instagram, Reddit, and YouTube for Hermes Agent discussion"
-python3 -m hermes_reach route "read this known url as markdown"
-python3 -m hermes_reach route "login to a site and fill a form"
-python3 -m hermes_reach route "extract schema from website"
+python3 -m source_scout route "search X, TikTok, Instagram, Reddit, and YouTube for Hermes Agent discussion"
+python3 -m source_scout route "read this known url as markdown"
+python3 -m source_scout route "login to a site and fill a form"
+python3 -m source_scout route "extract schema from website"
 
-# Build a Hermes-usable search action plan
-python3 -m hermes_reach search all "Hermes Agent discussion" --format json
-python3 -m hermes_reach search reddit "Hermes Agent" --format json
-python3 -m hermes_reach search tiktok "Hermes Agent" --live
+# Build a agent-usable search action plan
+python3 -m source_scout search all "Hermes Agent discussion" --format json
+python3 -m source_scout search reddit "Hermes Agent" --format json
+python3 -m source_scout search tiktok "Hermes Agent" --live
 
 # Execute the search through loginless public search paths and return real hits
-python3 -m hermes_reach search all "Hermes Agent discussion" --execute --limit 3 --format json
+python3 -m source_scout search all "Hermes Agent discussion" --execute --limit 3 --format json
 
 # List all routing rules
-python3 -m hermes_reach routes
+python3 -m source_scout routes
 
 # Emit an agent-facing brief
-python3 -m hermes_reach agent-brief
+python3 -m source_scout agent-brief
 
 # Print a safe setup plan for one channel
-python3 -m hermes_reach plan x-search
-python3 -m hermes_reach plan tiktok
-python3 -m hermes_reach plan instagram
+python3 -m source_scout plan x-search
+python3 -m source_scout plan tiktok
+python3 -m source_scout plan instagram
 ```
 
-## Hermes-usable search plans
+## agent-usable search plans
 
-`hermes-reach search` is the agent-facing command. By default it emits a structured action plan that Hermes can execute with its own tools (`web_search`, `web_extract`, `x_search`, GitHub MCP, browser tools, media tools) without requiring paid APIs. With `--execute`, it also executes search through loginless public search pages rendered by Jina Reader and returns real retrieved links.
+`source-scout search` is the agent-facing command. By default it emits a structured action plan that Hermes can execute with its own tools (`web_search`, `web_extract`, `x_search`, GitHub MCP, browser tools, media tools) without requiring paid APIs. With `--execute`, it also executes search through loginless public search pages rendered by Jina Reader and returns real retrieved links.
 
 ```bash
-python3 -m hermes_reach search all "Hermes Agent discussion" --format json
+python3 -m source_scout search all "Hermes Agent discussion" --format json
 ```
 
 Output contract:
@@ -139,7 +139,7 @@ Output contract:
 {
   "query": "Hermes Agent discussion",
   "platform": "all",
-  "mode": "hermes_action_plan",
+  "mode": "source_scout_action_plan",
   "paid_api_required": false,
   "actions": [
     {
@@ -161,14 +161,14 @@ The point: Hermes can read this JSON and know exactly what to call next, what re
 To execute immediately:
 
 ```bash
-python3 -m hermes_reach search all "Prusa XL PLA curling edges" --execute --limit 3 --format json
+python3 -m source_scout search all "Prusa XL PLA curling edges" --execute --limit 3 --format json
 ```
 
 Executed output wraps the plan plus per-platform executions:
 
 ```json
 {
-  "plan": {"mode": "hermes_action_plan"},
+  "plan": {"mode": "source_scout_action_plan"},
   "executions": [
     {
       "platform": "reddit",
@@ -185,7 +185,7 @@ Executed output wraps the plan plus per-platform executions:
 Supported source families:
 
 ```bash
-python3 -m hermes_reach search --help
+python3 -m source_scout search --help
 ```
 
 ```text
@@ -195,13 +195,13 @@ python3 -m hermes_reach search --help
 ## Example: broad social/current search
 
 ```bash
-python3 -m hermes_reach route "search X, Reddit, TikTok, Instagram, YouTube and the web for current Hermes Agent discussion"
+python3 -m source_scout route "search X, Reddit, TikTok, Instagram, YouTube and the web for current Hermes Agent discussion"
 ```
 
 Output shape:
 
 ```text
-# Hermes Reach route: social-current-signal
+# SourceScout route: social-current-signal
 
 Task: Current social/maintainer/community signal across X, Reddit, TikTok, Instagram, YouTube, and the public web
 Primary: x_search/Nitter for X, Redlib/reddit-search for Reddit, yt-dlp/media tools for YouTube, privacy-frontends or supervised browser for TikTok/Instagram
@@ -221,7 +221,7 @@ That is the product: **broader reach, explicit gaps, working links, and evidence
 
 ## Architecture
 
-Hermes Reach is intentionally boring.
+SourceScout is intentionally boring.
 
 ```text
 User task
@@ -239,15 +239,15 @@ The code is split into three pieces:
 
 | File | Purpose |
 |---|---|
-| `hermes_reach/channels.py` | Capability inventory and setup plans. |
-| `hermes_reach/router.py` | Task-class routing rules. |
-| `hermes_reach/cli.py` | Human and machine-readable commands. |
+| `source_scout/channels.py` | Capability inventory and setup plans. |
+| `source_scout/router.py` | Task-class routing rules. |
+| `source_scout/cli.py` | Human and machine-readable commands. |
 
 The main data model is plain Python dataclasses. Output is text, Markdown, or JSON.
 
 ## Safety model
 
-Hermes Reach is read-only by default.
+SourceScout is read-only by default.
 
 It does **not** automatically:
 
@@ -272,7 +272,7 @@ Examples of high-risk work:
 
 ## Loginless-first search
 
-Hermes Reach prefers search paths that do not require personal logins when the task allows it:
+SourceScout prefers search paths that do not require personal logins when the task allows it:
 
 1. Search with public or configured search surfaces.
 2. Read pages with clean readers like `web_extract` or Jina Reader.
@@ -282,7 +282,7 @@ Hermes Reach prefers search paths that do not require personal logins when the t
 
 ## Prior art
 
-Hermes Reach is not claiming to be first. It is a local reach-and-routing take on ideas from several strong projects.
+SourceScout is not claiming to be first. It is a local reach-and-routing take on ideas from several strong projects.
 
 ### Agent capability and MCP ecosystems
 
@@ -295,7 +295,7 @@ Hermes Reach is not claiming to be first. It is a local reach-and-routing take o
 
 ### Browser, crawl, and extraction engines
 
-Hermes Reach does not replace these tools. It routes to them when they fit.
+SourceScout does not replace these tools. It routes to them when they fit.
 
 - [Firecrawl](https://docs.firecrawl.dev/) for crawl/search/extract APIs.
 - [Crawl4AI](https://docs.crawl4ai.com/) for open, deterministic crawl/extract workflows.
@@ -316,9 +316,9 @@ This is central to the project goal: broad current-world search across sources t
 - YouTube transcript/metadata tools.
 - Site-specific web search when a dedicated reader is missing.
 
-## What Hermes Reach is not
+## What SourceScout is not
 
-Hermes Reach is not:
+SourceScout is not:
 
 - a public MCP registry
 - a SaaS integration marketplace
@@ -333,7 +333,7 @@ It is the small local layer that tells an agent which of those things to use, wh
 ## Tests
 
 ```bash
-python3 -m py_compile hermes_reach/*.py
+python3 -m py_compile source_scout/*.py
 python3 -m pytest -q
 ```
 
@@ -359,6 +359,6 @@ A healthy reach map needs maintenance. The intended weekly loop is:
 
 ## License and attribution
 
-Hermes Reach is open source under the BSD 3-Clause License. You may use, modify, and redistribute it, but you must preserve the copyright notice and license text.
+SourceScout is open source under the BSD 3-Clause License. You may use, modify, and redistribute it, but you must preserve the copyright notice and license text.
 
 See `NOTICE.md` for prior-art acknowledgments.

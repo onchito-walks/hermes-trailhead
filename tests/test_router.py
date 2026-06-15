@@ -1,4 +1,4 @@
-from hermes_reach.router import all_routes, route_for, route_for_ranked
+from source_scout.router import all_routes, route_for, route_for_ranked
 
 
 def test_routes_have_required_fields():

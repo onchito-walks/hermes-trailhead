@@ -1,4 +1,4 @@
-"""Hermes Reach CLI — thin argparse layer over formatters, channels, router, and search."""
+"""SourceScout CLI — thin argparse layer over formatters, channels, router, and search."""
 from __future__ import annotations
 
 import argparse
@@ -63,19 +63,19 @@ def queue_data(top: int | None = None) -> list[tuple[Channel, CheckResult]]:
 
 
 def search_data(platform: str, query: str, *, live: bool = False) -> SearchRun:
-    """Return a Hermes-usable search action plan without printing."""
+    """Return a agent-usable search action plan without printing."""
     return search_run(cast(Platform, platform), query, live=live)
 
 
 def search_execute_data(platform: str, query: str, *, live: bool = False, limit: int = 5) -> ExecutedSearchRun:
-    """Execute a Hermes Reach search through loginless public search paths."""
+    """Execute a SourceScout search through loginless public search paths."""
     return execute_search(cast(Platform, platform), query, live=live, limit=limit)
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
     all_rows = check_all_live() if args.live else check_all()
     rows = filter_rows(all_rows, only=args.only, risk=args.risk, channel=args.channel, tag=args.tag)
-    print(emit(rows, args.format, title="Hermes Reach doctor"))
+    print(emit(rows, args.format, title="SourceScout doctor"))
     return exit_code(rows, strict=args.strict)
 
 
@@ -89,7 +89,7 @@ def cmd_queue(args: argparse.Namespace) -> int:
     if args.format == "json":
         print(format_json(rows))
     elif args.format == "markdown":
-        print(emit(rows, "markdown", title="Hermes Reach queue"))
+        print(emit(rows, "markdown", title="SourceScout queue"))
     else:
         print(format_queue_text(rows))
     return 0
@@ -151,7 +151,7 @@ def cmd_search(args: argparse.Namespace) -> int:
         if args.format == "json":
             print(json.dumps(executed.to_dict(), indent=2))
             return 0
-        print(f"# Hermes Reach executed search: {args.platform}\n")
+        print(f"# SourceScout executed search: {args.platform}\n")
         print(f"Query: {executed.plan.query}")
         print(f"Paid API required: {'yes' if executed.plan.paid_api_required else 'no'}")
         print()
@@ -174,7 +174,7 @@ def cmd_search(args: argparse.Namespace) -> int:
         print(json.dumps(run.to_dict(), indent=2))
         return 0
 
-    print(f"# Hermes Reach search: {args.platform}\n")
+    print(f"# SourceScout search: {args.platform}\n")
     print(f"Query: {run.query}")
     print(f"Mode: {run.mode}")
     print(f"Paid API required: {'yes' if run.paid_api_required else 'no'}")
@@ -201,8 +201,8 @@ def cmd_search(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="hermes-reach", description="Help Hermes search/read hard-to-reach sources without requiring paid APIs")
-    parser.add_argument("--version", action="version", version=f"hermes-reach {__version__}")
+    parser = argparse.ArgumentParser(prog="source-scout", description="Help command-line agents search/read hard-to-reach sources without requiring paid APIs")
+    parser.add_argument("--version", action="version", version=f"source-scout {__version__}")
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     def add_common(p: argparse.ArgumentParser) -> None:
@@ -247,7 +247,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     search = sub.add_parser(
         "search",
-        help="Build or execute a Hermes-usable search for hard-to-reach sources",
+        help="Build or execute a agent-usable search for hard-to-reach sources",
         description="Build an action plan, or execute it via loginless public search paths with --execute.",
     )
     search.add_argument("platform", choices=["all", *PLATFORMS], help="Source family to search")

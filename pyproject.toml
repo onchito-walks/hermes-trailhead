@@ -1,22 +1,22 @@
 [project]
-name = "hermes-reach"
+name = "source-scout"
 version = "0.1.0"
-description = "Help Hermes search hard-to-reach internet sources without requiring paid APIs"
+description = "Help command-line agents search hard-to-reach internet sources without requiring paid APIs"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "BSD-3-Clause"}
-authors = [{name = "Raymond Delgado / Hermes"}]
+authors = [{name = "Raymond Delgado / Onchito"}]
 dependencies = []
 
 [project.scripts]
-hermes-reach = "hermes_reach.cli:main"
+source-scout = "source_scout.cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["hermes_reach"]
+packages = ["source_scout"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

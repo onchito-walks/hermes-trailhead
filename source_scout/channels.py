@@ -540,7 +540,7 @@ def check_agent_reach_upstream() -> CheckResult:
     return _result(
         "warn",
         "Agent-Reach is a plausible MIT scaffold, but cookie/global-install flows should stay sandboxed.",
-        action="Use Hermes Reach first; sandbox Agent-Reach separately before installing anything into main Hermes.",
+        action="Use SourceScout first; sandbox Agent-Reach separately before installing anything into main Hermes.",
         evidence=(PolicyEvidence("upstream_review", "MIT repo inspected; broad cookie/global-install surfaces found"),),
         approval_required=True,
         category="external_tooling",
@@ -568,7 +568,7 @@ def check_crawl4ai() -> CheckResult:
 def check_browserbase() -> CheckResult:
     if _io.getenv("BROWSERBASE_API_KEY") or _io.getenv("BROWSERBASE_PROJECT_ID"):
         return _result("ok", "Browserbase credentials present; hosted browser infrastructure available.", evidence=(EnvEvidence("env", "Browserbase env vars present", var_name="BROWSERBASE_API_KEY"),), approval_required=True, category="external_tooling")
-    return _result("off", "Browserbase not configured. Use Hermes browser tools for interactive work.", action="Set BROWSERBASE_API_KEY and BROWSERBASE_PROJECT_ID only when Hermes-native browser tools are insufficient.", evidence=(EnvEvidence("env", "BROWSERBASE_API_KEY absent", var_name="BROWSERBASE_API_KEY"),), error_kind="config_missing", category="external_tooling")
+    return _result("off", "Browserbase not configured. Use Hermes browser tools for interactive work.", action="Set BROWSERBASE_API_KEY and BROWSERBASE_PROJECT_ID only when agent-native browser tools are insufficient.", evidence=(EnvEvidence("env", "BROWSERBASE_API_KEY absent", var_name="BROWSERBASE_API_KEY"),), error_kind="config_missing", category="external_tooling")
 
 
 def check_jina_reader() -> CheckResult:

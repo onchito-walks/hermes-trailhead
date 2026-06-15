@@ -1,4 +1,4 @@
-# Hermes Reach Comparative Landscape — Hard Self-Critique
+# SourceScout Comparative Landscape — Hard Self-Critique
 
 Date: 2026-06-14
 
@@ -42,7 +42,7 @@ The research is enough to identify product direction, not enough to benchmark ru
 
 ## Hard self-critique
 
-Hermes Reach is not yet a boss product. It is currently a useful **reach diagnostic** with the beginnings of coverage and policy awareness. The risk is that it becomes a prettier `doctor` command and stops there. That would be a miss.
+SourceScout is not yet a boss product. It is currently a useful **reach diagnostic** with the beginnings of coverage and policy awareness. The risk is that it becomes a prettier `doctor` command and stops there. That would be a miss.
 
 The best systems in this landscape separate four planes:
 
@@ -51,49 +51,49 @@ The best systems in this landscape separate four planes:
 3. **Execution plane** — what runtime actually performs the action?
 4. **Governance plane** — what policy, approval, audit, and rollback rules apply?
 
-Hermes Reach currently has a partial governance plane and a small local catalog. It does not yet have real cross-platform search commands, discovery import, auth brokerage, execution runtime, persistent audit, scoring, or historical reliability. So the honest critique is: **Hermes Reach is a reach map and channel doctor, not yet a full hard-to-reach internet search layer.**
+SourceScout currently has a partial governance plane and a small local catalog. It does not yet have real cross-platform search commands, discovery import, auth brokerage, execution runtime, persistent audit, scoring, or historical reliability. So the honest critique is: **SourceScout is a reach map and channel doctor, not yet a full hard-to-reach internet search layer.**
 
-That is fixable. The right next move is not to copy Agent-Reach’s installer energy. It is to make Hermes Reach the layer that decides *which* hard-to-reach surface Hermes should use, *why*, *what coverage exists*, *what evidence is needed*, and *which actions require approval*.
+That is fixable. The right next move is not to copy Agent-Reach’s installer energy. It is to make SourceScout the layer that decides *which* hard-to-reach surface Hermes should use, *why*, *what coverage exists*, *what evidence is needed*, and *which actions require approval*.
 
 ## What competitors do better
 
 ### Composio
 
-Composio wins on breadth and meta-tooling. It has a huge toolkit catalog, connection management, schema inspection, multi-execution, and sandboxed compute. The lesson is not “use Composio.” The lesson is that Hermes Reach needs meta-operations: search capabilities, inspect schemas, manage connections, wait for approvals, execute batches, and preserve an evidence trail.
+Composio wins on breadth and meta-tooling. It has a huge toolkit catalog, connection management, schema inspection, multi-execution, and sandboxed compute. The lesson is not “use Composio.” The lesson is that SourceScout needs meta-operations: search capabilities, inspect schemas, manage connections, wait for approvals, execute batches, and preserve an evidence trail.
 
-Hermes Reach should not become opaque like a platform wrapper. It should show exactly what connector was chosen and why.
+SourceScout should not become opaque like a platform wrapper. It should show exactly what connector was chosen and why.
 
 ### Pipedream MCP / Connect
 
-Pipedream wins at managed API integration and per-app MCP surfaces. The lesson is isolation: external capabilities should be modeled as connectors with auth mode, transport, scopes, owner, and health. Hermes Reach should import candidates from registries/catalogs but keep local policy in charge.
+Pipedream wins at managed API integration and per-app MCP surfaces. The lesson is isolation: external capabilities should be modeled as connectors with auth mode, transport, scopes, owner, and health. SourceScout should import candidates from registries/catalogs but keep local policy in charge.
 
 ### Arcade.dev
 
-Arcade is the closest design analogue: runtime + tool catalog + agent authorization. It treats agent action as the product, not just access to tools. Hermes Reach should steal that separation but remain local-first and operator-visible.
+Arcade is the closest design analogue: runtime + tool catalog + agent authorization. It treats agent action as the product, not just access to tools. SourceScout should steal that separation but remain local-first and operator-visible.
 
 ### MCP Registry / Glama / PulseMCP
 
-These projects win at discovery. Glama/PulseMCP make the scale obvious: tens of thousands of MCP servers exist or are emerging. Hermes Reach has no discovery/import plane yet. But raw registry discovery is noisy and unsafe; popularity is not trust. Hermes Reach’s differentiator should be local validation and local fit scoring.
+These projects win at discovery. Glama/PulseMCP make the scale obvious: tens of thousands of MCP servers exist or are emerging. SourceScout has no discovery/import plane yet. But raw registry discovery is noisy and unsafe; popularity is not trust. SourceScout’s differentiator should be local validation and local fit scoring.
 
 ### Firecrawl / Crawl4AI
 
-They win at crawling/extraction. Hermes Reach should not try to become a crawler by adding channel entries. It should route crawl/extract tasks to the right engines and insist on evidence: schema, fixture URL, parser output, failure mode.
+They win at crawling/extraction. SourceScout should not try to become a crawler by adding channel entries. It should route crawl/extract tasks to the right engines and insist on evidence: schema, fixture URL, parser output, failure mode.
 
 Crawl4AI’s no-LLM CSS/XPath/Regex extraction is especially important: deterministic extraction should precede expensive LLM extraction.
 
 ### Browserbase / Stagehand / browser-use
 
-They win at browser execution. Browserbase adds managed sessions and persistent contexts. Stagehand gives clean primitives: Act, Extract, Observe, Agent. Browser-use shows the value of a benchmarked browser-agent harness. Hermes Reach should be the policy/routing layer before those tools, not a replacement for them.
+They win at browser execution. Browserbase adds managed sessions and persistent contexts. Stagehand gives clean primitives: Act, Extract, Observe, Agent. Browser-use shows the value of a benchmarked browser-agent harness. SourceScout should be the policy/routing layer before those tools, not a replacement for them.
 
 ### Agent-Reach / OpenCLI / twitter-cli / rdt-cli / yt-dlp / mcporter
 
 This lineage wins at pragmatic access. Agent-Reach’s strongest idea is replaceable channels backed by mature upstream tools. OpenCLI/browser-session reuse is powerful but sensitive. twitter-cli/rdt-cli show structured output and layered auth. yt-dlp is the gold standard for being honest about cookies, headers, IP/session fidelity, stale packages, and unsupported URLs. mcporter shows interoperability: discover/call/generate clients around MCP.
 
-Hermes Reach should borrow their realism but not their unsafe defaults.
+SourceScout should borrow their realism but not their unsafe defaults.
 
-## What Hermes Reach should uniquely be
+## What SourceScout should uniquely be
 
-Hermes Reach should be the **reach map for Hermes Agent**.
+SourceScout should be the **reach map for Hermes Agent**.
 
 That means:
 
@@ -111,10 +111,10 @@ The product should answer:
 This research led directly to the `router.py` task-class routing layer:
 
 ```bash
-python3 -m hermes_reach routes
-python3 -m hermes_reach route "read this known url as markdown"
-python3 -m hermes_reach route "login to a site and fill a form"
-python3 -m hermes_reach route "extract schema from website"
+python3 -m source_scout routes
+python3 -m source_scout route "read this known url as markdown"
+python3 -m source_scout route "login to a site and fill a form"
+python3 -m source_scout route "extract schema from website"
 ```
 
 Each route now encodes:
@@ -127,7 +127,7 @@ Each route now encodes:
 - evidence required before success can be claimed
 - competitor lesson that informed the route
 
-This makes Hermes Reach less like a static checklist and more like a decision engine.
+This makes SourceScout less like a static checklist and more like a decision engine.
 
 ## Next product milestones
 
@@ -157,9 +157,9 @@ Imported entries should remain `candidate` until locally validated.
 Add snapshot/history:
 
 ```bash
-hermes-reach snapshot
-hermes-reach history
-hermes-reach diff --since yesterday
+source-scout snapshot
+source-scout history
+source-scout diff --since yesterday
 ```
 
 Eventually write summaries to GBrain or the daily briefing.
@@ -183,7 +183,7 @@ Route decisions should change based on available auth.
 Add dry-run only at first:
 
 ```bash
-hermes-reach apply x-search --dry-run
+source-scout apply x-search --dry-run
 ```
 
 No high-risk mutation without explicit active-turn approval.
@@ -199,10 +199,10 @@ Create benchmarks for task classes:
 - social account audit
 - browser login/form task
 
-Hermes Reach should score adapters by actual task success, not vibes.
+SourceScout should score adapters by actual task success, not vibes.
 
 ## Bottom line
 
 Agent-Reach is a broad access scaffold. Composio/Pipedream/Arcade are managed integration platforms. Firecrawl/Crawl4AI/Browserbase/Stagehand/browser-use are execution engines. MCP directories are discovery layers.
 
-Hermes Reach should be none of those directly. It should be the **local Hermes decision, policy, and evidence layer** that chooses among them safely.
+SourceScout should be none of those directly. It should be the **local Hermes decision, policy, and evidence layer** that chooses among them safely.

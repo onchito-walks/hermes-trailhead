@@ -1,7 +1,7 @@
 import json
 
-from hermes_reach.cli import main, search_data
-from hermes_reach.search import execute_search, search_run
+from source_scout.cli import main, search_data
+from source_scout.search import execute_search, search_run
 
 
 def _json_from_cli(capsys, argv):
@@ -16,7 +16,7 @@ def test_search_json_contract_all(capsys):
     assert rc == 0
     assert set(data) == {"query", "platform", "mode", "paid_api_required", "actions"}
     assert data["platform"] == "all"
-    assert data["mode"] == "hermes_action_plan"
+    assert data["mode"] == "source_scout_action_plan"
     assert data["paid_api_required"] is False
     assert len(data["actions"]) == 7
     for action in data["actions"]:
@@ -104,7 +104,7 @@ Forum thread about curling.
 
     executed = execute_search("web", "Prusa XL PLA curling", limit=2, fetch=fake_fetch)
 
-    assert executed.plan.mode == "hermes_action_plan"
+    assert executed.plan.mode == "source_scout_action_plan"
     assert len(executed.executions) == 1
     execution = executed.executions[0]
     assert execution.status == "ok"
@@ -119,12 +119,12 @@ def test_execute_search_json_contract_with_monkeypatch(monkeypatch, capsys):
 Useful snippet.
 """
 
-    monkeypatch.setattr("hermes_reach.search._fetch_text", lambda url, timeout: markdown)
+    monkeypatch.setattr("source_scout.search._fetch_text", lambda url, timeout: markdown)
     rc, data, _ = _json_from_cli(capsys, ["search", "web", "test query", "--execute", "--limit", "1", "--format", "json"])
 
     assert rc == 0
     assert set(data) == {"plan", "executions"}
-    assert data["plan"]["mode"] == "hermes_action_plan"
+    assert data["plan"]["mode"] == "source_scout_action_plan"
     assert data["executions"][0]["status"] == "ok"
     assert data["executions"][0]["result_count"] == 1
     assert data["executions"][0]["hits"][0]["url"] == "https://example.com/result"

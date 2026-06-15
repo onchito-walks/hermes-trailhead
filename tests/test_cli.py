@@ -1,4 +1,4 @@
-from hermes_reach.cli import main
+from source_scout.cli import main
 
 
 def test_doctor_json_contract(capsys):

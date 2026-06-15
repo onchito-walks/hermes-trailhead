@@ -2,10 +2,10 @@ import json
 
 import pytest
 
-from hermes_reach import __version__
-from hermes_reach.channels import CHANNELS, Channel, CheckResult, Evidence, check_x_search
-from hermes_reach.cli import main
-from hermes_reach.router import all_routes, route_for
+from source_scout import __version__
+from source_scout.channels import CHANNELS, Channel, CheckResult, Evidence, check_x_search
+from source_scout.cli import main
+from source_scout.router import all_routes, route_for
 
 
 CHANNEL_KEYS = {
@@ -210,7 +210,7 @@ def test_channel_base_dict_shape():
 
 
 def test_checkresult_to_dict_shape():
-    from hermes_reach.channels import PolicyEvidence
+    from source_scout.channels import PolicyEvidence
     result = CheckResult(status="ok", detail="fine", evidence=(PolicyEvidence(source="unit", detail="proof"),))
     data = result.to_dict()
 
@@ -224,7 +224,7 @@ def test_version_arg_prints_package_version(capsys):
     out = capsys.readouterr().out
 
     assert exc.value.code == 0
-    assert f"hermes-reach {__version__}" in out
+    assert f"source-scout {__version__}" in out
 
 
 def test_public_readme_does_not_claim_to_be_crawler_or_registry():

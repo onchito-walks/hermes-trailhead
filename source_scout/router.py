@@ -87,7 +87,7 @@ ROUTES: tuple[Route, ...] = (
         approval_required=False,
         rationale="Structured extraction should produce repeatable evidence and tests. Use LLMs after deterministic methods fail or for messy natural-language fields.",
         evidence_needed=("schema", "sample output", "fixture URL", "parser failure modes"),
-        competitor_lesson="Firecrawl and Crawl4AI are stronger than Hermes Reach here; Hermes Reach should route to them rather than pretend to be a crawler.",
+        competitor_lesson="Firecrawl and Crawl4AI are stronger than SourceScout here; SourceScout should route to them rather than pretend to be a crawler.",
     ),
     Route(
         key="interactive-browser",
@@ -98,7 +98,7 @@ ROUTES: tuple[Route, ...] = (
         approval_required=True,
         rationale="Interactive browser work can cross account and credential boundaries. It needs explicit human approval and observable execution.",
         evidence_needed=("target site", "account boundary", "allowed actions", "screenshot/log proof"),
-        competitor_lesson="Browserbase wins on managed persistent contexts; Stagehand wins on browser primitives. Hermes Reach should be the policy gate before either.",
+        competitor_lesson="Browserbase wins on managed persistent contexts; Stagehand wins on browser primitives. SourceScout should be the policy gate before either.",
     ),
     Route(
         key="social-current-signal",
@@ -109,18 +109,18 @@ ROUTES: tuple[Route, ...] = (
         approval_required=True,
         rationale="The goal is broad, reliable social search coverage. Prefer read-only public/privacy frontends and accountless routes first; escalate to browser/account paths only with approval.",
         evidence_needed=("platforms checked", "handles/subreddits/queries", "time window", "retrieved count per platform", "dead-link/coverage caveat"),
-        competitor_lesson="Agent-Reach/OpenCLI emphasize practical access to difficult sources; Hermes Reach should make platform coverage visible and route to the best available reader without overstating coverage.",
+        competitor_lesson="Agent-Reach/OpenCLI emphasize practical access to difficult sources; SourceScout should make platform coverage visible and route to the best available reader without overstating coverage.",
     ),
     Route(
         key="external-tool-enable",
         task="Install/enable external capability tool",
-        primary="Hermes Reach plan + explicit approval",
+        primary="SourceScout plan + explicit approval",
         fallbacks=("sandbox venv", "temporary clone", "MCP catalog candidate import"),
         avoid=("global npm/pip installs by default", "credentials in plaintext", "installer docs as proof of safety"),
         approval_required=True,
         rationale="External capability tools change the system and may touch credentials. They need a plan, sandbox, doctor result, and rollback story.",
         evidence_needed=("license", "install commands", "credential surfaces", "doctor output", "rollback command"),
-        competitor_lesson="Composio/Pipedream/Arcade solve breadth with managed platforms; Hermes Reach should import candidates but keep local governance.",
+        competitor_lesson="Composio/Pipedream/Arcade solve breadth with managed platforms; SourceScout should import candidates but keep local governance.",
     ),
 )
 

@@ -1,6 +1,6 @@
 # Weekly Operating Loop
 
-Hermes Reach should be maintained like a small company, not a stale script.
+SourceScout should be maintained like a small company, not a stale script.
 
 Every week:
 

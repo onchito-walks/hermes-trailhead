@@ -1,4 +1,4 @@
-"""Formatters for Hermes Reach output: text, markdown, JSON."""
+"""Formatters for SourceScout output: text, markdown, JSON."""
 from __future__ import annotations
 
 import json
@@ -72,7 +72,7 @@ def format_json(rows: list[tuple[Channel, CheckResult]]) -> str:
     )
 
 
-def format_markdown(rows: list[tuple[Channel, CheckResult]], title: str = "Hermes Reach doctor") -> str:
+def format_markdown(rows: list[tuple[Channel, CheckResult]], title: str = "SourceScout doctor") -> str:
     counts = summary(rows)
     lines = [f"# {title}", ""]
     lines.append(f"Summary: ✅ {counts['ok']} · ⚠️ {counts['warn']} · ⬜ {counts['off']} · ❌ {counts['fail']}")
@@ -107,7 +107,7 @@ def format_markdown(rows: list[tuple[Channel, CheckResult]], title: str = "Herme
     return "\n".join(lines)
 
 
-def format_text(rows: list[tuple[Channel, CheckResult]], title: str = "Hermes Reach doctor") -> str:
+def format_text(rows: list[tuple[Channel, CheckResult]], title: str = "SourceScout doctor") -> str:
     counts = summary(rows)
     lines = [
         f"{title} v{__version__}",
@@ -140,7 +140,7 @@ def format_text(rows: list[tuple[Channel, CheckResult]], title: str = "Hermes Re
     return "\n".join(lines)
 
 
-def emit(rows: list[tuple[Channel, CheckResult]], fmt: str, title: str = "Hermes Reach doctor") -> str:
+def emit(rows: list[tuple[Channel, CheckResult]], fmt: str, title: str = "SourceScout doctor") -> str:
     if fmt == "json":
         return format_json(rows)
     elif fmt == "markdown":
@@ -150,7 +150,7 @@ def emit(rows: list[tuple[Channel, CheckResult]], fmt: str, title: str = "Hermes
 
 
 def format_queue_text(rows: list[tuple[Channel, CheckResult]]) -> str:
-    lines = ["Hermes Reach queue", ""]
+    lines = ["SourceScout queue", ""]
     if not rows:
         lines.append("No actionable channel gaps. All checks are green.")
         return "\n".join(lines)
@@ -204,7 +204,7 @@ def format_brief_json(rows: list[tuple[Channel, CheckResult]], radar_keys: list[
 
 def format_brief_text(rows: list[tuple[Channel, CheckResult]], radar_keys: list[str]) -> str:
     by_key = {ch.key: (ch, res) for ch, res in rows}
-    lines = ["# Hermes Reach agent brief", "", "Use this routing map before installing external internet tooling.", ""]
+    lines = ["# SourceScout agent brief", "", "Use this routing map before installing external internet tooling.", ""]
     lines.append("## Preferred paths")
     lines.append("")
     paths = {
@@ -239,7 +239,7 @@ def format_routes_json(routes) -> str:
 
 
 def format_routes_text(routes) -> str:
-    lines = ["# Hermes Reach task routes", ""]
+    lines = ["# SourceScout task routes", ""]
     for route in routes:
         lines.append(f"## {route.key}: {route.task}")
         lines.append("")
@@ -259,7 +259,7 @@ def format_route_json(route) -> str:
 
 
 def format_route_text(route) -> str:
-    lines = [f"# Hermes Reach route: {route.key}", ""]
+    lines = [f"# SourceScout route: {route.key}", ""]
     lines.append(f"Task: {route.task}")
     lines.append(f"Primary: {route.primary}")
     lines.append(f"Fallbacks: {', '.join(route.fallbacks)}")
