@@ -27,9 +27,11 @@ from .formatters import (
     format_radar_text,
 )
 from .router import all_routes, route_for
+from .router import route_for_with_live, score_route_with_live_state
 from .search import PLATFORMS, Platform, execute_search, search_run, ExecutedSearchRun, SearchRun
 from .extract import extract_hits
 from .scoring import score_hits, rank_hits, ScoredHit
+from .reliability import record_all_checks, reliability_summary
 
 
 RADAR_KEYS = [
@@ -77,6 +79,8 @@ def search_execute_data(platform: str, query: str, *, live: bool = False, limit:
 def cmd_doctor(args: argparse.Namespace) -> int:
     all_rows = check_all_live() if args.live else check_all()
     rows = filter_rows(all_rows, only=args.only, risk=args.risk, channel=args.channel, tag=args.tag)
+    if args.live and getattr(args, 'record', False):
+        record_all_checks(all_rows)
     print(emit(rows, args.format, title="Hermes Trailhead doctor"))
     return exit_code(rows, strict=args.strict)
 
@@ -144,6 +148,26 @@ def cmd_route(args: argparse.Namespace) -> int:
         print(format_route_json(route))
     else:
         print(format_route_text(route))
+    return 0
+
+
+def cmd_reliability(args: argparse.Namespace) -> int:
+    summary = reliability_summary(lookback_days=getattr(args, 'days', 30))
+    if args.format == "json":
+        print(json.dumps(summary, indent=2))
+        return 0
+    print("# Hermes Trailhead reliability\n")
+    print(f"Records: {summary['total_records']} | Updated: {summary['updated_at'][:19] if summary['updated_at'] else 'never'}")
+    print()
+    channels = summary.get("channels", {})
+    if not channels:
+        print("No reliability data yet. Run 'hermes-trailhead doctor --live --record' to start tracking.")
+        return 0
+    trend_icon = {"improving": "↑", "declining": "↓", "stable": "→"}
+    for key, ch in sorted(channels.items()):
+        icon = trend_icon.get(ch["trend"], "?")
+        status_icon = {"ok": "✅", "warn": "⚠️", "off": "⬜", "fail": "❌"}.get(ch["recent_status"], "?")
+        print(f"{status_icon} {icon} {key}: {ch['success_rate']}% ok ({ch['check_count']} checks) — {ch['trend']}")
     return 0
 
 
@@ -235,6 +259,7 @@ def build_parser() -> argparse.ArgumentParser:
     add_common(doctor)
     doctor.add_argument("--strict", action="store_true", help="Return nonzero on any warn/off result")
     doctor.add_argument("--live", action="store_true", help="Probe live endpoints for reachability evidence")
+    doctor.add_argument("--record", action="store_true", help="Record live results to reliability tracker")
     doctor.set_defaults(func=cmd_doctor)
 
     queue = sub.add_parser("queue", help="Show source lanes whose gaps most limit research quality")
@@ -262,7 +287,13 @@ def build_parser() -> argparse.ArgumentParser:
     route = sub.add_parser("route", help="Choose a route for a natural-language internet/research task")
     route.add_argument("intent", help="Task intent, e.g. 'extract schema from pages' or 'login browser work'")
     route.add_argument("--format", choices=["text", "json"], default="text")
+    route.add_argument("--live", action="store_true", help="Score route against live channel health checks")
     route.set_defaults(func=cmd_route)
+
+    reliability = sub.add_parser("reliability", help="Show per-channel reliability trends over time")
+    reliability.add_argument("--format", choices=["text", "json"], default="text")
+    reliability.add_argument("--days", type=int, default=30, help="Lookback window in days (default: 30)")
+    reliability.set_defaults(func=cmd_reliability)
 
     search = sub.add_parser(
         "search",

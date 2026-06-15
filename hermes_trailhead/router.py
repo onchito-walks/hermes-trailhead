@@ -15,12 +15,14 @@ class Route:
     rationale: str
     evidence_needed: tuple[str, ...]
     competitor_lesson: str
-
+    health_score: int = 100
+    live_warnings: tuple[str, ...] = ()
     def to_dict(self) -> dict:
         data = asdict(self)
         data["fallbacks"] = list(self.fallbacks)
         data["avoid"] = list(self.avoid)
         data["evidence_needed"] = list(self.evidence_needed)
+        data["live_warnings"] = list(self.live_warnings)
         return data
 
 
@@ -154,3 +156,69 @@ def route_for_ranked(query: str, top: int = 3) -> list[Route]:
 
 def route_for(query: str) -> Route:
     return route_for_ranked(query, top=1)[0]
+
+
+# ── Live route scoring ────────────────────────────────────────────────────
+
+ROUTE_CHANNEL_DEPENDENCIES: dict[str, tuple[str, ...]] = {
+    "known-url-read": ("web-search", "web-extract", "jina-reader"),
+    "discovery-search": ("web-search", "web-extract", "x-search", "reddit", "github"),
+    "structured-extraction": ("web-extract", "firecrawl", "crawl4ai"),
+    "interactive-browser": ("browserbase", "stagehand"),
+    "social-current-signal": ("x-search", "reddit", "tiktok", "instagram", "youtube"),
+    "external-tool-enable": ("agent-reach",),
+}
+
+
+def score_route_with_live_state(
+    route: Route,
+    channel_results: dict[str, str],
+    channel_details: dict[str, str] | None = None,
+) -> Route:
+    deps = ROUTE_CHANNEL_DEPENDENCIES.get(route.key, ())
+    if not deps:
+        return route
+    details = channel_details or {}
+    warnings: list[str] = []
+    worst_status = "ok"
+    for dep in deps:
+        status = channel_results.get(dep, "off")
+        if status == "fail":
+            worst_status = "fail"
+            detail = details.get(dep, dep)
+            warnings.append(f"FAIL: {dep} is broken — {detail}")
+        elif status == "off" and worst_status not in ("fail",):
+            worst_status = "off"
+            detail = details.get(dep, dep)
+            warnings.append(f"OFF: {dep} is not configured — {detail}")
+        elif status == "warn" and worst_status not in ("fail", "off"):
+            worst_status = "warn"
+            detail = details.get(dep, dep)
+            warnings.append(f"WARN: {dep} is degraded — {detail}")
+    score_map = {"ok": 100, "warn": 75, "off": 50, "fail": 25}
+    health_score = score_map.get(worst_status, 100)
+    all_bad = all(channel_results.get(dep, "off") in ("off", "fail") for dep in deps)
+    if all_bad and deps:
+        health_score = 10
+    return Route(
+        key=route.key,
+        task=route.task,
+        primary=route.primary,
+        fallbacks=route.fallbacks,
+        avoid=route.avoid,
+        approval_required=route.approval_required,
+        rationale=route.rationale,
+        evidence_needed=route.evidence_needed,
+        competitor_lesson=route.competitor_lesson,
+        health_score=health_score,
+        live_warnings=tuple(warnings),
+    )
+
+
+def route_for_with_live(
+    query: str,
+    channel_results: dict[str, str],
+    channel_details: dict[str, str] | None = None,
+) -> Route:
+    route = route_for(query)
+    return score_route_with_live_state(route, channel_results, channel_details)

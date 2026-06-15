@@ -76,6 +76,8 @@ def test_route_json_schema_exact(capsys):
         "rationale",
         "evidence_needed",
         "competitor_lesson",
+        "health_score",
+        "live_warnings",
     }
     assert data["key"] == "known-url-read"
     assert isinstance(data["fallbacks"], list)
