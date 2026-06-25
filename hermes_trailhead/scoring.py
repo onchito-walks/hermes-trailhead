@@ -64,6 +64,8 @@ DOMAIN_RULES: list[tuple[str, SourceQuality, int, str]] = [
     (r"x\.com/[^/]+/status/", SourceQuality.CURRENT, 55, "X/Twitter post"),
     (r"twitter\.com/[^/]+/status/", SourceQuality.CURRENT, 55, "Twitter post"),
     (r"x\.com/i/communities/", SourceQuality.CURRENT, 50, "X community"),
+    (r"x\.com/[^/]+$", SourceQuality.CURRENT, 40, "X profile (discovery only; posts outrank profiles)"),
+    (r"twitter\.com/[^/]+$", SourceQuality.CURRENT, 40, "Twitter profile (discovery only; posts outrank profiles)"),
 
     # Community — video demos, visual evidence
     (r"youtube\.com/watch", SourceQuality.COMMUNITY, 45, "YouTube video"),
@@ -119,9 +121,10 @@ class ScoredHit:
     scoring: SourceScore = field(default_factory=lambda: SourceScore(
         quality=SourceQuality.UNKNOWN, score=0, reasons=tuple(), label=""
     ))
+    video_evidence: object | None = None  # VideoEvidence from extraction
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "title": self.title,
             "url": self.url,
             "snippet": self.snippet,
@@ -129,6 +132,9 @@ class ScoredHit:
             "extraction_length": self.extraction_length,
             "scoring": self.scoring.to_dict(),
         }
+        if self.video_evidence is not None and hasattr(self.video_evidence, "to_dict"):
+            d["video_evidence"] = self.video_evidence.to_dict()
+        return d
 
     @classmethod
     def from_extracted_hit(cls, eh: ExtractedHit) -> ScoredHit:
@@ -138,6 +144,7 @@ class ScoredHit:
             snippet=eh.snippet,
             extraction_status=eh.extraction.status,
             extraction_length=eh.extraction.content_length,
+            video_evidence=eh.extraction.video_evidence,
         )
 
 
@@ -179,6 +186,24 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
     }
 
     # Check extraction state first
+    if hit.extraction_status == "blocked" and hit.video_evidence is not None:
+        # Video sources with discovery evidence — not pure platform shells
+        reasons = ("Video content discovered; deep extraction requires browser/session or transcript lane",)
+        return ScoredHit(
+            title=hit.title,
+            url=hit.url,
+            snippet=hit.snippet,
+            extraction_status=hit.extraction_status,
+            extraction_length=hit.extraction_length,
+            video_evidence=hit.video_evidence,
+            scoring=SourceScore(
+                quality=SourceQuality.COMMUNITY,
+                score=25,
+                reasons=reasons,
+                label="Video discovery (transcript/browser extraction available)",
+            ),
+        )
+
     if hit.extraction_status == "blocked":
         return ScoredHit(
             title=hit.title,
@@ -201,6 +226,7 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
             snippet=hit.snippet,
             extraction_status=hit.extraction_status,
             extraction_length=hit.extraction_length,
+            video_evidence=hit.video_evidence,
             scoring=SourceScore(
                 quality=SourceQuality.DEAD,
                 score=0,
@@ -280,6 +306,7 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
         snippet=hit.snippet,
         extraction_status=hit.extraction_status,
         extraction_length=hit.extraction_length,
+        video_evidence=hit.video_evidence,
         scoring=SourceScore(
             quality=quality,
             score=score,

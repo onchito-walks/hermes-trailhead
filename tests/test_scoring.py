@@ -176,9 +176,31 @@ def test_tiktok_blocked_is_platform_shell():
         extraction_length=0,
     )
     result = score_hit(hit)
+    # Without video_evidence, blocked still scores as PLATFORM_SHELL
     assert result.scoring.quality == SourceQuality.PLATFORM_SHELL
     assert result.scoring.score == 0
     assert "blocked" in result.scoring.reasons[0].lower()
+
+
+def test_tiktok_with_video_evidence_scores_community():
+    from hermes_trailhead.extract import VideoEvidence
+    hit = ScoredHit(
+        title="Demo video",
+        url="https://www.tiktok.com/@user/video/123",
+        snippet="discovered via search",
+        extraction_status="blocked",
+        extraction_length=0,
+        video_evidence=VideoEvidence(
+            metadata_url="https://www.tiktok.com/@user/video/123",
+            metadata_title="Demo video",
+            visual_analysis_status="available",
+            caption_transcript_status="not_attempted",
+        ),
+    )
+    result = score_hit(hit)
+    assert result.scoring.quality == SourceQuality.COMMUNITY
+    assert result.scoring.score == 25
+    assert "discovered" in result.scoring.reasons[0].lower()
 
 
 def test_dead_link_scores_zero():
@@ -229,6 +251,28 @@ def test_rank_hits_sorts_descending():
     ranked = rank_hits(hits)
     assert ranked[0].scoring.score >= ranked[1].scoring.score >= ranked[2].scoring.score
     assert ranked[0].title == "High"
+
+
+def test_x_status_url_scores_higher_than_profile():
+    status = ScoredHit(
+        title="breaking news",
+        url="https://x.com/nousresearch/status/123456",
+        snippet="",
+        extraction_status="ok",
+        extraction_length=500,
+    )
+    profile = ScoredHit(
+        title="nousresearch profile",
+        url="https://x.com/nousresearch",
+        snippet="",
+        extraction_status="ok",
+        extraction_length=2000,
+    )
+    status_result = score_hit(status)
+    profile_result = score_hit(profile)
+    assert status_result.scoring.score > profile_result.scoring.score
+    assert profile_result.scoring.quality == SourceQuality.CURRENT
+    assert "profile" in profile_result.scoring.reasons[0].lower()
 
 
 def test_scored_hit_from_extracted_hit():

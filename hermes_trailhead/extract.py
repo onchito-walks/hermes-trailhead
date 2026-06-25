@@ -19,6 +19,7 @@ from typing import Callable, Literal
 from .search import SearchHit
 
 ExtractionStatus = Literal["ok", "blocked", "error", "not_attempted"]
+TranscriptAttemptStatus = Literal["ok", "blocked", "not_available", "not_attempted"]
 SourceType = Literal[
     "web", "x", "reddit", "tiktok", "instagram", "youtube", "github",
     "docs", "forum", "pdf", "unknown",
@@ -28,18 +29,48 @@ FetchFn = Callable[[str, int], str]
 
 
 @dataclass(frozen=True)
+class VideoEvidence:
+    """First-class video-only evidence for sources where page text is not the primary content."""
+    caption_transcript_status: TranscriptAttemptStatus = "not_attempted"
+    caption_transcript: str = ""
+    caption_transcript_length: int = 0
+    caption_transcript_error: str = ""
+    visual_analysis_status: str = "not_attempted"
+    visual_analysis_summary: str = ""
+    audio_transcript_status: str = "not_configured"
+    audio_transcript: str = ""
+    metadata_url: str = ""
+    metadata_title: str = ""
+
+    def to_dict(self) -> dict:
+        d = asdict(self)
+        if len(d.get("caption_transcript", "")) > 2000:
+            d["caption_transcript"] = d["caption_transcript"][:2000] + "..."
+        if len(d.get("audio_transcript", "")) > 2000:
+            d["audio_transcript"] = d["audio_transcript"][:2000] + "..."
+        if len(d.get("visual_analysis_summary", "")) > 2000:
+            d["visual_analysis_summary"] = d["visual_analysis_summary"][:2000] + "..."
+        return d
+
+
+@dataclass(frozen=True)
 class ExtractionResult:
     status: ExtractionStatus
     content: str = ""
     content_length: int = 0
     source_type: SourceType = "unknown"
     error_message: str = ""
+    transcript_attempted: bool = False
+    transcript_error: str = ""
+    video_evidence: VideoEvidence | None = None
 
     def to_dict(self) -> dict:
         d = asdict(self)
         # Truncate content to a reasonable preview length for JSON output
         if len(d.get("content", "")) > 2000:
-            d["content"] = d["content"][:2000] + "…"
+            d["content"] = d["content"][:2000] + "..."
+        if self.video_evidence is not None:
+            d["video_evidence"] = self.video_evidence.to_dict()
         return d
 
     @property
@@ -224,21 +255,57 @@ def _fetch_hermes_web_extract(url: str, timeout: int = 30) -> str:
     return content
 
 
-def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | None = None, timeout: int = 15) -> ExtractionResult:
-    """Extract content from a single URL. Tries Hermes web_extract first, then direct fetch, then Jina Reader."""
+def _exception_summary(exc: Exception) -> str:
+    """Return a compact human-readable summary of an exception."""
+    msg = str(exc)
+    if len(msg) > 200:
+        msg = msg[:200] + "..."
+    return f"{type(exc).__name__}: {msg}"
+
+
+def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | None = None, timeout: int = 15, title: str = "") -> ExtractionResult:
+    """Extract content from a single URL. Tries Hermes web_extract first, then direct fetch, then Jina Reader.
+
+    For video-only sources (TikTok, YouTube, Instagram), returns structured
+    video_evidence alongside any plain-text content that was retrievable.
+    """
     fetcher = fetch or _fetch_text
     source_type = _classify_source_type(url)
 
-    # Skip platforms we know we can only discover, not deeply read
+    # TikTok / Instagram: discovery-only — preserve metadata and hint at video_analyze lane.
     if source_type in ("tiktok", "instagram"):
         return ExtractionResult(
             status="blocked",
             source_type=source_type,
-            error_message=f"{source_type} content requires browser/session — discovery only",
+            error_message=(
+                f"{source_type} content requires browser/session for full extraction; "
+                "use video_analyze for visual summary, yt-dlp+whisper for audio transcript when available"
+            ),
+            video_evidence=VideoEvidence(
+                caption_transcript_status="not_attempted" if source_type == "tiktok" else "not_available",
+                visual_analysis_status="available",
+                visual_analysis_summary="Title, snippet, and video URL preserved as discovery evidence; call video_analyze() for visual summary.",
+                audio_transcript_status="not_configured",
+                metadata_url=url,
+                metadata_title=title,
+                caption_transcript_error=(
+                    "TikTok captions require yt-dlp or browser/cookie session; not attempted from server IP."
+                    if source_type == "tiktok" else
+                    "Instagram captions require browser/cookie session; not attempted from server IP."
+                ),
+            ),
         )
 
-    # YouTube's page HTML is not enough; try captions/transcript first.
+    # YouTube: try captions/transcript first, report outcome explicitly.
     if source_type == "youtube":
+        transcript_attempted = True
+        transcript_error = ""
+        video_ev = VideoEvidence(
+            metadata_url=url,
+            metadata_title=title,
+            visual_analysis_status="available",
+            visual_analysis_summary="Title, snippet, and video URL preserved; call video_analyze() for visual summary.",
+        )
         try:
             content = _fetch_youtube_transcript(url, timeout=timeout)
             if content and len(content) > 50:
@@ -247,9 +314,53 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                     content=content,
                     content_length=len(content),
                     source_type=source_type,
+                    transcript_attempted=True,
+                    video_evidence=VideoEvidence(
+                        caption_transcript_status="ok",
+                        caption_transcript=content,
+                        caption_transcript_length=len(content),
+                        visual_analysis_status="available",
+                        audio_transcript_status="ok",
+                        metadata_url=url,
+                        metadata_title=title,
+                    ),
+                )
+        except Exception as exc:
+            transcript_error = f"YouTube transcript blocked or unavailable: {_exception_summary(exc)}"
+            video_ev = VideoEvidence(
+                caption_transcript_status="blocked",
+                caption_transcript_error=transcript_error,
+                visual_analysis_status="available",
+                audio_transcript_status="not_configured",
+                metadata_url=url,
+                metadata_title=title,
+            )
+
+        # Fall through to page fetch for metadata/title/description
+        try:
+            content = fetcher(url, timeout)
+            if content and len(content) > 50:
+                return ExtractionResult(
+                    status="ok",
+                    content=content[:5000],
+                    content_length=len(content),
+                    source_type=source_type,
+                    transcript_attempted=transcript_attempted,
+                    transcript_error=transcript_error,
+                    video_evidence=video_ev,
                 )
         except Exception:
-            pass  # Fall through to normal extraction for metadata/page text
+            pass
+
+        # No page content either
+        return ExtractionResult(
+            status="blocked",
+            source_type=source_type,
+            error_message=f"YouTube page and transcript both unreachable: {transcript_error or 'IP blocked or video unavailable'}",
+            transcript_attempted=transcript_attempted,
+            transcript_error=transcript_error,
+            video_evidence=video_ev,
+        )
 
     # Reddit often blocks direct fetches; try Redlib before generic page extraction.
     if source_type == "reddit":
@@ -323,7 +434,7 @@ def extract_hits(
     """Extract content from search hits. Returns ExtractedHit objects with extraction results."""
     extracted: list[ExtractedHit] = []
     for hit in hits[:limit]:
-        result = extract_one(hit.url, extract=extract, fetch=fetch, timeout=timeout)
+        result = extract_one(hit.url, extract=extract, fetch=fetch, timeout=timeout, title=hit.title)
         eh = ExtractedHit(
             title=hit.title,
             url=hit.url,
