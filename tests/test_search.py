@@ -59,6 +59,23 @@ def test_search_reddit_uses_loginless_redlib(capsys):
     assert action["paid_api_required"] is False
 
 
+def test_reddit_backend_filters_non_discussion_noise(monkeypatch, capsys):
+    reddit_html = """
+<a href="https://www.reddit.com/search?q=VORON+3D+Printer+Stealthchanger+Build">Search</a>
+<a href="https://www.reddit.com/r/VORONDesign/comments/abc123/stealthchanger_build/">Thread</a>
+<a href="https://www.youtube.com/watch?v=abc123">Noise</a>
+"""
+
+    monkeypatch.setattr("hermes_trailhead.search._fetch_text", lambda url, timeout: reddit_html)
+    rc, data, _ = _json_from_cli(capsys, ["search", "reddit", "VORON 3D Printer Stealthchanger Build", "--execute", "--limit", "1", "--format", "json"])
+
+    assert rc == 0
+    execution = data["executions"][0]
+    assert execution["status"] == "ok"
+    assert execution["result_count"] == 1
+    assert execution["hits"][0]["url"] == "https://www.reddit.com/r/VORONDesign/comments/abc123/stealthchanger_build/"
+
+
 def test_search_tiktok_marks_gap_not_fake_coverage(capsys):
     rc, data, _ = _json_from_cli(capsys, ["search", "tiktok", "Hermes Agent", "--format", "json"])
 
@@ -128,6 +145,58 @@ Useful snippet.
     assert data["executions"][0]["status"] == "ok"
     assert data["executions"][0]["result_count"] == 1
     assert data["executions"][0]["hits"][0]["url"] == "https://example.com/result"
+
+
+def test_execute_search_defaults_extract_limit_to_requested_hit_limit(monkeypatch, capsys):
+    markdown = """
+## [First](https://example.com/1)
+## [Second](https://example.com/2)
+## [Third](https://example.com/3)
+## [Fourth](https://example.com/4)
+## [Fifth](https://example.com/5)
+"""
+
+    monkeypatch.setattr("hermes_trailhead.search._fetch_text", lambda url, timeout: markdown)
+    rc, data, _ = _json_from_cli(capsys, ["search", "web", "test query", "--execute", "--limit", "5", "--extract", "--format", "json"])
+
+    assert rc == 0
+    assert len(data["executions"][0]["extracted"]) == 5
+
+
+def test_execute_search_honors_explicit_extract_limit(monkeypatch, capsys):
+    markdown = """
+## [First](https://example.com/1)
+## [Second](https://example.com/2)
+## [Third](https://example.com/3)
+## [Fourth](https://example.com/4)
+## [Fifth](https://example.com/5)
+"""
+
+    monkeypatch.setattr("hermes_trailhead.search._fetch_text", lambda url, timeout: markdown)
+    rc, data, _ = _json_from_cli(capsys, ["search", "web", "test query", "--execute", "--limit", "5", "--extract", "--extract-limit", "2", "--format", "json"])
+
+    assert rc == 0
+    assert len(data["executions"][0]["extracted"]) == 2
+    assert [hit["url"] for hit in data["executions"][0]["extracted"]] == ["https://example.com/1", "https://example.com/2"]
+
+
+def test_execute_search_extracts_all_returned_hits_by_default(monkeypatch, capsys):
+    markdown = """
+## [First Result](https://example.com/1)
+One.
+## [Second Result](https://example.com/2)
+Two.
+## [Third Result](https://example.com/3)
+Three.
+"""
+
+    monkeypatch.setattr("hermes_trailhead.search._fetch_text", lambda url, timeout: markdown)
+    rc, data, _ = _json_from_cli(capsys, ["search", "web", "test query", "--execute", "--extract", "--score", "--limit", "3", "--format", "json"])
+
+    assert rc == 0
+    extracted = data["executions"][0]["extracted"]
+    assert len(extracted) == 3
+    assert [hit["url"] for hit in extracted] == ["https://example.com/1", "https://example.com/2", "https://example.com/3"]
 
 
 def test_execute_gap_lane_keeps_discovery_only_caveat(monkeypatch, capsys):

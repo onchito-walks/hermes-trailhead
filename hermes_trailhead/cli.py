@@ -249,7 +249,8 @@ def cmd_search(args: argparse.Namespace) -> int:
             if getattr(args, 'extract', False) or getattr(args, 'score', False):
                 for i, execution in enumerate(executed.executions):
                     if execution.hits:
-                        extracted = extract_hits(execution.hits, limit=min(args.extract_limit, len(execution.hits)))
+                        extract_limit = len(execution.hits) if args.extract_limit is None else min(args.extract_limit, len(execution.hits))
+                        extracted = extract_hits(execution.hits, limit=extract_limit)
                         scored = [ScoredHit.from_extracted_hit(eh) for eh in extracted]
                         if getattr(args, 'score', False):
                             scored = rank_hits(score_hits(scored))
@@ -386,7 +387,7 @@ def build_parser() -> argparse.ArgumentParser:
     search.add_argument("--execute", action="store_true", help="Execute search using loginless public search paths and return real hits")
     search.add_argument("--limit", type=int, default=5, help="Max hits per platform when --execute is used")
     search.add_argument("--extract", action="store_true", help="Extract page content from search hits")
-    search.add_argument("--extract-limit", type=int, default=3, help="Max hits to extract per platform (default: 3)")
+    search.add_argument("--extract-limit", type=int, default=None, help="Max hits to extract per platform (defaults to --limit)")
     search.add_argument("--score", action="store_true", help="Score and rank search hits by source quality")
     search.set_defaults(func=cmd_search)
 

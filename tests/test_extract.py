@@ -6,6 +6,8 @@ from hermes_trailhead.extract import (
     ExtractionResult,
     ExtractedHit,
     _classify_source_type,
+    _reddit_frontend_url,
+    _youtube_video_id,
     extract_one,
     extract_hits,
 )
@@ -29,6 +31,29 @@ def test_classify_source_type_tiktok():
 
 def test_classify_source_type_youtube():
     assert _classify_source_type("https://www.youtube.com/watch?v=abc123") == "youtube"
+
+
+def test_youtube_video_id_parses_common_url_shapes():
+    assert _youtube_video_id("https://www.youtube.com/watch?v=abc123&t=10") == "abc123"
+    assert _youtube_video_id("https://youtu.be/def456") == "def456"
+    assert _youtube_video_id("https://www.youtube.com/shorts/ghi789") == "ghi789"
+    assert _youtube_video_id("https://www.youtube.com/embed/jkl012") == "jkl012"
+
+
+def test_youtube_extraction_uses_transcript_before_page_fetch(monkeypatch):
+    monkeypatch.setattr(
+        extract_mod,
+        "_fetch_youtube_transcript",
+        lambda url, timeout: "YouTube transcript for abc123\n\n[0.0s] first line\n[2.0s] second line",
+    )
+
+    def fake_fetch(url, timeout):
+        raise AssertionError("page fetch should not be used when transcript succeeds")
+
+    result = extract_one("https://www.youtube.com/watch?v=abc123", fetch=fake_fetch)
+    assert result.status == "ok"
+    assert result.source_type == "youtube"
+    assert "transcript" in result.content.lower()
 
 
 def test_classify_source_type_docs():
@@ -110,6 +135,37 @@ def test_extraction_network_error_falls_to_error(monkeypatch):
     assert "Could not extract" in result.error_message
 
 
+def test_reddit_extraction_network_error_reports_reddit_source_type(monkeypatch):
+    monkeypatch.setattr(extract_mod, "_fetch_hermes_web_extract", lambda url, timeout: (_ for _ in ()).throw(OSError("web_extract failed")))
+
+    def fake_fetch(url, timeout):
+        raise OSError("Connection refused")
+
+    result = extract_one("https://www.reddit.com/r/VORONDesign/comments/abc123/", fetch=fake_fetch)
+    assert result.status == "error"
+    assert result.source_type == "reddit"
+    assert not result.usable
+
+
+def test_reddit_extraction_uses_redlib_frontend_before_generic_extract(monkeypatch):
+    monkeypatch.setattr(extract_mod, "_fetch_hermes_web_extract", lambda url, timeout: (_ for _ in ()).throw(AssertionError("generic extract should not run")))
+
+    seen = []
+
+    def fake_fetch(url, timeout):
+        seen.append(url)
+        return "Redlib thread content about StealthChanger build. " * 5
+
+    result = extract_one("https://www.reddit.com/r/VORONDesign/comments/abc123/title/", fetch=fake_fetch)
+    assert result.status == "ok"
+    assert result.source_type == "reddit"
+    assert seen == ["https://redlib.perennialte.ch/r/VORONDesign/comments/abc123/title/"]
+
+
+def test_reddit_frontend_url_preserves_path():
+    assert _reddit_frontend_url("https://www.reddit.com/r/VORONDesign/comments/abc123/title/") == "https://redlib.perennialte.ch/r/VORONDesign/comments/abc123/title/"
+
+
 def test_extraction_result_to_dict():
     result = ExtractionResult(status="ok", content="hello world", content_length=11, source_type="web")
     d = result.to_dict()
@@ -148,6 +204,18 @@ def test_extract_hits_respects_limit():
     )
     results = extract_hits(hits, limit=3, fetch=fake_fetch)
     assert len(results) == 3
+
+
+def test_extract_hits_can_handle_higher_limits():
+    def fake_fetch(url, timeout):
+        return "Real content from a webpage that is long enough to pass. " * 5
+
+    hits = tuple(
+        SearchHit(title=f"Hit {i}", url=f"https://example.com/{i}", snippet=f"Snippet {i}")
+        for i in range(10)
+    )
+    results = extract_hits(hits, limit=5, fetch=fake_fetch)
+    assert len(results) == 5
 
 
 def test_extract_hits_empty_input():

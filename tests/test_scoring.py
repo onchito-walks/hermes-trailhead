@@ -85,6 +85,62 @@ def test_help_site_scores_canonical():
     assert result.scoring.score >= 70
 
 
+def test_stealthchanger_official_sources_score_canonical():
+    hits = [
+        ScoredHit(
+            title="Getting Started",
+            url="https://stealthchanger.com/getting_started/",
+            snippet="",
+            extraction_status="ok",
+            extraction_length=5000,
+        ),
+        ScoredHit(
+            title="Docs",
+            url="https://sdylewski.github.io/StealthChanger/",
+            snippet="",
+            extraction_status="ok",
+            extraction_length=4000,
+        ),
+        ScoredHit(
+            title="Product",
+            url="https://ldomotion.com/products/stealth-changer",
+            snippet="",
+            extraction_status="ok",
+            extraction_length=3000,
+        ),
+    ]
+
+    scored = [score_hit(hit) for hit in hits]
+    assert all(hit.scoring.quality == SourceQuality.CANONICAL for hit in scored)
+    assert all(hit.scoring.score >= 74 for hit in scored)
+
+
+def test_github_feature_pages_score_generic():
+    hit = ScoredHit(
+        title="GitHub Copilot",
+        url="https://github.com/features/copilot",
+        snippet="",
+        extraction_status="ok",
+        extraction_length=1000,
+    )
+    result = score_hit(hit)
+    assert result.scoring.quality == SourceQuality.GENERIC
+    assert result.scoring.score <= 40
+
+
+def test_github_security_noise_scores_generic():
+    hit = ScoredHit(
+        title="GitHub Security",
+        url="https://github.com/security/advanced-security",
+        snippet="",
+        extraction_status="ok",
+        extraction_length=1000,
+    )
+    result = score_hit(hit)
+    assert result.scoring.quality == SourceQuality.GENERIC
+    assert result.scoring.score <= 40
+
+
 def test_pdf_scores_canonical():
     hit = ScoredHit(
         title="Routing whitepaper",

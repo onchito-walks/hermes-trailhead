@@ -13,6 +13,7 @@ import re
 import subprocess
 import time
 import urllib.request
+from urllib.parse import parse_qs, urlparse
 from typing import Callable, Literal
 
 from .search import SearchHit
@@ -118,6 +119,64 @@ def _fetch_jina(url: str, timeout: int = 20) -> str:
         return response.read().decode("utf-8", errors="replace")
 
 
+def _youtube_video_id(url: str) -> str:
+    """Extract a YouTube video id from watch, youtu.be, shorts, or embed URLs."""
+    parsed = urlparse(url)
+    host = parsed.netloc.lower()
+    path_parts = [p for p in parsed.path.split("/") if p]
+    if "youtu.be" in host and path_parts:
+        return path_parts[0]
+    if "youtube.com" in host:
+        if parsed.path == "/watch":
+            return parse_qs(parsed.query).get("v", [""])[0]
+        if len(path_parts) >= 2 and path_parts[0] in {"shorts", "embed"}:
+            return path_parts[1]
+    return ""
+
+
+def _fetch_youtube_transcript(url: str, timeout: int = 20) -> str:
+    """Fetch YouTube captions/transcript using the mature youtube-transcript-api package."""
+    video_id = _youtube_video_id(url)
+    if not video_id:
+        raise RuntimeError("Could not parse YouTube video id")
+
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi  # type: ignore[import-not-found]
+    except Exception as exc:  # pragma: no cover - depends on optional install
+        raise RuntimeError("youtube-transcript-api is not installed") from exc
+
+    api = YouTubeTranscriptApi()
+    fetched = api.fetch(video_id, languages=("en", "en-US", "en-GB"))
+    snippets = getattr(fetched, "snippets", fetched)
+    lines: list[str] = []
+    for item in snippets:
+        if isinstance(item, dict):
+            text = item.get("text", "")
+            start = item.get("start")
+        else:
+            text = getattr(item, "text", "")
+            start = getattr(item, "start", None)
+        text = " ".join(str(text).split())
+        if not text:
+            continue
+        if start is None:
+            lines.append(text)
+        else:
+            lines.append(f"[{float(start):.1f}s] {text}")
+    content = "\n".join(lines).strip()
+    if not content:
+        raise RuntimeError("YouTube transcript was empty")
+    return f"YouTube transcript for {video_id}\n\n{content}"
+
+
+def _reddit_frontend_url(url: str) -> str:
+    """Convert Reddit URLs to the configured Redlib privacy frontend."""
+    parsed = urlparse(url)
+    if "reddit.com" not in parsed.netloc.lower():
+        return url
+    return f"https://redlib.perennialte.ch{parsed.path}"
+
+
 def _strip_hermes_web_extract_output(output: str) -> str:
     """Normalize Hermes CLI output down to extracted markdown content."""
     lines = output.splitlines()
@@ -177,6 +236,34 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
             source_type=source_type,
             error_message=f"{source_type} content requires browser/session — discovery only",
         )
+
+    # YouTube's page HTML is not enough; try captions/transcript first.
+    if source_type == "youtube":
+        try:
+            content = _fetch_youtube_transcript(url, timeout=timeout)
+            if content and len(content) > 50:
+                return ExtractionResult(
+                    status="ok",
+                    content=content,
+                    content_length=len(content),
+                    source_type=source_type,
+                )
+        except Exception:
+            pass  # Fall through to normal extraction for metadata/page text
+
+    # Reddit often blocks direct fetches; try Redlib before generic page extraction.
+    if source_type == "reddit":
+        try:
+            content = fetcher(_reddit_frontend_url(url), timeout)
+            if content and len(content) > 50:
+                return ExtractionResult(
+                    status="ok",
+                    content=content,
+                    content_length=len(content),
+                    source_type=source_type,
+                )
+        except Exception:
+            pass  # Fall through to Hermes/Jina/direct fetch
 
     # Try Hermes native web_extract first.
     try:

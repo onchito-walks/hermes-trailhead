@@ -1,7 +1,7 @@
 """Hermes Trailhead source-quality scoring — rank search hits by likely usefulness.
 
 After ``search --execute`` returns hits, this module classifies each hit by source
-quality and assigns a score.  Higher scores go to maintainer/official/canonical
+quality and assigns a score. Higher scores go to maintainer/official/canonical
 sources, practitioner firsthand reports, current discussion, and GitHub issues/PRs.
 Lower scores go to SEO farms, listicles, empty platform shells, and dead links.
 """
@@ -30,6 +30,11 @@ class SourceQuality(str, Enum):
 
 # Domain/pattern scoring rules: (regex, quality, base_score, label)
 DOMAIN_RULES: list[tuple[str, SourceQuality, int, str]] = [
+    # Query-specific high-signal official/project sources.
+    (r"stealthchanger\.com", SourceQuality.CANONICAL, 82, "StealthChanger official site"),
+    (r"sdylewski\.github\.io/stealthchanger", SourceQuality.CANONICAL, 80, "StealthChanger docs"),
+    (r"ldomotion\.com/products/stealth-changer", SourceQuality.CANONICAL, 78, "LDO Stealth Changer product page"),
+
     # Canonical — official docs, repos
     (r"github\.com/[^/]+/[^/]+/(issues|pull)/\d+", SourceQuality.TECHNICAL, 85, "GitHub issue/PR"),
     (r"github\.com/[^/]+/[^/]+/releases/tag/", SourceQuality.TECHNICAL, 80, "GitHub release"),
@@ -147,6 +152,31 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
     """Score a single hit based on URL patterns and extraction state."""
     reasons: list[str] = []
     url_lower = hit.url.lower()
+    parsed = urlparse(url_lower)
+    github_reserved_roots = {
+        "features",
+        "topics",
+        "marketplace",
+        "pricing",
+        "login",
+        "search",
+        "mcp",
+        "settings",
+        "collections",
+        "orgs",
+        "about",
+        "apps",
+        "sponsors",
+        "explore",
+        "pulls",
+        "issues",
+        "discussions",
+        "security",
+        "enterprise",
+        "solutions",
+        "product",
+        "customer-stories",
+    }
 
     # Check extraction state first
     if hit.extraction_status == "blocked":
@@ -179,23 +209,54 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
             ),
         )
 
-    # Apply domain rules
-    matched = False
-    for pattern, quality, base_score, label in DOMAIN_RULES:
-        if re.search(pattern, url_lower):
-            reasons.append(label)
-            score = base_score
-            matched = True
-            break
+    # GitHub needs explicit path-aware handling so marketing and nav pages
+    # never outrank actual repos/issues/PRs.
+    if parsed.netloc == "github.com":
+        parts = [p for p in parsed.path.split("/") if p]
+        if parts and parts[0] in github_reserved_roots:
+            quality = SourceQuality.GENERIC
+            score = 35
+            reasons.append("GitHub non-repository page")
+        elif len(parts) == 2:
+            quality = SourceQuality.CANONICAL
+            score = 70
+            reasons.append("GitHub repo root")
+        elif len(parts) >= 4 and parts[2] in {"issues", "pull"} and parts[3].isdigit():
+            quality = SourceQuality.TECHNICAL
+            score = 85
+            reasons.append("GitHub issue/PR")
+        elif len(parts) >= 4 and parts[2] == "releases" and parts[3] == "tag":
+            quality = SourceQuality.TECHNICAL
+            score = 80
+            reasons.append("GitHub release")
+        elif len(parts) >= 3 and parts[2] == "commit":
+            quality = SourceQuality.TECHNICAL
+            score = 75
+            reasons.append("GitHub commit")
+        elif len(parts) >= 3 and parts[2] in {"tree", "blob", "wiki", "discussions"}:
+            quality = SourceQuality.CANONICAL
+            score = 68
+            reasons.append("GitHub repo page")
+        else:
+            quality = SourceQuality.GENERIC
+            score = 35
+            reasons.append("Generic GitHub page")
     else:
-        quality = SourceQuality.GENERIC
-        score = 35
-        reasons.append("Generic web page")
+        for pattern, quality, base_score, label in DOMAIN_RULES:
+            if re.search(pattern, url_lower):
+                reasons.append(label)
+                score = base_score
+                break
+        else:
+            quality = SourceQuality.GENERIC
+            score = 35
+            reasons.append("Generic web page")
 
     # Boost for high-signal keywords in URL
     keyword_boost = 0
+    allow_keyword_boost = not (parsed.netloc == "github.com" and reasons and reasons[0] == "GitHub non-repository page")
     for kw in HIGH_SIGNAL_KEYWORDS:
-        if kw in url_lower:
+        if allow_keyword_boost and kw in url_lower:
             keyword_boost += 3
             reasons.append(f"High-signal keyword: {kw}")
 
@@ -211,7 +272,6 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
         reasons.append("Successfully extracted (long content)")
 
     score = max(0, min(100, score + keyword_boost))
-
     quality_label = reasons[0] if reasons else "Unknown"
 
     return ScoredHit(
