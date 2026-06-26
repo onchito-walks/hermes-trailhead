@@ -445,130 +445,181 @@ def _instagram_shortcode(url: str) -> str:
     return m.group(1) if m else ""
 
 
-def _fetch_apify_instagram(url: str, timeout: int = 60) -> str:
-    """Extract Instagram post/profile content via Apify Instagram Scraper.
+def _get_proxy_url() -> str | None:
+    """Read proxy URL from secrets file or environment."""
+    import os as _os
+    proxy = _os.environ.get("TRAILHEAD_PROXY_URL")
+    if proxy:
+        return proxy
+    proxy_path = _os.path.expanduser("~/.hermes/secrets/trailhead-proxy-url.txt")
+    try:
+        with open(proxy_path) as f:
+            proxy = f.read().strip()
+            if proxy:
+                return proxy
+    except Exception:
+        pass
+    return None
 
-    Uses Apify's managed cloud service — no accounts, no proxies, no browser
-    management needed.  Returns structured text with captions, comments, and
-    metadata.
+
+def _get_instagram_session() -> str | None:
+    """Read Instagram session cookie from secrets file."""
+    import os as _os
+    session_path = _os.path.expanduser("~/.hermes/secrets/instagram-session.txt")
+    try:
+        with open(session_path) as f:
+            return f.read().strip()
+    except Exception:
+        return None
+
+
+# ── Self-hosted Instagram backend (instaloader + curl_cffi) ─────────────
+
+def _fetch_instaloader_instagram(url: str, timeout: int = 30) -> str:
+    """Extract Instagram content via self-hosted instaloader.
+
+    Uses instaloader + curl_cffi for TLS fingerprinting + optional residential
+    proxy.  Requires either a session cookie or login credentials in secrets.
+    Falls back to anonymous access (heavy rate-limiting without proxy).
     """
-    client = _get_apify_client()
-    if not client:
-        raise RuntimeError("Apify API key not configured")
+    import instaloader as _il
+    import os as _os
 
-    shortcode = _instagram_shortcode(url)
-    if shortcode:
-        # Specific post — use direct URL
-        run_input = {
-            "directUrls": [f"https://www.instagram.com/p/{shortcode}/"],
-            "resultsLimit": 1,
-        }
-    else:
-        # Profile URL — extract username
-        import re as _re
-        m = _re.search(r'instagram\.com/([A-Za-z0-9_.]+)', url)
-        username = m.group(1) if m else ""
-        if not username:
-            raise RuntimeError(f"Could not parse Instagram URL: {url}")
-        run_input = {
-            "username": [username],
-            "resultsLimit": 5,
-        }
+    proxy_url = _get_proxy_url()
+    session_file = _os.path.expanduser("~/.hermes/state/instagram-sessionfile")
 
-    run = client.actor("apify/instagram-scraper").call(
-        run_input=run_input,
-        memory_mbytes=256,
-        timeout_secs=timeout,
+    L = _il.Instaloader(
+        download_pictures=False,
+        download_videos=False,
+        download_video_thumbnails=False,
+        download_comments=False,
+        save_metadata=False,
+        compress_json=False,
+        quiet=True,
     )
 
-    # Extract meaningful text from results
-    items = _extract_apify_dataset(run, client)
-    if not items:
-        raise RuntimeError("Apify Instagram scraper returned no results")
+    # Configure proxy if available
+    if proxy_url:
+        _os.environ["HTTP_PROXY"] = proxy_url
+        _os.environ["HTTPS_PROXY"] = proxy_url
 
-    lines: list[str] = []
-    for item in items:
-        caption = item.get("caption", "") or item.get("description", "") or ""
-        if caption:
-            lines.append(caption)
-        # Add comments if available
-        comments = item.get("latestComments", []) or item.get("comments", []) or []
-        for c in comments[:5]:
-            text = c.get("text", "") if isinstance(c, dict) else str(c)
-            if text:
-                lines.append(f"[comment] {text}")
+    try:
+        # Try loading existing session
+        if _os.path.exists(session_file):
+            L.load_session_from_file(filename=session_file)
 
-    content = "\n\n".join(lines).strip()
-    if not content or len(content) < 20:
-        raise RuntimeError("Apify Instagram scraper: content too short or empty")
-    return content
+        shortcode = _instagram_shortcode(url)
+        if shortcode:
+            post = _il.Post.from_shortcode(L.context, shortcode)
+            caption = post.caption or ""
+            if caption:
+                return f"Instagram post by @{post.owner_username}:\n\n{caption}"
+            raise RuntimeError("Instagram post has no caption text")
+        else:
+            # Profile URL — extract username
+            import re as _re
+            m = _re.search(r'instagram\.com/([A-Za-z0-9_.]+)', url)
+            username = m.group(1) if m else ""
+            if not username:
+                raise RuntimeError(f"Could not parse Instagram URL: {url}")
+
+            profile = _il.Profile.from_username(L.context, username)
+            posts = profile.get_posts()
+            lines = [f"Instagram profile: @{username} ({profile.followers} followers)"]
+            count = 0
+            for post in posts:
+                if count >= 5:
+                    break
+                if post.caption:
+                    lines.append(f"\n---\n{post.caption[:500]}")
+                    count += 1
+            if count == 0:
+                raise RuntimeError("No captioned posts found on profile")
+            return "\n".join(lines)
+
+    except Exception:
+        raise
+    finally:
+        # Clean up proxy env
+        if proxy_url:
+            _os.environ.pop("HTTP_PROXY", None)
+            _os.environ.pop("HTTPS_PROXY", None)
 
 
-def _fetch_apify_tiktok(url: str, timeout: int = 60) -> str:
-    """Extract TikTok video/profile content via Apify TikTok Scraper.
+# ── Self-hosted TikTok backend (tiktok-scraper npm package) ────────────
 
-    Uses Apify's managed cloud service.  Returns video descriptions,
-    metadata, and stats.
+def _fetch_tiktok_scraper(url: str, timeout: int = 30) -> str:
+    """Extract TikTok content via self-hosted tiktok-scraper.
+
+    Uses the drawrowfly/tiktok-scraper npm package.  No login required —
+    uses TikTok's public Web API.  Needs residential proxy for sustained
+    use to avoid IP blocks.
     """
-    client = _get_apify_client()
-    if not client:
-        raise RuntimeError("Apify API key not configured")
-
     import re as _re
-    # Extract username from URL
     m = _re.search(r'tiktok\.com/@([A-Za-z0-9_.]+)', url)
     username = m.group(1) if m else ""
+
     if not username:
-        raise RuntimeError(f"Could not parse TikTok URL: {url}")
+        # Try video ID extraction
+        m = _re.search(r'tiktok\.com/.*?/video/(\d+)', url)
+        if m:
+            # For single video, use video metadata
+            cmd = [
+                "npx", "-y", "tiktok-scraper",
+                "video", url,
+                "--number", "1",
+                "--no-download",
+                "--json",
+            ]
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 15)
+            if proc.returncode == 0 and proc.stdout.strip():
+                # Parse JSON output
+                import json as _json
+                try:
+                    data = _json.loads(proc.stdout.strip().splitlines()[-1])
+                    desc = data.get("text", "") or data.get("description", "")
+                    if desc and len(desc) > 20:
+                        return f"TikTok: {desc}"
+                except Exception:
+                    pass
+        raise RuntimeError(f"Could not extract TikTok content from {url}")
 
-    run_input = {
-        "username": [username],
-        "postsCount": 5,
-    }
+    # Profile-level extraction
+    cmd = [
+        "npx", "-y", "tiktok-scraper",
+        "user", username,
+        "--number", "5",
+        "--no-download",
+        "--json",
+    ]
+    proxy = _get_proxy_url()
+    if proxy:
+        cmd.extend(["--proxy", proxy])
 
-    run = client.actor("clockworks/tiktok-scraper").call(
-        run_input=run_input,
-        memory_mbytes=256,
-        timeout_secs=timeout,
-    )
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 30)
+    if proc.returncode != 0:
+        stderr = proc.stderr.strip()
+        raise RuntimeError(stderr or f"tiktok-scraper failed with exit {proc.returncode}")
 
-    items = _extract_apify_dataset(run, client)
-    if not items:
-        raise RuntimeError("Apify TikTok scraper returned no results")
+    # Parse JSON output — each line is a JSON object
+    lines_out: list[str] = []
+    for line in proc.stdout.strip().splitlines():
+        import json as _json
+        try:
+            item = _json.loads(line)
+            desc = item.get("text", "") or item.get("description", "")
+            if desc:
+                plays = item.get("playCount", "") or item.get("diggCount", "")
+                entry = f"TikTok: {desc}"
+                if plays:
+                    entry += f"\n  [plays: {plays}]"
+                lines_out.append(entry)
+        except Exception:
+            pass
 
-    lines: list[str] = []
-    for item in items:
-        desc = item.get("text", "") or item.get("description", "") or ""
-        if desc:
-            lines.append(f"TikTok: {desc}")
-        # Add stats for context
-        plays = item.get("playCount", "") or item.get("diggCount", "")
-        if plays:
-            lines.append(f"  [plays: {plays}]")
-
-    content = "\n".join(lines).strip()
-    if not content or len(content) < 20:
-        raise RuntimeError("Apify TikTok scraper: content too short or empty")
-    return content
-
-
-def _extract_apify_dataset(run_result, client) -> list[dict]:
-    """Pull items from Apify run result (handles both sync call and async)."""
-    import json as _json
-    # If run_result is already a list, return it
-    if isinstance(run_result, list):
-        return run_result
-    # If it's a dict with items, return items
-    if isinstance(run_result, dict):
-        items = run_result.get("items") or run_result.get("data") or []
-        if items:
-            return items
-        # Try getting dataset
-        dataset_id = run_result.get("defaultDatasetId") or run_result.get("datasetId")
-        if dataset_id:
-            items = client.dataset(dataset_id).list_items().items
-            return items or []
-    return []
+    if not lines_out:
+        raise RuntimeError("tiktok-scraper returned no usable content")
+    return "\n\n".join(lines_out)
 
 
 # ── Instagram / TikTok cookie paths ───────────────────────────────────
@@ -627,12 +678,12 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     # then browser-harness fallback.
     if source_type in ("tiktok", "instagram"):
 
-        # Primary: Apify cloud scraping (no accounts, no proxies, no browser)
+        # Primary: self-hosted scrapers (instaloader + tiktok-scraper)
         try:
             if source_type == "instagram":
-                content = _fetch_apify_instagram(url, timeout=max(timeout, 30))
+                content = _fetch_instaloader_instagram(url, timeout=max(timeout, 30))
             else:
-                content = _fetch_apify_tiktok(url, timeout=max(timeout, 30))
+                content = _fetch_tiktok_scraper(url, timeout=max(timeout, 30))
             if content and len(content) > 50:
                 return ExtractionResult(
                     status="ok",
@@ -648,7 +699,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                     ),
                 )
         except Exception:
-            pass  # Apify failed or not configured → fall through
+            pass  # Self-hosted failed → fall through
 
         # TikTok oEmbed: try metadata extraction without rendering the full page.
         if source_type == "tiktok":
