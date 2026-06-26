@@ -262,6 +262,66 @@ def _exception_summary(exc: Exception) -> str:
         msg = msg[:200] + "..."
     return f"{type(exc).__name__}: {msg}"
 
+# ── Browser Harness backend ──────────────────────────────────────────
+
+def _fetch_browser_harness(url: str, timeout: int = 30) -> str:
+    """Fetch page content through the local browser-harness daemon (Chrome CDP).
+
+    Uses the running Chrome instance on CDP port 9222.  Navigates to the URL,
+    waits for page settle, then extracts visible text.  This is the extraction
+    path for platforms that block direct HTTP / headless requests (TikTok,
+    Instagram) and for YouTube caption fallback when the transcript API is
+    blocked by VPS IP.
+    """
+    script = _BROWSER_EXTRACT_SCRIPT.replace("{url}", url).replace("{timeout}", str(timeout))
+    proc = subprocess.run(
+        ["browser-harness"],
+        input=script,
+        capture_output=True,
+        text=True,
+        timeout=timeout + 10,
+    )
+    if proc.returncode != 0:
+        stderr = (proc.stderr or proc.stdout or "").strip()
+        raise RuntimeError(stderr or f"browser-harness failed with exit {proc.returncode}")
+    out = proc.stdout.strip()
+    if not out or len(out) < 20:
+        raise RuntimeError("browser-harness returned empty page content")
+    return out
+
+
+_BROWSER_EXTRACT_SCRIPT = """
+import time as _t
+
+ensure_real_tab()
+result = goto_url("{url}")
+if not result or not result.get('loaderId'):
+    print("NAVIGATE_FAILED")
+    exit(1)
+
+# Wait for dynamic content to settle (TikTok/Instagram JS hydration, YouTube page load)
+body_text = ""
+for attempt in range(1, 15):
+    _t.sleep(0.8)
+    body_text = js("(document.body && document.body.innerText) || ''")
+    if body_text and len(body_text) > 50:
+        break
+
+if not body_text or len(body_text) < 10:
+    print("NO_VISIBLE_TEXT")
+    exit(2)
+
+# Truncate to reasonable extract size
+if len(body_text) > 8000:
+    body_text = body_text[:8000] + "..."
+
+# Include page title for context
+title_text = js("document.title || ''")
+if title_text:
+    print(f"TITLE: {title_text}")
+print(body_text)
+"""
+
 
 def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | None = None, timeout: int = 15, title: str = "") -> ExtractionResult:
     """Extract content from a single URL. Tries Hermes web_extract first, then direct fetch, then Jina Reader.
@@ -272,14 +332,65 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     fetcher = fetch or _fetch_text
     source_type = _classify_source_type(url)
 
-    # TikTok / Instagram: discovery-only — preserve metadata and hint at video_analyze lane.
+    # TikTok / Instagram: try browser extraction before declaring blocked.
     if source_type in ("tiktok", "instagram"):
+        # TikTok oEmbed: try metadata extraction without rendering the full page.
+        if source_type == "tiktok":
+            try:
+                oembed_url = f"https://www.tiktok.com/oembed?url={url}"
+                content = fetcher(oembed_url, timeout=timeout)
+                if content and len(content) > 50:
+                    import json as _json
+                    try:
+                        data = _json.loads(content)
+                        title_text = data.get("title", "")
+                        author = data.get("author_name", "")
+                        desc = f"TikTok by @{author}: {title_text}" if author else title_text
+                        if desc and len(desc) > 30:
+                            return ExtractionResult(
+                                status="ok",
+                                content=desc[:2000],
+                                content_length=len(desc),
+                                source_type=source_type,
+                                video_evidence=VideoEvidence(
+                                    caption_transcript_status="not_attempted",
+                                    visual_analysis_status="available",
+                                    metadata_url=url,
+                                    metadata_title=desc[:200],
+                                ),
+                            )
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+        # Browser extraction for public-page content (works for Instagram, limited for TikTok).
+        if source_type == "instagram":
+            try:
+                content = _fetch_browser_harness(url, timeout=timeout)
+                if content and len(content) > 50:
+                    return ExtractionResult(
+                        status="ok",
+                        content=content[:5000],
+                        content_length=len(content),
+                        source_type=source_type,
+                        video_evidence=VideoEvidence(
+                            caption_transcript_status="not_available",
+                            visual_analysis_status="available",
+                            visual_analysis_summary=content[:2000],
+                            metadata_url=url,
+                            metadata_title=title,
+                        ),
+                    )
+            except Exception:
+                pass  # Fall through to blocked status below
+
         return ExtractionResult(
             status="blocked",
             source_type=source_type,
             error_message=(
                 f"{source_type} content requires browser/session for full extraction; "
-                "use video_analyze for visual summary, yt-dlp+whisper for audio transcript when available"
+                "browser-harness attempt also failed; use video_analyze for visual summary"
             ),
             video_evidence=VideoEvidence(
                 caption_transcript_status="not_attempted" if source_type == "tiktok" else "not_available",
@@ -288,11 +399,6 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                 audio_transcript_status="not_configured",
                 metadata_url=url,
                 metadata_title=title,
-                caption_transcript_error=(
-                    "TikTok captions require yt-dlp or browser/cookie session; not attempted from server IP."
-                    if source_type == "tiktok" else
-                    "Instagram captions require browser/cookie session; not attempted from server IP."
-                ),
             ),
         )
 
@@ -336,7 +442,24 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                 metadata_title=title,
             )
 
-        # Fall through to page fetch for metadata/title/description
+        # Fallback 1: browser-harness to grab page text + auto-captions from DOM.
+        if transcript_error:
+            try:
+                content = _fetch_browser_harness(url, timeout=timeout)
+                if content and len(content) > 50:
+                    return ExtractionResult(
+                        status="ok",
+                        content=content[:5000],
+                        content_length=len(content),
+                        source_type=source_type,
+                        transcript_attempted=True,
+                        transcript_error=transcript_error,
+                        video_evidence=video_ev,
+                    )
+            except Exception:
+                pass
+
+        # Fallback 2: direct page fetch for metadata/title/description
         try:
             content = fetcher(url, timeout)
             if content and len(content) > 50:

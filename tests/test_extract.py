@@ -79,9 +79,10 @@ def test_tiktok_extraction_is_blocked_not_error():
     assert "browser" in result.error_message.lower()
 
 
-def test_instagram_extraction_is_blocked():
-    result = extract_one("https://www.instagram.com/p/abc123/", fetch=lambda u, t: "fake content")
-    assert result.status == "blocked"
+def test_instagram_source_type_is_preserved():
+    # Instagram extraction now uses browser‑harness; may succeed on real machines.
+    # The invariant is correct source_type classification.
+    result = extract_one("https://www.instagram.com/p/abc123/")
     assert result.source_type == "instagram"
 
 
