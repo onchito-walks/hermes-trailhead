@@ -88,100 +88,125 @@ async function main() {
   });
   await new Promise(r => setTimeout(r, 2000));
 
-  // Step 4: Fill signup form
-  console.log('4. Filling signup form...');
+  // Step 4: Fill signup form (keyboard typing for React components)
+  console.log('4. Filling signup form via keyboard typing...');
   
-  // Instagram signup uses these fields
-  const emailInput = await page.$('input[name="emailOrPhone"]');
-  const fullNameInput = await page.$('input[name="fullName"]');
-  const usernameInput = await page.$('input[name="username"]');
-  const passwordInput = await page.$('input[name="password"]');
-
-  if (!emailInput || !fullNameInput || !usernameInput || !passwordInput) {
-    console.log('   Form fields not found — page might have changed. Taking screenshot...');
-    await page.screenshot({ path: '/tmp/ig-signup-debug.png' });
-    console.log('   Screenshot saved to /tmp/ig-signup-debug.png');
-    await browser.close();
-    process.exit(1);
-  }
-
   const username = `trailhead_research_${Date.now().toString(36)}`;
-  await emailInput.type(email);
-  await fullNameInput.type('Trailhead Research');
-  await usernameInput.type(username);
-  await passwordInput.type('Tr4!lh34dR3s34rch!!99');
+  const accountPassword = 'Tr4!lh34dR3s34rch!!99';
+  
+  // Get all inputs
+  const inputTypes = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll('input:not([type="hidden"])')).map(i => ({
+      type: i.type,
+      placeholder: i.placeholder || '',
+      aria: i.getAttribute('aria-label') || '',
+    }));
+  });
+  console.log(`   Inputs: ${JSON.stringify(inputTypes)}`);
+  
+  // Get all inputs as element handles
+  const allInputEls = await page.$$('input:not([type="hidden"])');
+  const pwEls = await page.$$('input[type="password"]');
+  const searchEls = await page.$$('input[type="search"]');
+  const selectEls = await page.$$('select');
+  const textEls = [];
+  for (const el of allInputEls) {
+    const t = await el.evaluate(e => e.type);
+    if (t === 'text') textEls.push(el);
+  }
+  
+  // Fill email — click + select all + type
+  if (textEls.length > 0) {
+    await textEls[0].click();
+    await page.keyboard.down('Control');
+    await page.keyboard.press('a');
+    await page.keyboard.up('Control');
+    await page.keyboard.type(email, {delay: 10});
+  }
+  
+  // Fill password
+  if (pwEls.length > 0) {
+    await pwEls[0].click();
+    await page.keyboard.type(accountPassword, {delay: 10});
+  }
+  
+  // Fill birthday selects
+  if (selectEls.length >= 3) {
+    await selectEls[0].select('6');
+    await selectEls[1].select('15');
+    await selectEls[2].select('1995');
+    console.log('   Filled birthday');
+  }
+  
+  // Fill name — click + select all + type
+  if (textEls.length > 1) {
+    await textEls[1].click();
+    await page.keyboard.down('Control');
+    await page.keyboard.press('a');
+    await page.keyboard.up('Control');
+    await page.keyboard.type('Trailhead Research', {delay: 10});
+  }
+  
+  // Fill username
+  if (searchEls.length > 0) {
+    await searchEls[0].click();
+    await page.keyboard.down('Control');
+    await page.keyboard.press('a');
+    await page.keyboard.up('Control');
+    await page.keyboard.type(username, {delay: 10});
+  }
 
   console.log(`   Username: ${username}`);
 
-  // Step 5: Submit
+  // Step 5: Submit the form
   console.log('5. Submitting form...');
-  const submitBtn = await page.$('button[type="submit"]');
-  if (submitBtn) {
-    await submitBtn.click();
-  } else {
-    // Try pressing Enter on password field
-    await passwordInput.press('Enter');
-  }
   
-  await new Promise(r => setTimeout(r, 5000));
-
-  // Step 6: Check if we need to enter confirmation code
-  console.log('6. Checking for confirmation code prompt...');
+  // Take screenshot before submit for debugging
+  await page.screenshot({ path: '/tmp/ig-before-submit.png' });
   
-  const pageText = await page.evaluate(() => document.body.textContent);
+  // Try to click the submit/next button
+  const clicked = await page.evaluate(() => {
+    const buttons = document.querySelectorAll('button, div[role="button"], span[role="button"]');
+    for (const b of buttons) {
+      const text = (b.textContent || '').toLowerCase();
+      if (text.includes('submit') || text.includes('next') || text.includes('sign up') || text.includes('continue')) {
+        b.click();
+        return 'clicked: ' + text.slice(0, 30);
+      }
+    }
+    return 'no button found';
+  });
+  console.log(`   Submit: ${clicked}`);
   
-  if (pageText.includes('confirmation code') || pageText.includes('Enter Confirmation Code')) {
-    console.log('   Confirmation code required. Checking email...');
-    
-    const emailData = await waitForEmail(sidToken, 120000);
-    if (!emailData) {
-      console.log('   No confirmation email received within 2 minutes.');
-      await browser.close();
-      process.exit(1);
-    }
-    
-    const code = extractCode(emailData.mail_body || emailData.mail_excerpt || '');
-    if (!code) {
-      console.log(`   Could not extract code from email: ${emailData.mail_excerpt?.slice(0,200)}`);
-      await browser.close();
-      process.exit(1);
-    }
-    
-    console.log(`   Got code: ${code}`);
-    
-    // Enter the code
-    const codeInput = await page.$('input[name="email_confirmation_code"]');
-    if (codeInput) {
-      await codeInput.type(code);
-      const confirmBtn = await page.$('button[type="submit"]');
-      if (confirmBtn) await confirmBtn.click();
-      await new Promise(r => setTimeout(r, 5000));
-    }
-  } else if (pageText.includes('birthday') || pageText.includes('Birthday')) {
-    console.log('   Birthday prompt detected. Filling...');
-    // Instagram might ask for birthday
-    // Try to fill and continue
-  }
-
-  // Step 7: Wait for redirect to home
-  console.log('7. Waiting for home page...');
-  await new Promise(r => setTimeout(r, 5000));
+  // Wait for navigation/redirect
+  await new Promise(r => setTimeout(r, 8000));
+  
+  // Take screenshot after submit
+  await page.screenshot({ path: '/tmp/ig-after-submit.png' });
   
   const currentUrl = page.url();
-  console.log(`   Current URL: ${currentUrl}`);
-
-  // Step 8: Export cookies
-  console.log('8. Exporting cookies...');
+  const pageText = await page.evaluate(() => document.body.textContent.slice(0, 1000));
+  console.log(`   URL: ${currentUrl}`);
+  console.log(`   Page text sample: ${pageText.slice(0, 200)}`);
+  
+  // Check if we need verification
+  if (pageText.includes('confirmation code') || pageText.includes('verification') || pageText.includes('checkpoint')) {
+    console.log('   Verification required — saving screenshot, cannot auto-solve.');
+    await browser.close();
+    process.exit(2);
+  }
+  
+  // Step 6: Export cookies
+  console.log('6. Exporting cookies...');
   const cookies = await page.cookies();
   
   fs.mkdirSync(path.dirname(COOKIES_FILE), { recursive: true });
   fs.writeFileSync(COOKIES_FILE, JSON.stringify(cookies, null, 2));
   console.log(`   Saved ${cookies.length} cookies to ${COOKIES_FILE}`);
 
-  // Verify: try to access own profile
-  const pageContent = await page.evaluate(() => document.body.textContent.slice(0, 500));
-  const loggedIn = !pageContent.includes('Log in') && !pageContent.includes('Sign up');
-  console.log(`   Logged in: ${loggedIn}`);
+  // Verify login state
+  const loggedIn = !pageText.includes('Log in') && !pageText.includes('Sign up');
+  console.log(`   Logged in: ${loggedIn} (cookies: ${cookies.length})`);
 
   await browser.close();
   console.log('\n=== DONE ===');

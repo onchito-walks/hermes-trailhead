@@ -34,64 +34,55 @@ function parseArgs() {
 }
 
 async function extractYouTubeTranscript(page) {
-  // Try to open the transcript panel via YouTube's "Show transcript" button
   try {
-    // Click "..." more button
-    const moreBtn = await page.$('button[aria-label="More actions"]');
-    if (moreBtn) {
-      await moreBtn.click();
-      await new Promise(r => setTimeout(r, 1000));
-    }
-    // Click "Show transcript"
-    const transcriptBtn = await page.$('tp-yt-paper-item');
-    if (!transcriptBtn) {
-      // Try alternative selectors
-      const items = await page.$$('ytd-menu-service-item-renderer');
-      for (const item of items) {
-        const text = await item.evaluate(el => el.textContent);
-        if (text && text.toLowerCase().includes('transcript')) {
-          await item.click();
-          await new Promise(r => setTimeout(r, 2000));
-          break;
+    // YouTube transcript extraction via JS clicks (Puppeteer clicks blocked by anti-bot)
+    await page.evaluate(() => {
+      const moreBtn = document.querySelector('button[aria-label="More actions"]');
+      if (moreBtn) moreBtn.click();
+    });
+    await new Promise(r => setTimeout(r, 1500));
+    
+    await page.evaluate(() => {
+      const items = document.querySelectorAll('ytd-menu-service-item-renderer, tp-yt-paper-item');
+      for (const el of items) {
+        if (el.textContent.toLowerCase().includes('transcript')) {
+          el.click();
+          return;
         }
       }
-    } else {
-      await transcriptBtn.click();
-      await new Promise(r => setTimeout(r, 2000));
-    }
-
-    // Extract transcript segments
-    const segments = await page.evaluate(() => {
-      const segs = document.querySelectorAll('ytd-transcript-segment-renderer');
-      return Array.from(segs).map(s => s.textContent.trim());
+      // Fallback: direct button selector
+      const btn = document.querySelector('button[aria-label*="transcript"], button[aria-label*="Transcript"]');
+      if (btn) btn.click();
     });
-
-    if (segments.length > 0) {
-      return segments.join('\n');
-    }
-
-    // Alternative: try yt-initial-data captions
-    const captionData = await page.evaluate(() => {
-      const scripts = document.querySelectorAll('script');
-      for (const s of scripts) {
-        if (s.textContent && s.textContent.includes('captions')) {
-          try {
-            const data = JSON.parse(s.textContent);
-            const captions = data?.playerResponse?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-            return captions || null;
-          } catch {}
-        }
+    await new Promise(r => setTimeout(r, 4000));
+    
+    // Extract transcript text from the panel
+    const transcript = await page.evaluate(() => {
+      const segs = document.querySelectorAll('ytd-transcript-segment-renderer');
+      if (segs.length > 0) {
+        return Array.from(segs).map(s => s.textContent.trim()).join('\n');
+      }
+      // Try broader panel extraction
+      const panel = document.querySelector('#panels');
+      if (panel) {
+        const transcriptText = panel.querySelector('[slot="content"]') || panel.querySelector('yt-formatted-string');
+        if (transcriptText) return transcriptText.textContent.trim();
+        // Last resort: panel text minus headers
+        const text = panel.textContent || '';
+        // Filter out UI labels, keep only actual transcript lines
+        const lines = text.split('\n').filter(l => {
+          const t = l.trim();
+          return t.length > 10 && !t.includes('Transcript') && !t.includes('Chapters') && !t.includes('Comments');
+        });
+        return lines.join('\n');
       }
       return null;
     });
-
-    if (captionData) {
-      return JSON.stringify(captionData);
-    }
+    
+    return transcript;
   } catch (e) {
-    // transcript extraction failed — not critical, page text still works
+    return null;
   }
-  return null;
 }
 
 async function main() {
