@@ -649,6 +649,138 @@ def _fetch_instaloader_instagram(url: str, timeout: int = 30) -> str:
             _os.environ.pop("HTTPS_PROXY", None)
 
 
+# ── TikTok rehydration blob backend (FREE, no proxy needed) ──────────
+
+
+def _fetch_tiktok_rehydration(url: str, timeout: int = 15) -> str:
+    """Extract TikTok content via __UNIVERSAL_DATA_FOR_REHYDRATION__ blob.
+
+    TikTok embeds full video/profile metadata in a server-side JSON blob
+    rendered BEFORE any JavaScript.  This works from datacenter IPs without
+    proxy, auth, or accounts for single-video and single-profile lookups.
+
+    Falls back to proxy-backed extraction when a proxy URL is configured,
+    which bypasses TikTok's WAF for video pages on residential IPs.
+
+    Returns the video caption/description as a string, or raises RuntimeError.
+    """
+    import json as _json
+    import re as _re
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    def _try_fetch(req_url: str, use_proxy: bool = False) -> str | None:
+        """Attempt one fetch, returning HTML string or None."""
+        try:
+            if use_proxy:
+                proxy = _get_proxy_url()
+                if not proxy:
+                    return None
+                proxy_handler = urllib.request.ProxyHandler(
+                    {"http": proxy, "https": proxy}
+                )
+                opener = urllib.request.build_opener(proxy_handler)
+                req = urllib.request.Request(req_url, headers=headers)
+                resp = opener.open(req, timeout=timeout)
+            else:
+                req = urllib.request.Request(req_url, headers=headers)
+                resp = urllib.request.urlopen(req, timeout=timeout)
+            return resp.read().decode()
+        except Exception:
+            return None
+
+    # Strategy 1: direct (free, works from datacenter IPs for video pages)
+    html = _try_fetch(url, use_proxy=False)
+    # Strategy 2: proxy (bypasses WAF on residential IPs)
+    if not html or len(html) < 5000:
+        html = _try_fetch(url, use_proxy=True)
+
+    if not html:
+        raise RuntimeError(f"Failed to fetch TikTok page: {url}")
+
+    # Check for WAF/CAPTCHA
+    if "slardar" in html.lower() or ('waf' in html.lower() and len(html) < 3000):
+        raise RuntimeError("TikTok WAF blocked the request — IP flagged")
+
+    # Extract rehydration blob
+    m = _re.search(
+        r'<script[^>]*id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>(.*?)</script>',
+        html,
+    )
+    if not m:
+        raise RuntimeError("No rehydration blob found in TikTok page")
+
+    data = _json.loads(m.group(1))
+    scope = data.get("__DEFAULT_SCOPE__", {})
+
+    # ── Video detail ──
+    vd = scope.get("webapp.video-detail", {})
+    if vd.get("statusCode") == 0 and "itemInfo" in vd:
+        v = vd["itemInfo"]["itemStruct"]
+        desc = v.get("desc", "")
+        stats = v.get("stats", {})
+        author = v.get("author", {})
+        music = v.get("music", {})
+        hashtags = [
+            t["hashtagName"]
+            for t in v.get("textExtra", [])
+            if t.get("hashtagName")
+        ]
+
+        lines = [f"TikTok by @{author.get('uniqueId', 'unknown')}: {desc}"]
+        lines.append(
+            f"  ❤️ {stats.get('diggCount', 0):,} | "
+            f"👁 {stats.get('playCount', 0):,} | "
+            f"💬 {stats.get('commentCount', 0):,} | "
+            f"🔄 {stats.get('shareCount', 0):,}"
+        )
+        if hashtags:
+            lines.append(f"  🏷 {' '.join('#' + t for t in hashtags)}")
+        if music.get("title"):
+            lines.append(f"  🎵 {music['title']}")
+        return "\n".join(lines)
+
+    # ── Profile detail ──
+    ud = scope.get("webapp.user-detail", {})
+    if ud.get("statusCode") == 0 and "userInfo" in ud:
+        ui = ud["userInfo"]
+        u = ui.get("user", {})
+        stats = ui.get("stats", {})
+        videos = ui.get("itemList", [])
+
+        lines = [
+            f"TikTok Profile: @{u.get('uniqueId', 'unknown')} "
+            f"({u.get('nickname', '')})"
+        ]
+        lines.append(
+            f"  {stats.get('followerCount', 0):,} followers | "
+            f"{stats.get('followingCount', 0)} following | "
+            f"{stats.get('videoCount', 0)} videos"
+        )
+        if u.get("signature"):
+            lines.append(f"  Bio: {u['signature'][:300]}")
+        for v in videos[:5]:
+            vdesc = v.get("desc", "")
+            vstats = v.get("stats", {})
+            if vdesc:
+                plays = vstats.get("playCount", "")
+                line = f"  📹 {vdesc[:120]}"
+                if plays:
+                    line += f" [👁 {plays:,}]"
+                lines.append(line)
+        return "\n".join(lines)
+
+    raise RuntimeError("TikTok page did not contain recognizable video or profile data")
+
+
 # ── Self-hosted TikTok backend (tiktok-scraper npm package) ────────────
 
 def _fetch_tiktok_scraper(url: str, timeout: int = 30) -> str:
@@ -781,6 +913,27 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     # then browser-harness fallback.
     if source_type in ("tiktok", "instagram"):
 
+        # ── TikTok: rehydration blob (PRIMARY — free, works from datacenter IPs) ──
+        if source_type == "tiktok":
+            try:
+                content = _fetch_tiktok_rehydration(url, timeout=max(timeout, 20))
+                if content and len(content) > 50:
+                    return ExtractionResult(
+                        status="ok",
+                        content=content[:8000],
+                        content_length=len(content),
+                        source_type=source_type,
+                        video_evidence=VideoEvidence(
+                            caption_transcript_status="ok",
+                            visual_analysis_status="available",
+                            visual_analysis_summary=content[:2000],
+                            metadata_url=url,
+                            metadata_title=title,
+                        ),
+                    )
+            except Exception:
+                pass  # Rehydration failed → fall through to tiktok-scraper
+
         # Primary: self-hosted scrapers (internal API for IG, tiktok-scraper for TT)
         try:
             if source_type == "instagram":
@@ -832,7 +985,44 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                     except Exception:
                         pass
             except Exception:
-                pass
+                # Try oEmbed through proxy as fallback
+                proxy = _get_proxy_url()
+                if proxy:
+                    import json as _json2
+                    try:
+                        import urllib.request as _ur
+                        from urllib.parse import quote as _quote
+                        oembed_proxy_url = (
+                            f"https://www.tiktok.com/oembed?url={_quote(url, safe='')}"
+                        )
+                        proxy_handler = _ur.ProxyHandler(
+                            {"http": proxy, "https": proxy}
+                        )
+                        opener_proxy = _ur.build_opener(proxy_handler)
+                        resp = opener_proxy.open(oembed_proxy_url, timeout=timeout)
+                        content = resp.read().decode()
+                        data_proxy = _json2.loads(content)
+                        title_text = data_proxy.get("title", "")
+                        author = data_proxy.get("author_name", "")
+                        desc = (
+                            f"TikTok by @{author}: {title_text}"
+                            if author else title_text
+                        )
+                        if desc and len(desc) > 30:
+                            return ExtractionResult(
+                                status="ok",
+                                content=desc[:2000],
+                                content_length=len(desc),
+                                source_type=source_type,
+                                video_evidence=VideoEvidence(
+                                    caption_transcript_status="not_attempted",
+                                    visual_analysis_status="available",
+                                    metadata_url=url,
+                                    metadata_title=desc[:200],
+                                ),
+                            )
+                    except Exception:
+                        pass
 
         # Stealth Chrome: primary browser extraction for Instagram/TikTok.
         cookies = _get_platform_cookies(source_type)
