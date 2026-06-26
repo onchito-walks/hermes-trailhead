@@ -706,16 +706,15 @@ def _fetch_tiktok_rehydration(url: str, timeout: int = 15) -> str:
     if not html:
         raise RuntimeError(f"Failed to fetch TikTok page: {url}")
 
-    # Check for WAF/CAPTCHA
-    if "slardar" in html.lower() or ('waf' in html.lower() and len(html) < 3000):
-        raise RuntimeError("TikTok WAF blocked the request — IP flagged")
-
-    # Extract rehydration blob
+    # Extract rehydration blob FIRST — TikTok embeds full data even on WAF pages
     m = _re.search(
         r'<script[^>]*id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>(.*?)</script>',
         html,
     )
     if not m:
+        # No blob at all — genuine block or error page
+        if "slardar" in html.lower() or ('waf' in html.lower() and len(html) < 3000):
+            raise RuntimeError("TikTok WAF blocked the request — no rehydration blob")
         raise RuntimeError("No rehydration blob found in TikTok page")
 
     data = _json.loads(m.group(1))
