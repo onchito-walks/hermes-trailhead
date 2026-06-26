@@ -136,6 +136,39 @@ def _fetch_text(url: str, timeout: int = 15) -> str:
         return raw.decode("utf-8", errors="replace")
 
 
+def _fetch_text_tiered(url: str, timeout: int = 15) -> str:
+    """Tiered HTTP fetch — escalates from free/direct to proxy/residential.
+
+    Tier 1: _fetch_text (datacenter IP, free, fast — works for 80% of pages)
+    Tier 2: _fetch_proxy (residential IP, free* — handles bot-hostile sites)
+    Tier 3: raises RuntimeError (page unreachable → escalation to Browser Harness)
+
+    This is the default fetcher for all web extraction. It transparently
+    upgrades to residential IP when datacenter gets blocked, with zero
+    configuration changes needed at call sites.
+    """
+    # Tier 1: direct
+    try:
+        result = _fetch_text(url, timeout=timeout)
+        if result and len(result) > 200:
+            return result
+    except Exception:
+        pass
+
+    # Tier 2: proxy
+    try:
+        result = _fetch_proxy(url, timeout=timeout)
+        if result and len(result) > 200:
+            return result
+    except Exception:
+        pass
+
+    # Tier 3: dead end — upstream should escalate to Browser Harness
+    raise RuntimeError(
+        f"Tiered fetch failed for {url} — both direct and proxy exhausted"
+    )
+
+
 def _fetch_jina(url: str, timeout: int = 20) -> str:
     """Fetch via Jina Reader for markdown conversion."""
     jina_url = f"https://r.jina.ai/{url}"
@@ -460,6 +493,64 @@ def _get_proxy_url() -> str | None:
     except Exception:
         pass
     return None
+
+
+def _fetch_proxy(url: str, timeout: int = 15) -> str:
+    """Lightweight HTTP fetch through residential proxy.
+
+    Handles sites that block datacenter IPs — sits between free web_extract
+    (datacenter, fast, no JS) and Browser Harness (residential, heavy, JS).
+
+    Uses the centralized proxy file.  Falls back to direct fetch if no proxy
+    is configured, making it safe to use as a universal fetcher.
+    """
+    proxy = _get_proxy_url()
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    def _try_fetch(req_url: str, use_proxy: bool) -> str | None:
+        try:
+            if use_proxy and proxy:
+                proxy_handler = urllib.request.ProxyHandler(
+                    {"http": proxy, "https": proxy}
+                )
+                opener = urllib.request.build_opener(proxy_handler)
+                req = urllib.request.Request(req_url, headers=headers)
+                resp = opener.open(req, timeout=timeout)
+            else:
+                req = urllib.request.Request(req_url, headers=headers)
+                resp = urllib.request.urlopen(req, timeout=timeout)
+            raw = resp.read()
+            # Try UTF-8, fall back to latin-1
+            try:
+                return raw.decode()
+            except UnicodeDecodeError:
+                return raw.decode("latin-1")
+        except Exception:
+            return None
+
+    # Strategy 1: proxy (residential IP — handles bot-hostile sites)
+    if proxy:
+        result = _try_fetch(url, use_proxy=True)
+        if result and len(result) > 200:
+            return result[:50000]
+
+    # Strategy 2: direct (datacenter IP — works for most sites)
+    result = _try_fetch(url, use_proxy=False)
+    if result and len(result) > 200:
+        return result[:50000]
+
+    raise RuntimeError(
+        f"Failed to fetch {url} — both proxy and direct paths returned "
+        f"insufficient content"
+    )
 
 
 def _get_instagram_session() -> str | None:
@@ -905,7 +996,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     For video-only sources (TikTok, YouTube, Instagram), returns structured
     video_evidence alongside any plain-text content that was retrievable.
     """
-    fetcher = fetch or _fetch_text
+    fetcher = fetch or _fetch_text_tiered
     source_type = _classify_source_type(url)
 
     # TikTok / Instagram: Apify first (primary), then oEmbed, stealth Chrome,
