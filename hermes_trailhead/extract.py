@@ -932,7 +932,38 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                         ),
                     )
             except Exception:
-                pass  # Rehydration failed → fall through to tiktok-scraper
+                pass  # Rehydration failed → fall through to oEmbed
+
+        # TikTok oEmbed: reliable metadata extraction (works direct + proxy, never WAF'd)
+        if source_type == "tiktok":
+            # Try direct first (works from any IP, no proxy needed)
+            try:
+                oembed_url = f"https://www.tiktok.com/oembed?url={url}"
+                content = fetcher(oembed_url, timeout=timeout)
+                if content and len(content) > 40:
+                    import json as _json3
+                    try:
+                        data = _json3.loads(content)
+                        title_text = data.get("title", "")
+                        author = data.get("author_name", "")
+                        desc = f"TikTok by @{author}: {title_text}" if author else title_text
+                        if desc and len(desc) > 30:
+                            return ExtractionResult(
+                                status="ok",
+                                content=desc[:2000],
+                                content_length=len(desc),
+                                source_type=source_type,
+                                video_evidence=VideoEvidence(
+                                    caption_transcript_status="ok",
+                                    visual_analysis_status="available",
+                                    metadata_url=url,
+                                    metadata_title=desc[:200],
+                                ),
+                            )
+                    except Exception:
+                        pass
+            except Exception:
+                pass
 
         # Primary: self-hosted scrapers (internal API for IG, tiktok-scraper for TT)
         try:
@@ -956,73 +987,6 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                 )
         except Exception:
             pass  # Self-hosted failed → fall through
-
-        # TikTok oEmbed: try metadata extraction without rendering the full page.
-        if source_type == "tiktok":
-            try:
-                oembed_url = f"https://www.tiktok.com/oembed?url={url}"
-                content = fetcher(oembed_url, timeout=timeout)
-                if content and len(content) > 50:
-                    import json as _json
-                    try:
-                        data = _json.loads(content)
-                        title_text = data.get("title", "")
-                        author = data.get("author_name", "")
-                        desc = f"TikTok by @{author}: {title_text}" if author else title_text
-                        if desc and len(desc) > 30:
-                            return ExtractionResult(
-                                status="ok",
-                                content=desc[:2000],
-                                content_length=len(desc),
-                                source_type=source_type,
-                                video_evidence=VideoEvidence(
-                                    caption_transcript_status="not_attempted",
-                                    visual_analysis_status="available",
-                                    metadata_url=url,
-                                    metadata_title=desc[:200],
-                                ),
-                            )
-                    except Exception:
-                        pass
-            except Exception:
-                # Try oEmbed through proxy as fallback
-                proxy = _get_proxy_url()
-                if proxy:
-                    import json as _json2
-                    try:
-                        import urllib.request as _ur
-                        from urllib.parse import quote as _quote
-                        oembed_proxy_url = (
-                            f"https://www.tiktok.com/oembed?url={_quote(url, safe='')}"
-                        )
-                        proxy_handler = _ur.ProxyHandler(
-                            {"http": proxy, "https": proxy}
-                        )
-                        opener_proxy = _ur.build_opener(proxy_handler)
-                        resp = opener_proxy.open(oembed_proxy_url, timeout=timeout)
-                        content = resp.read().decode()
-                        data_proxy = _json2.loads(content)
-                        title_text = data_proxy.get("title", "")
-                        author = data_proxy.get("author_name", "")
-                        desc = (
-                            f"TikTok by @{author}: {title_text}"
-                            if author else title_text
-                        )
-                        if desc and len(desc) > 30:
-                            return ExtractionResult(
-                                status="ok",
-                                content=desc[:2000],
-                                content_length=len(desc),
-                                source_type=source_type,
-                                video_evidence=VideoEvidence(
-                                    caption_transcript_status="not_attempted",
-                                    visual_analysis_status="available",
-                                    metadata_url=url,
-                                    metadata_title=desc[:200],
-                                ),
-                            )
-                    except Exception:
-                        pass
 
         # Stealth Chrome: primary browser extraction for Instagram/TikTok.
         cookies = _get_platform_cookies(source_type)
