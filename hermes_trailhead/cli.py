@@ -250,7 +250,7 @@ def cmd_search(args: argparse.Namespace) -> int:
                 for i, execution in enumerate(executed.executions):
                     if execution.hits:
                         extract_limit = len(execution.hits) if args.extract_limit is None else min(args.extract_limit, len(execution.hits))
-                        extracted = extract_hits(execution.hits, limit=extract_limit)
+                        extracted = extract_hits(execution.hits, limit=extract_limit, timeout=10)
                         scored = [ScoredHit.from_extracted_hit(eh) for eh in extracted]
                         if getattr(args, 'score', False):
                             scored = rank_hits(score_hits(scored))

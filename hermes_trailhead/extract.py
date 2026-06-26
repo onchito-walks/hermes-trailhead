@@ -376,20 +376,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
         except Exception:
             pass  # Fall through to Hermes/Jina/direct fetch
 
-    # Try Hermes native web_extract first.
-    try:
-        content = (extract or _fetch_hermes_web_extract)(url, timeout)
-        if content and len(content) > 50:
-            return ExtractionResult(
-                status="ok",
-                content=content,
-                content_length=len(content),
-                source_type=source_type,
-            )
-    except Exception:
-        pass  # Fall through to direct fetch
-
-    # Try direct fetch second.
+    # Try direct fetch first (fast, no subprocess).
     try:
         content = fetcher(url, timeout)
         if content and len(content) > 50:
@@ -415,6 +402,19 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                 )
         except Exception:
             pass
+
+    # Try Hermes native web_extract last (slow subprocess).
+    try:
+        content = (extract or _fetch_hermes_web_extract)(url, timeout)
+        if content and len(content) > 50:
+            return ExtractionResult(
+                status="ok",
+                content=content,
+                content_length=len(content),
+                source_type=source_type,
+            )
+    except Exception:
+        pass  # Fall through to error
 
     return ExtractionResult(
         status="error",

@@ -333,13 +333,13 @@ def _fetch(url: str, timeout: int = 20) -> str:
 
 BACKENDS: dict[str, list[Backend]] = {
     "github": [
-        Backend("searxng_site_github", "Local SearXNG site:github.com", lambda q: _searxng_url(f"site:github.com {q}"), _searxng_parser, accept_url=_github_result_url),
-        Backend("bing_search", "Bing search", _bing_search_url, _bing_parser, accept_url=_github_result_url),
+        Backend("searxng_site_github", "Local SearXNG site:github.com", lambda q: _searxng_url(f"site:github.com {q}"), _searxng_parser, accept_url=_github_result_url, timeout=10),
         Backend("ddg_lite_site_github", "DuckDuckGo Lite site:github.com",
                 lambda q: _ddg_lite_url(f"site:github.com {q}"), _hp, accept_url=_github_result_url),
         Backend("jina_duckduckgo_site_github", "Jina Reader over DuckDuckGo site:github.com",
                 lambda q: _jina_ddg_url(f"site:github.com {q}"), _mk, accept_url=_github_result_url),
-        Backend("github_search", "GitHub issue search", _github_search_url, _hp, accept_url=_github_result_url),
+        Backend("bing_search", "Bing search", _bing_search_url, _bing_parser, accept_url=_github_result_url),
+        Backend("github_search", "GitHub repository search", _github_search_url, _hp, accept_url=_github_result_url),
     ],
     "reddit": [
         Backend("searxng_site_reddit", "Local SearXNG site:reddit.com", lambda q: _searxng_url(f"site:reddit.com {q}"), _searxng_parser, accept_url=_reddit_result_url),
@@ -350,11 +350,11 @@ BACKENDS: dict[str, list[Backend]] = {
                 lambda q: _ddg_lite_url(f"site:reddit.com {q}"), _hp, accept_url=_reddit_result_url),
     ],
     "youtube": [
-        Backend("searxng_site_youtube", "Local SearXNG site:youtube.com/watch", lambda q: _searxng_url(f"site:youtube.com/watch {q}"), _searxng_parser, accept_url=_youtube_result_url),
         Backend("ddg_lite_site_youtube", "DuckDuckGo Lite site:youtube.com",
                 lambda q: _ddg_lite_url(f"site:youtube.com/watch {q}"), _hp, accept_url=_youtube_result_url),
         Backend("jina_duckduckgo_site_youtube", "Jina Reader over DuckDuckGo site:youtube.com",
                 lambda q: _jina_ddg_url(f"site:youtube.com/watch {q}"), _mk, accept_url=_youtube_result_url),
+        Backend("searxng_site_youtube", "Local SearXNG site:youtube.com/watch", lambda q: _searxng_url(f"site:youtube.com/watch {q}"), _searxng_parser, accept_url=_youtube_result_url, timeout=10),
         Backend("youtube_search", "YouTube search results", _youtube_search_url, _hp, accept_url=_youtube_result_url),
     ],
     "x": [
@@ -366,25 +366,25 @@ BACKENDS: dict[str, list[Backend]] = {
                 lambda q: _ddg_lite_url(f"site:x.com {q}"), _hp, accept_url=_x_result_url),
     ],
     "web": [
-        Backend("searxng", "Local SearXNG", _searxng_url, _searxng_parser),
-        Backend("bing_search", "Bing search", _bing_search_url, _bing_parser),
-        Backend("jina_duckduckgo", "Jina Reader over DuckDuckGo", _jina_ddg_url, _mk),
-        Backend("ddg_html", "DuckDuckGo HTML", _ddg_html_url, _hp),
         Backend("ddg_lite", "DuckDuckGo Lite", _ddg_lite_url, _hp),
+        Backend("ddg_html", "DuckDuckGo HTML", _ddg_html_url, _hp),
+        Backend("jina_duckduckgo", "Jina Reader over DuckDuckGo", _jina_ddg_url, _mk),
+        Backend("bing_search", "Bing search", _bing_search_url, _bing_parser),
+        Backend("searxng", "Local SearXNG", _searxng_url, _searxng_parser, timeout=10),
     ],
     "tiktok": [
-        Backend("searxng_site_tiktok", "Local SearXNG site:tiktok.com (discovery only)", lambda q: _searxng_url(f"site:tiktok.com {q}"), _searxng_parser),
-        Backend("jina_duckduckgo_site_tiktok", "Jina Reader over DDG site:tiktok.com (discovery only)",
-                lambda q: _jina_ddg_url(f"site:tiktok.com {q}"), _mk),
         Backend("ddg_lite_site_tiktok", "DuckDuckGo Lite site:tiktok.com (discovery only)",
                 lambda q: _ddg_lite_url(f"site:tiktok.com {q}"), _hp),
+        Backend("jina_duckduckgo_site_tiktok", "Jina Reader over DDG site:tiktok.com (discovery only)",
+                lambda q: _jina_ddg_url(f"site:tiktok.com {q}"), _mk),
+        Backend("searxng_site_tiktok", "Local SearXNG site:tiktok.com (discovery only)", lambda q: _searxng_url(f"site:tiktok.com {q}"), _searxng_parser, timeout=10),
     ],
     "instagram": [
-        Backend("searxng_site_instagram", "Local SearXNG site:instagram.com (discovery only)", lambda q: _searxng_url(f"site:instagram.com {q}"), _searxng_parser),
-        Backend("jina_duckduckgo_site_instagram", "Jina Reader over DDG site:instagram.com (discovery only)",
-                lambda q: _jina_ddg_url(f"site:instagram.com {q}"), _mk),
         Backend("ddg_lite_site_instagram", "DuckDuckGo Lite site:instagram.com (discovery only)",
                 lambda q: _ddg_lite_url(f"site:instagram.com {q}"), _hp),
+        Backend("jina_duckduckgo_site_instagram", "Jina Reader over DDG site:instagram.com (discovery only)",
+                lambda q: _jina_ddg_url(f"site:instagram.com {q}"), _mk),
+        Backend("searxng_site_instagram", "Local SearXNG site:instagram.com (discovery only)", lambda q: _searxng_url(f"site:instagram.com {q}"), _searxng_parser, timeout=10),
     ],
 }
 

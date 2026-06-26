@@ -46,29 +46,25 @@ def test_x_backend_filters_search_and_profile_noise_and_returns_status_results()
     ]
 
 
-def test_youtube_backend_filters_navigation_and_falls_through_to_video_results():
+def test_youtube_backend_filters_navigation_and_returns_video_results():
+    """DDG Lite site:youtube is now first — returns real video results directly."""
     calls = []
 
     def fake_fetch(url, timeout):
         calls.append(url)
-        if "r.jina.ai" in url:
+        # DDG Lite returns both corporate pages (filtered) and real videos
+        if "lite.duckduckgo.com" in url:
             return """
-## [About](https://www.youtube.com/about/)
-Corporate page.
-## [Press](https://www.youtube.com/about/press/)
-Corporate page.
-"""
-        return """
 <a href="https://www.youtube.com/about/">About</a>
 <a href="https://www.youtube.com/watch?v=abc123">Real demo video</a>
 <a href="https://youtu.be/def456">Second real video</a>
 """
+        return ""
 
     result = execute_backend_chain("youtube", "Claude Code Codex", limit=2, fetch=fake_fetch)
 
     assert result.engine == "ddg_lite_site_youtube"
-    assert len(calls) == 2
-    assert "site%3Ayoutube.com%2Fwatch" in calls[-1]
+    assert len(calls) == 1
     assert [hit.url for hit in result.hits] == [
         "https://www.youtube.com/watch?v=abc123",
         "https://youtu.be/def456",
@@ -85,7 +81,19 @@ def test_github_result_url_rejects_marketing_and_accepts_repos():
 
 
 def test_github_backend_prefers_site_search_and_filters_product_pages():
+    import json as _json
+
     def fake_fetch(url, timeout):
+        # SearXNG returns JSON (first in chain now)
+        if "127.0.0.1:8099" in url:
+            return _json.dumps({
+                "results": [
+                    {"title": "GitHub Copilot", "url": "https://github.com/features/copilot"},
+                    {"title": "GitHub Security", "url": "https://github.com/security/advanced-security"},
+                    {"title": "DraftShift StealthChanger", "url": "https://github.com/DraftShift/StealthChanger"},
+                    {"title": "Installation Wiki", "url": "https://github.com/DraftShift/StealthChanger/wiki/Installation"},
+                ]
+            })
         if "bing.com/search" in url:
             return """
 <a class="tilk" aria-label="GitHub Copilot" href="{copilot}">GitHub Copilot</a>
@@ -109,7 +117,7 @@ def test_github_backend_prefers_site_search_and_filters_product_pages():
 
     result = execute_backend_chain("github", "VORON 3D Printer Stealthchanger Build", limit=2, fetch=fake_fetch)
 
-    assert result.engine == "bing_search"
+    assert result.engine == "searxng_site_github"
     assert [hit.url for hit in result.hits] == [
         "https://github.com/DraftShift/StealthChanger",
         "https://github.com/DraftShift/StealthChanger/wiki/Installation",
