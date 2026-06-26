@@ -473,6 +473,109 @@ def _get_instagram_session() -> str | None:
         return None
 
 
+# ── Instagram internal API backend (NO AUTH, NO PROXY) ──────────────────
+
+def _fetch_instagram_api(url: str, timeout: int = 15) -> str:
+    """Extract Instagram content via internal API — no auth, no proxy needed.
+
+    Uses Instagram's own i.instagram.com REST API which still serves public
+    profile + post data without authentication.  Discovered June 2026: the
+    web_profile_info endpoint returns 12 posts with full captions from
+    datacenter IPs with no session cookie.
+    """
+    import json as _json
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) "
+            "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        ),
+        "X-IG-App-ID": "936619743392459",
+        "Accept": "application/json",
+    }
+
+    shortcode = _instagram_shortcode(url)
+    if shortcode:
+        # Specific post — try oEmbed first (simplest)
+        req = urllib.request.Request(
+            f"https://i.instagram.com/api/v1/oembed/?url=https://www.instagram.com/p/{shortcode}/",
+            headers=headers,
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                data = _json.loads(resp.read().decode())
+                title = data.get("title", "")
+                author = data.get("author_name", "")
+                if title:
+                    return f"Instagram post by @{author}:\n\n{title}"
+        except Exception:
+            pass
+
+        # Fallback: try profile API to find the post
+        raise RuntimeError(f"Could not fetch Instagram post {shortcode}")
+
+    # Profile URL — extract username, hit web_profile_info
+    import re as _re
+    m = _re.search(r'instagram\.com/([A-Za-z0-9_.]+)', url)
+    username = m.group(1) if m else ""
+    if not username or username in ("p", "reel", "stories", "explore"):
+        raise RuntimeError(f"Could not parse Instagram username from {url}")
+
+    api_url = f"https://i.instagram.com/api/v1/users/web_profile_info/?username={username}"
+    req = urllib.request.Request(api_url, headers=headers)
+
+    # Small delay to respect rate limits (Instagram allows ~200 req/hr per IP)
+    import time as _time
+    _time.sleep(2)
+
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = _json.loads(resp.read().decode())
+    except Exception as e:
+        err_msg = str(e)
+        if "429" in err_msg or "rate" in err_msg.lower():
+            raise RuntimeError(
+                f"Instagram rate limited — retry in 60s. "
+                f"(Profile endpoint allows ~200 req/hr; use oEmbed for individual posts.)"
+            )
+        raise
+
+    user = data.get("data", {}).get("user", {})
+    if not user:
+        raise RuntimeError(f"Instagram API returned no user data for @{username}")
+
+    bio = user.get("biography", "")
+    follower_count = user.get("edge_followed_by", {}).get("count", 0)
+    lines = [f"Instagram profile: @{user.get('username', username)} ({follower_count} followers)"]
+    if bio:
+        lines.append(f"Bio: {bio}")
+
+    edges = user.get("edge_owner_to_timeline_media", {}).get("edges", [])
+    if not edges:
+        if bio:
+            return "\n".join(lines)
+        raise RuntimeError(f"Instagram API returned no posts for @{username}")
+
+    for edge in edges[:5]:
+        node = edge.get("node", {})
+        caption_edges = node.get("edge_media_to_caption", {}).get("edges", [])
+        if caption_edges:
+            caption = caption_edges[0].get("node", {}).get("text", "")
+            if caption:
+                short = node.get("shortcode", "")
+                likes = node.get("edge_liked_by", {}).get("count", 0)
+                comments = node.get("edge_media_to_comment", {}).get("count", 0)
+                lines.append(
+                    f"\n---\n{caption}\n"
+                    f"[{likes} likes, {comments} comments] "
+                    f"instagram.com/p/{short}/"
+                )
+
+    if len(lines) == 1 or (len(lines) == 2 and bio):
+        raise RuntimeError(f"No captioned posts found for @{username}")
+    return "\n".join(lines)
+
+
 # ── Self-hosted Instagram backend (instaloader + curl_cffi) ─────────────
 
 def _fetch_instaloader_instagram(url: str, timeout: int = 30) -> str:
@@ -678,10 +781,10 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     # then browser-harness fallback.
     if source_type in ("tiktok", "instagram"):
 
-        # Primary: self-hosted scrapers (instaloader + tiktok-scraper)
+        # Primary: self-hosted scrapers (internal API for IG, tiktok-scraper for TT)
         try:
             if source_type == "instagram":
-                content = _fetch_instaloader_instagram(url, timeout=max(timeout, 30))
+                content = _fetch_instagram_api(url, timeout=max(timeout, 15))
             else:
                 content = _fetch_tiktok_scraper(url, timeout=max(timeout, 30))
             if content and len(content) > 50:

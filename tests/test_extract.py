@@ -73,8 +73,10 @@ def test_classify_source_type_pdf():
 
 
 def test_tiktok_oembed_extraction_works_with_content():
-    """TikTok now extracts via oEmbed when content is available."""
-    result = extract_one("https://www.tiktok.com/@user/video/123", fetch=lambda u, t: "fake content" * 20)
+    """TikTok now extracts via oEmbed when JSON content is available."""
+    import json as _json
+    oembed_data = _json.dumps({"title": "Cool video!", "author_name": "user"})
+    result = extract_one("https://www.tiktok.com/@user/video/123", fetch=lambda u, t: oembed_data)
     assert result.status == "ok"
     assert result.source_type == "tiktok"
 
