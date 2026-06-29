@@ -28,7 +28,7 @@ def test_scored_hit_to_dict():
         scoring=SourceScore(quality=SourceQuality.CANONICAL, score=70, reasons=("GitHub repo root",), label="GitHub repo root"),
     )
     d = hit.to_dict()
-    assert set(d) == {"title", "url", "snippet", "extraction_status", "extraction_length", "scoring"}
+    assert set(d) == {"title", "url", "snippet", "extraction_status", "extraction_length", "scoring", "transcript_status", "description_available"}
     assert d["scoring"]["score"] == 70
 
 

@@ -245,8 +245,9 @@ def cmd_search(args: argparse.Namespace) -> int:
         executed = search_execute_data(args.platform, args.query, live=args.live, limit=args.limit)
         if args.format == "json":
             result = executed.to_dict()
-            # Attach extraction/scoring to each execution if requested
-            if getattr(args, 'extract', False) or getattr(args, 'score', False):
+            # Extraction is default; --no-extract skips it. Scoring is additive on top.
+            do_extract = getattr(args, 'extract', True)
+            if do_extract or getattr(args, 'score', False):
                 for i, execution in enumerate(executed.executions):
                     if execution.hits:
                         extract_limit = len(execution.hits) if args.extract_limit is None else min(args.extract_limit, len(execution.hits))
@@ -261,21 +262,29 @@ def cmd_search(args: argparse.Namespace) -> int:
         print(f"Query: {executed.plan.query}")
         print(f"Paid API required: {'yes' if executed.plan.paid_api_required else 'no'}")
         print()
+        do_extract = getattr(args, 'extract', True)
         for execution in executed.executions:
-            print(f"## {execution.platform} — {execution.status} ({execution.result_count} results)\n")
-            print(f"Executed query: {execution.executed_query}")
+            print(f"## {execution.platform} — {execution.status} ({execution.result_count} hits)\n")
             print(f"Engine: {execution.engine}")
-            print(f"Evidence state: {execution.evidence_state}")
-            print(f"Approval required: {'yes' if execution.approval_required else 'no'}")
             if execution.caveat:
                 print(f"Caveat: {execution.caveat}")
             if execution.error:
                 print(f"Error: {execution.error}")
             for i, hit in enumerate(execution.hits, start=1):
-                print(f"{i}. {hit.title}")
-                print(f"   {hit.url}")
-                if hit.snippet:
-                    print(f"   {hit.snippet}")
+                print(f"  {i}. {hit.title[:100]}")
+                print(f"     {hit.url}")
+            # Show extracted evidence when available
+            if do_extract and execution.hits:
+                print()
+                extract_limit = len(execution.hits) if args.extract_limit is None else min(args.extract_limit, len(execution.hits))
+                extracted = extract_hits(execution.hits, limit=extract_limit, timeout=10)
+                for eh in extracted:
+                    ve = eh.extraction.video_evidence
+                    ts = getattr(ve, 'caption_transcript_status', 'not_applicable') if ve else 'not_applicable'
+                    desc = eh.extraction.content[:200] if eh.extraction.content else '(no description)'
+                    icon = {'ok': '✅', 'available': '✅', 'blocked': '❌', 'not_available': '⚠️', 'not_configured': '⚠️'}.get(ts, '❓')
+                    print(f"     {icon} transcript: {ts} | source: {eh.extraction.source_type or '?'} | {eh.extraction.content_length}B")
+                    print(f"     desc: {desc}")
             print()
         return 0
 
@@ -386,7 +395,8 @@ def build_parser() -> argparse.ArgumentParser:
     search.add_argument("--live", action="store_true", help="Probe configured live frontends where supported")
     search.add_argument("--execute", action="store_true", help="Execute search using loginless public search paths and return real hits")
     search.add_argument("--limit", type=int, default=5, help="Max hits per platform when --execute is used")
-    search.add_argument("--extract", action="store_true", help="Extract page content from search hits")
+    search.add_argument("--extract", action="store_true", default=True, help="Extract page content from search hits (default: on)")
+    search.add_argument("--no-extract", action="store_false", dest="extract", help="Skip extraction — return discovery links only")
     search.add_argument("--extract-limit", type=int, default=None, help="Max hits to extract per platform (defaults to --limit)")
     search.add_argument("--score", action="store_true", help="Score and rank search hits by source quality")
     search.set_defaults(func=cmd_search)

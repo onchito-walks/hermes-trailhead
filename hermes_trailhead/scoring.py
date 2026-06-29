@@ -134,6 +134,9 @@ class ScoredHit:
         }
         if self.video_evidence is not None and hasattr(self.video_evidence, "to_dict"):
             d["video_evidence"] = self.video_evidence.to_dict()
+        # Surface transcript/description status at top level for easy consumption.
+        d["transcript_status"] = getattr(self.video_evidence, "caption_transcript_status", "not_applicable") if self.video_evidence is not None else "not_applicable"
+        d["description_available"] = self.extraction_length > 50
         return d
 
     @classmethod
