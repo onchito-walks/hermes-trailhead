@@ -48,8 +48,12 @@ def _best_summary(content: str, snippet: str, title: str = "") -> str:
         or raw.strip().startswith("Comments\n")
     )
     cleaned = _clean_summary_text(raw)
-    # If extraction is raw HTML/app chrome, the search snippet/title is usually the real summary.
+    # If extraction is raw HTML/app chrome, try cleaning it.  If the cleaned
+    # text is substantial, prefer it over the search snippet/title which is
+    # often just a one-line label.
     if looks_like_shell:
+        if len(cleaned) >= 80:
+            return cleaned[:1200] + ("..." if len(cleaned) > 1200 else "")
         return fallback[:1200]
     if len(cleaned) >= 80:
         return cleaned[:1200] + ("..." if len(cleaned) > 1200 else "")
