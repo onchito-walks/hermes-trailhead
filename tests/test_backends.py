@@ -164,6 +164,25 @@ def test_youtube_backend_finds_voron_stealthchanger_video_results():
         "https://www.youtube.com/watch?v=cCbIjArKL4M",
     ]
 
+
+def test_tavily_backend_in_tiktok_and_instagram_chains():
+    from hermes_trailhead.backends import BACKENDS
+
+    tiktok_names = [b.name for b in BACKENDS["tiktok"]]
+    instagram_names = [b.name for b in BACKENDS["instagram"]]
+
+    assert "tavily_tiktok" in tiktok_names, f"tiktok chain missing tavily: {tiktok_names}"
+    assert "tavily_instagram" in instagram_names, f"instagram chain missing tavily: {instagram_names}"
+
+
+def test_tavily_falls_through_gracefully_when_key_is_missing(monkeypatch):
+    monkeypatch.setattr("hermes_trailhead.backends._tavily_api_key", lambda: "")
+
+    result = execute_backend_chain("tiktok", "anything", limit=2)
+
+    assert result.engine != "tavily_tiktok"
+
+
 def test_tiktok_and_instagram_have_bing_discovery_fallbacks():
     def fake_fetch(url, timeout):
         if "bing.com/search" in url and "tiktok.com" in url:

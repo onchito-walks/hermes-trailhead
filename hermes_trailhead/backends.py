@@ -463,6 +463,72 @@ def _run_social_search(platform: str, query: str, limit: int, *, timeout: int = 
     return tuple(hits)
 
 
+# ── Tavily Search API ────────────────────────────────────────────────────
+
+def _tavily_api_key() -> str:
+    import os
+
+    key = os.environ.get("TAVILY_API_KEY", "")
+    if key:
+        return key
+    env_path = os.path.expanduser("~/.hermes/.env")
+    if os.path.exists(env_path):
+        try:
+            for line in open(env_path):
+                if line.startswith("TAVILY_API_KEY="):
+                    return line.strip().split("=", 1)[1].strip("\"' \t")
+        except OSError:
+            pass
+    return ""
+
+
+def _tavily_search(platform: str, query: str, limit: int, *, timeout: int = 15) -> tuple:
+    """Use Tavily Search API as a reliable paid fallback for gated platforms."""
+    api_key = _tavily_api_key()
+    if not api_key:
+        return tuple()
+
+    domain = {"tiktok": "tiktok.com", "instagram": "instagram.com"}.get(platform)
+    if not domain:
+        return tuple()
+
+    search_query = f"site:{domain} {query}"
+    body = json.dumps(
+        {
+            "api_key": api_key,
+            "query": search_query,
+            "max_results": max(limit, 5),
+            "include_domains": [domain],
+        }
+    ).encode()
+
+    req = urllib.request.Request(
+        "https://api.tavily.com/search",
+        data=body,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = json.loads(resp.read())
+    except Exception:
+        return tuple()
+
+    results = data.get("results", [])
+    hits: list = []
+    seen: set[str] = set()
+    for r in results:
+        url = str(r.get("url", "")).strip()
+        title = str(r.get("title", "")).strip()
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        snippet = str(r.get("content", "")).strip()[:300]
+        hits.append(_search_hit(title=title, url=url, snippet=snippet))
+        if len(hits) >= limit:
+            break
+    return tuple(hits)
+
+
 # ── Platform backend chains ───────────────────────────────────────────────
 
 
@@ -514,6 +580,7 @@ BACKENDS: dict[str, list[Backend]] = {
                 lambda q: _jina_ddg_url(f"site:tiktok.com {q}"), _mk, accept_url=_tiktok_result_url),
         Backend("searxng_site_tiktok", "Local SearXNG site:tiktok.com (discovery only)", lambda q: _searxng_url(f"site:tiktok.com {q}"), _searxng_parser, accept_url=_tiktok_result_url, timeout=10),
         Backend("bing_site_tiktok", "Bing site:tiktok.com (discovery only)", lambda q: _bing_search_url(f"site:tiktok.com {q}"), _bing_parser, accept_url=_tiktok_result_url),
+        Backend("tavily_tiktok", "Tavily Search API (paid fallback)", lambda q: "", _hp, accept_url=_tiktok_result_url),
     ],
     "instagram": [
         Backend("ddg_lite_site_instagram", "DuckDuckGo Lite site:instagram.com (discovery only)",
@@ -522,6 +589,7 @@ BACKENDS: dict[str, list[Backend]] = {
                 lambda q: _jina_ddg_url(f"site:instagram.com {q}"), _mk, accept_url=_instagram_result_url),
         Backend("searxng_site_instagram", "Local SearXNG site:instagram.com (discovery only)", lambda q: _searxng_url(f"site:instagram.com {q}"), _searxng_parser, accept_url=_instagram_result_url, timeout=10),
         Backend("bing_site_instagram", "Bing site:instagram.com (discovery only)", lambda q: _bing_search_url(f"site:instagram.com {q}"), _bing_parser, accept_url=_instagram_result_url),
+        Backend("tavily_instagram", "Tavily Search API (paid fallback)", lambda q: "", _hp, accept_url=_instagram_result_url),
     ],
 }
 
@@ -580,6 +648,22 @@ def execute_backend_chain(
     for backend in chain:
         attempts.append(backend.name)
         try:
+            # Tavily backends call the API directly instead of HTTP fetch+parse.
+            if backend.name.startswith("tavily_"):
+                platform_key = {"tavily_tiktok": "tiktok", "tavily_instagram": "instagram"}.get(backend.name)
+                if platform_key:
+                    hits = _tavily_search(platform_key, query, limit, timeout=15)
+                    if hits:
+                        return BackendResult(
+                            hits=hits,
+                            engine=backend.name,
+                            backend_name=backend.name,
+                            attempts=attempts,
+                            saw_response=True,
+                            error="",
+                        )
+                    last_error = f"{backend.name} returned no results."
+                    continue
             url = backend.build_url(query)
             page = fetcher(url, backend.timeout)
             saw_response = True
