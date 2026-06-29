@@ -72,11 +72,15 @@ def test_classify_source_type_pdf():
     assert _classify_source_type("https://example.com/report.pdf") == "pdf"
 
 
-def test_tiktok_oembed_extraction_works_with_content():
+def test_tiktok_oembed_extraction_works_with_content(monkeypatch):
     """TikTok now extracts via oEmbed when JSON content is available."""
     import json as _json
     oembed_data = _json.dumps({"title": "Cool video with enough caption text to count as a useful TikTok summary for research.", "author_name": "user"})
-    result = extract_one("https://www.tiktok.com/@user/video/123", fetch=lambda u, t: oembed_data)
+
+    # Block subprocess so tiktok-scraper fallback doesn't run real binaries in test
+    monkeypatch.setattr(extract_mod.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(RuntimeError("blocked in test")))
+
+    result = extract_one("https://www.tiktok.com/@user/video/123", fetch=lambda u, timeout=0: oembed_data)
     assert result.status == "ok"
     assert result.source_type == "tiktok"
 
