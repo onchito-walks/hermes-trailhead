@@ -16,9 +16,17 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 
 puppeteer.use(StealthPlugin());
 
+function parseProxy(proxyUrl) {
+  if (!proxyUrl) return null;
+  // Format: http://user:pass@host:port
+  const m = proxyUrl.match(/^https?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)$/);
+  if (!m) return { host: proxyUrl, port: null, username: null, password: null };
+  return { username: m[1], password: m[2], host: m[3], port: parseInt(m[4]) };
+}
+
 function parseArgs() {
   const args = process.argv.slice(2);
-  const opts = { url: null, cookies: null, timeout: 30000, transcript: false };
+  const opts = { url: null, cookies: null, timeout: 30000, transcript: false, proxy: null };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--cookies' && i + 1 < args.length) {
       opts.cookies = args[++i];
@@ -26,6 +34,8 @@ function parseArgs() {
       opts.timeout = parseInt(args[++i], 10);
     } else if (args[i] === '--transcript') {
       opts.transcript = true;
+    } else if (args[i] === '--proxy' && i + 1 < args.length) {
+      opts.proxy = parseProxy(args[++i]);
     } else if (!opts.url) {
       opts.url = args[i];
     }
@@ -94,19 +104,34 @@ async function main() {
 
   let browser;
   try {
+    const launchArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-blink-features=AutomationControlled',
+      '--disable-features=IsolateOrigins,site-per-process',
+      '--disable-site-isolation-trials',
+    ];
+    if (opts.proxy && opts.proxy.host) {
+      const proxyArg = opts.proxy.port
+        ? `--proxy-server=${opts.proxy.host}:${opts.proxy.port}`
+        : `--proxy-server=${opts.proxy.host}`;
+      launchArgs.push(proxyArg);
+    }
     browser = await puppeteer.launch({
       headless: 'new',
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-blink-features=AutomationControlled',
-        '--disable-features=IsolateOrigins,site-per-process',
-        '--disable-site-isolation-trials',
-      ],
+      args: launchArgs,
       timeout: opts.timeout,
     });
 
     const page = await browser.newPage();
+
+    // Proxy authentication
+    if (opts.proxy && opts.proxy.username) {
+      await page.authenticate({
+        username: opts.proxy.username,
+        password: opts.proxy.password,
+      });
+    }
 
     // Set a realistic viewport
     await page.setViewport({ width: 1280, height: 720 });

@@ -337,10 +337,21 @@ def _is_platform_shell(source_type: str, content: str) -> bool:
             "this page isn’t working",
             "this page isn't working",
             "http error 429",
-            "sign up for instagram",
-            "log in to instagram",
         )
-        return any(marker in text for marker in bad)
+        # Only flag as a shell if NONE of these positive markers exist
+        # (real content indicators that prove this isn't just a login page)
+        positive = (
+            "voron", "stealthchanger", "3dprint", "build", "toolchanger",
+            "comment", "reply", "like", "share", "save", "follow",
+        )
+        if any(marker in text for marker in bad):
+            # It has error markers — but check if it also has real content
+            if not any(p in text for p in positive):
+                return True
+        # Also check: if the text is purely the app shell with zero unique content
+        if len(text) < 30:
+            return True
+        return False
     if source_type == "youtube":
         bad = (
             "sign in to confirm you’re not a bot",
@@ -370,6 +381,9 @@ def _fetch_stealth_chrome(url: str, timeout: int = 30, cookies: str | None = Non
         "node", _STEALTH_EXTRACT_SCRIPT, url,
         "--timeout", str(max(timeout, 15) * 1000),
     ]
+    proxy = _get_proxy_url()
+    if proxy:
+        cmd.extend(["--proxy", proxy])
     if cookies and __import__("os").path.exists(cookies):
         cmd.extend(["--cookies", cookies])
     if "youtube.com" in url or "youtu.be" in url:
@@ -565,20 +579,54 @@ def _instagram_shortcode(url: str) -> str:
 
 
 def _get_proxy_url() -> str | None:
-    """Read proxy URL from secrets file or environment."""
+    """Read and rotate through residential proxy URLs.
+
+    Reads from ~/.hermes/secrets/trailhead-proxy-url.txt — one URL per line.
+    Rotates roundrobin across all configured proxies using a counter stored
+    in ~/.hermes/state/trailhead-proxy-round.txt so successive calls cycle
+    through different residential IPs.
+
+    Also respects TRAILHEAD_PROXY_URL env var (single proxy, no rotation).
+    """
     import os as _os
     proxy = _os.environ.get("TRAILHEAD_PROXY_URL")
     if proxy:
         return proxy
+
     proxy_path = _os.path.expanduser("~/.hermes/secrets/trailhead-proxy-url.txt")
+    proxy_urls: list[str] = []
     try:
         with open(proxy_path) as f:
-            proxy = f.read().strip()
-            if proxy:
-                return proxy
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    proxy_urls.append(line)
     except Exception:
         pass
-    return None
+
+    if not proxy_urls:
+        return None
+    if len(proxy_urls) == 1:
+        return proxy_urls[0]
+
+    # Roundrobin rotation
+    counter_path = _os.path.expanduser("~/.hermes/state/trailhead-proxy-round.txt")
+    idx = 0
+    try:
+        with open(counter_path) as f:
+            idx = int(f.read().strip() or "0")
+    except Exception:
+        pass
+
+    chosen = proxy_urls[idx % len(proxy_urls)]
+    try:
+        _os.makedirs(_os.path.dirname(counter_path), exist_ok=True)
+        with open(counter_path, "w") as f:
+            f.write(str((idx + 1) % 10000))  # wrap to avoid unbounded growth
+    except Exception:
+        pass
+
+    return chosen
 
 
 def _fetch_proxy(url: str, timeout: int = 15) -> str:
@@ -725,8 +773,17 @@ def _fetch_instagram_api(url: str, timeout: int = 15) -> str:
                 pass
 
         if is_reel:
-            # Reels are JS shells with no OG metadata. Discovery captions
-            # from search provide the best available summary.
+            # Reels are JS shells — HTTP fetch gets no OG metadata.  Use
+            # stealth Chrome with proxy to render the page and extract
+            # captions from the live DOM.
+            try:
+                content = _fetch_stealth_chrome(url, timeout=max(timeout, 25))
+                if content and len(content) > 50 and not _is_platform_shell("instagram", content):
+                    return content
+            except Exception:
+                pass
+            # Stealth Chrome failed or returned unusable content.
+            # Discovery captions from search provide the fallback summary.
             return ""
 
         # Post — nothing worked; can't extract without auth
