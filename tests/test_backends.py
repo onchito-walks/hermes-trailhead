@@ -268,3 +268,27 @@ def test_injected_fetch_path_skips_command_backends_for_deterministic_tests(monk
 
     assert result.engine == "ddg_lite_site_youtube"
     assert result.hits[0].url == "https://www.youtube.com/watch?v=abc123"
+
+
+def test_ytdlp_flat_search_preserves_descriptions(monkeypatch):
+    import json
+    from hermes_trailhead import backends
+
+    class Result:
+        returncode = 0
+        stdout = json.dumps({
+            "id": "abc123",
+            "title": "Useful demo",
+            "webpage_url": "https://www.youtube.com/watch?v=abc123",
+            "description": "This is the detailed video description with useful build notes.",
+        }) + "\n"
+        stderr = ""
+
+    monkeypatch.setattr(backends.shutil, "which", lambda name: "/usr/bin/yt-dlp")
+    monkeypatch.setattr(backends.subprocess, "run", lambda *a, **k: Result())
+
+    result = backends.execute_backend_chain("youtube", "demo query", limit=1, allow_native=True)
+
+    assert result.engine == "yt_dlp_flat_search"
+    assert result.hits[0].snippet == "This is the detailed video description with useful build notes."
+    assert "metadata/transcript extraction is separate" not in result.hits[0].snippet

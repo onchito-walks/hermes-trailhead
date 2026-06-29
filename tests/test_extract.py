@@ -75,7 +75,7 @@ def test_classify_source_type_pdf():
 def test_tiktok_oembed_extraction_works_with_content():
     """TikTok now extracts via oEmbed when JSON content is available."""
     import json as _json
-    oembed_data = _json.dumps({"title": "Cool video!", "author_name": "user"})
+    oembed_data = _json.dumps({"title": "Cool video with enough caption text to count as a useful TikTok summary for research.", "author_name": "user"})
     result = extract_one("https://www.tiktok.com/@user/video/123", fetch=lambda u, t: oembed_data)
     assert result.status == "ok"
     assert result.source_type == "tiktok"
@@ -224,3 +224,49 @@ def test_extract_hits_can_handle_higher_limits():
 def test_extract_hits_empty_input():
     results = extract_hits((), limit=5)
     assert len(results) == 0
+
+
+def test_instagram_login_shell_is_blocked_not_summary(monkeypatch):
+    from hermes_trailhead import extract as extract_mod
+
+    monkeypatch.setattr(extract_mod, "_fetch_instagram_api", lambda url, timeout: (_ for _ in ()).throw(RuntimeError("oEmbed failed")))
+    monkeypatch.setattr(extract_mod, "_fetch_stealth_chrome", lambda *a, **k: "InstagramLog inerrorPost isn't availableThe link may be broken, or the profile may have been removed.Sign up for Instagram")
+    monkeypatch.setattr(extract_mod, "_fetch_browser_harness", lambda *a, **k: "This page isn’t working HTTP ERROR 429")
+
+    result = extract_mod.extract_one("https://www.instagram.com/reel/DQj40znkasX/", timeout=1)
+
+    assert result.status == "blocked"
+    assert result.source_type == "instagram"
+    assert result.content == ""
+    assert result.video_evidence is not None
+    assert result.video_evidence.caption_transcript_status == "not_available"
+
+
+def test_github_repo_summary_extraction(monkeypatch):
+    import json
+    from hermes_trailhead import extract as extract_mod
+
+    class FakeResp:
+        status = 200
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def read(self):
+            return json.dumps({
+                "full_name": "owner/repo",
+                "description": "Useful repo description.",
+                "homepage": "https://example.com",
+                "stargazers_count": 123,
+                "forks_count": 4,
+                "open_issues_count": 5,
+                "language": "Python",
+            }).encode()
+
+    monkeypatch.setattr(extract_mod.urllib.request, "urlopen", lambda req, timeout: FakeResp())
+
+    result = extract_mod.extract_one("https://github.com/owner/repo/wiki", timeout=1)
+
+    assert result.status == "ok"
+    assert result.source_type == "github"
+    assert "GitHub repository: owner/repo" in result.content
+    assert "Useful repo description." in result.content
+    assert "Requested path: /wiki" in result.content

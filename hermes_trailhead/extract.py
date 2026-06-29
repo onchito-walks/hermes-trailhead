@@ -241,6 +241,35 @@ def _reddit_frontend_url(url: str) -> str:
     return f"https://redlib.perennialte.ch{parsed.path}"
 
 
+def _fetch_github_summary(url: str, timeout: int = 15) -> str:
+    """Fetch useful GitHub repository metadata without requiring auth."""
+    parsed = urlparse(url)
+    if parsed.netloc.lower() != "github.com":
+        raise RuntimeError("Not a GitHub URL")
+    parts = [p for p in parsed.path.split("/") if p]
+    if len(parts) < 2:
+        raise RuntimeError("GitHub URL does not identify a repository")
+    owner, repo = parts[0], parts[1]
+    api = f"https://api.github.com/repos/{owner}/{repo}"
+    req = urllib.request.Request(api, headers={"Accept": "application/vnd.github+json", "User-Agent": "Hermes-Trailhead"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        data = json.loads(resp.read().decode("utf-8", errors="replace"))
+    full_name = data.get('full_name') or f"{owner}/{repo}"
+    lines = [f"GitHub repository: {full_name}"]
+    desc = data.get("description") or ""
+    if desc:
+        lines.append(desc)
+    homepage = data.get("homepage") or ""
+    if homepage:
+        lines.append(f"Homepage: {homepage}")
+    lines.append(
+        f"Stars: {data.get('stargazers_count', 0)} | Forks: {data.get('forks_count', 0)} | Open issues: {data.get('open_issues_count', 0)} | Language: {data.get('language') or 'unknown'}"
+    )
+    if len(parts) >= 3:
+        lines.append(f"Requested path: /{'/'.join(parts[2:])}")
+    return "\n".join(lines)
+
+
 def _strip_hermes_web_extract_output(output: str) -> str:
     """Normalize Hermes CLI output down to extracted markdown content."""
     lines = output.splitlines()
@@ -1026,6 +1055,19 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     """
     fetcher = fetch or _fetch_text_tiered
     source_type = _classify_source_type(url)
+
+    if source_type == "github" and fetch is None:
+        try:
+            content = _fetch_github_summary(url, timeout=timeout)
+            if content:
+                return ExtractionResult(
+                    status="ok",
+                    content=content,
+                    content_length=len(content),
+                    source_type=source_type,
+                )
+        except Exception:
+            pass
 
     # TikTok / Instagram: Apify first (primary), then oEmbed, stealth Chrome,
     # then browser-harness fallback.

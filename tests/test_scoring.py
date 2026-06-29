@@ -28,8 +28,9 @@ def test_scored_hit_to_dict():
         scoring=SourceScore(quality=SourceQuality.CANONICAL, score=70, reasons=("GitHub repo root",), label="GitHub repo root"),
     )
     d = hit.to_dict()
-    assert set(d) == {"title", "url", "snippet", "summary", "extraction_status", "extraction_length", "scoring", "transcript_status", "description_available"}
+    assert set(d) == {"title", "url", "snippet", "summary", "extraction_status", "extraction_length", "scoring", "transcript_status", "description_available", "summary_available"}
     assert d["summary"] == "A repo"
+    assert d["summary_available"] is True
     assert d["scoring"]["score"] == 70
 
 
@@ -287,3 +288,21 @@ def test_scored_hit_from_extracted_hit():
     assert sh.title == "Test"
     assert sh.extraction_status == "ok"
     assert sh.extraction_length == 500
+
+
+def test_summary_prefers_snippet_when_extraction_is_raw_html_shell():
+    from hermes_trailhead.extract import ExtractedHit, ExtractionResult
+    from hermes_trailhead.scoring import ScoredHit, score_hit
+
+    eh = ExtractedHit(
+        title="X post",
+        url="https://x.com/example/status/123",
+        snippet="Maintainer says the fix shipped yesterday.",
+        extraction=ExtractionResult(status="ok", content='<!DOCTYPE html><html data-app-env="prod"><head></head><body>app shell</body></html>', content_length=90),
+    )
+
+    scored = score_hit(ScoredHit.from_extracted_hit(eh)).to_dict()
+
+    assert scored["summary"] == "Maintainer says the fix shipped yesterday."
+    assert scored["summary_available"] is True
+    assert "<!DOCTYPE" not in scored["summary"]

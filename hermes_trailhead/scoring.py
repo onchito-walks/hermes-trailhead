@@ -15,6 +15,49 @@ from urllib.parse import urlparse
 from .extract import ExtractedHit
 
 
+def _clean_summary_text(text: str) -> str:
+    """Return a compact usable summary, stripping obvious HTML/script chrome."""
+    text = text or ""
+    text = re.sub(r"<script\b.*?</script>", " ", text, flags=re.I | re.S)
+    text = re.sub(r"<style\b.*?</style>", " ", text, flags=re.I | re.S)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def _best_summary(content: str, snippet: str, title: str = "") -> str:
+    """Prefer clean extracted content; fall back to discovery snippet/caption/title."""
+    raw = content or ""
+    snippet = (snippet or "").strip()
+    title = (title or "").strip()
+    snippet_lower = snippet.lower()
+    bad_snippet = (
+        "javascript is not available" in snippet_lower
+        or "enable javascript or switch to a supported browser" in snippet_lower
+        or "we cannot provide a description for this page right now" in snippet_lower
+    )
+    fallback = title if bad_snippet else (snippet or title)
+    lower = raw[:2000].lower()
+    looks_like_shell = (
+        "<!doctype html" in lower
+        or "<html" in lower
+        or "data-app-env=\"prod\"" in lower
+        or "youtube transcript:\n\ncomments" in lower
+        or "javascript is not available" in lower
+        or "enable javascript or switch to a supported browser" in lower
+        or raw.strip().startswith("Comments\n")
+    )
+    cleaned = _clean_summary_text(raw)
+    # If extraction is raw HTML/app chrome, the search snippet/title is usually the real summary.
+    if looks_like_shell:
+        return fallback[:1200]
+    if len(cleaned) >= 80:
+        return cleaned[:1200] + ("..." if len(cleaned) > 1200 else "")
+    if fallback:
+        return fallback[:1200]
+    return cleaned
+
+
 class SourceQuality(str, Enum):
     CANONICAL = "canonical"       # Official docs, repos, maintainer statements
     PRACTITIONER = "practitioner" # Reddit threads, forums, firsthand reports
@@ -139,12 +182,12 @@ class ScoredHit:
         # Surface transcript/description status at top level for easy consumption.
         d["transcript_status"] = getattr(self.video_evidence, "caption_transcript_status", "not_applicable") if self.video_evidence is not None else "not_applicable"
         d["description_available"] = self.extraction_length > 50
+        d["summary_available"] = bool((self.summary or self.snippet or "").strip())
         return d
 
     @classmethod
     def from_extracted_hit(cls, eh: ExtractedHit) -> ScoredHit:
-        raw_summary = (eh.extraction.content or eh.snippet or "").strip()
-        summary = raw_summary[:1200] + "..." if len(raw_summary) > 1200 else raw_summary
+        summary = _best_summary(eh.extraction.content, eh.snippet, eh.title)
         return cls(
             title=eh.title,
             url=eh.url,
