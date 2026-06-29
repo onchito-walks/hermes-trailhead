@@ -449,7 +449,9 @@ def _fetch_ytdlp_transcript(url: str, timeout: int = 30) -> str:
     except Exception:
         pass
 
-    # Strip SRT timestamps and sequence numbers, keep only text
+    # Strip SRT timestamps and sequence numbers, keep only text.
+    # Gemini auto-captions produce overlapping time windows that triple
+    # every word — build incrementally and dedup as we go.
     lines: list[str] = []
     for line in raw.splitlines():
         line = line.strip()
@@ -463,7 +465,32 @@ def _fetch_ytdlp_transcript(url: str, timeout: int = 30) -> str:
             continue  # music/sound effect tags
         lines.append(line)
 
-    content = " ".join(lines).strip()
+    # Gemini auto-captions produce incremental overlapping entries:
+    #   "This is the machine that I built. It"
+    #   "This is the machine that I built. It doesn't just have one tool head."
+    # Each line restates the previous plus a few new words.  Build
+    # incrementally: if a line starts with the previous accumulated text,
+    # only append the suffix.  Fall back to simple dedup on word boundaries.
+    prev = ""
+    deduped_lines: list[str] = []
+    for line in lines:
+        # Remove leading/trailing punctuation noise that breaks prefix matching
+        clean = line.strip(" ,;.!?-")
+        if not clean:
+            continue
+        if prev and clean.startswith(prev):
+            suffix = clean[len(prev):].strip()
+            if suffix:
+                deduped_lines.append(suffix)
+                prev = clean
+        elif prev and prev.startswith(clean):
+            # New line is shorter — just skip it (we already have more text)
+            pass
+        else:
+            deduped_lines.append(line)
+            prev = clean
+
+    content = " ".join(deduped_lines).strip()
     if not content or len(content) < 30:
         raise RuntimeError("yt-dlp: subtitle content too short or empty")
 
@@ -1094,6 +1121,8 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                         source_type=source_type,
                         video_evidence=VideoEvidence(
                             caption_transcript_status="ok",
+                            caption_transcript=content[:2000],
+                            caption_transcript_length=min(len(content), 2000),
                             visual_analysis_status="available",
                             visual_analysis_summary=content[:2000],
                             metadata_url=url,
@@ -1124,6 +1153,8 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                                 source_type=source_type,
                                 video_evidence=VideoEvidence(
                                     caption_transcript_status="ok",
+                                    caption_transcript=desc[:2000],
+                                    caption_transcript_length=len(desc),
                                     visual_analysis_status="available",
                                     metadata_url=url,
                                     metadata_title=desc[:200],
@@ -1148,6 +1179,8 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                     source_type=source_type,
                     video_evidence=VideoEvidence(
                         caption_transcript_status="ok" if source_type == "instagram" else "not_attempted",
+                        caption_transcript=content[:2000] if source_type == "instagram" else "",
+                        caption_transcript_length=min(len(content), 2000) if source_type == "instagram" else 0,
                         visual_analysis_status="available",
                         visual_analysis_summary=content[:2000],
                         metadata_url=url,
