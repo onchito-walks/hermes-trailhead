@@ -121,6 +121,7 @@ class ScoredHit:
     scoring: SourceScore = field(default_factory=lambda: SourceScore(
         quality=SourceQuality.UNKNOWN, score=0, reasons=tuple(), label=""
     ))
+    summary: str = ""
     video_evidence: object | None = None  # VideoEvidence from extraction
 
     def to_dict(self) -> dict:
@@ -128,6 +129,7 @@ class ScoredHit:
             "title": self.title,
             "url": self.url,
             "snippet": self.snippet,
+            "summary": self.summary or self.snippet,
             "extraction_status": self.extraction_status,
             "extraction_length": self.extraction_length,
             "scoring": self.scoring.to_dict(),
@@ -141,10 +143,13 @@ class ScoredHit:
 
     @classmethod
     def from_extracted_hit(cls, eh: ExtractedHit) -> ScoredHit:
+        raw_summary = (eh.extraction.content or eh.snippet or "").strip()
+        summary = raw_summary[:1200] + "..." if len(raw_summary) > 1200 else raw_summary
         return cls(
             title=eh.title,
             url=eh.url,
             snippet=eh.snippet,
+            summary=summary,
             extraction_status=eh.extraction.status,
             extraction_length=eh.extraction.content_length,
             video_evidence=eh.extraction.video_evidence,
@@ -196,6 +201,7 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
             title=hit.title,
             url=hit.url,
             snippet=hit.snippet,
+            summary=hit.summary,
             extraction_status=hit.extraction_status,
             extraction_length=hit.extraction_length,
             video_evidence=hit.video_evidence,
@@ -212,6 +218,7 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
             title=hit.title,
             url=hit.url,
             snippet=hit.snippet,
+            summary=hit.summary,
             extraction_status=hit.extraction_status,
             extraction_length=hit.extraction_length,
             scoring=SourceScore(
@@ -227,6 +234,7 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
             title=hit.title,
             url=hit.url,
             snippet=hit.snippet,
+            summary=hit.summary,
             extraction_status=hit.extraction_status,
             extraction_length=hit.extraction_length,
             video_evidence=hit.video_evidence,
@@ -307,6 +315,7 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
         title=hit.title,
         url=hit.url,
         snippet=hit.snippet,
+        summary=hit.summary,
         extraction_status=hit.extraction_status,
         extraction_length=hit.extraction_length,
         video_evidence=hit.video_evidence,

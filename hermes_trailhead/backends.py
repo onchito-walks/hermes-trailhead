@@ -383,7 +383,9 @@ def _run_ytdlp_flat_search(query: str, limit: int, *, timeout: int = 20, runner:
         if not title or not _youtube_result_url(url) or url in seen:
             continue
         seen.add(url)
-        hits.append(_search_hit(title=title, url=url, snippet="YouTube discovery via yt-dlp flat search; metadata/transcript extraction is separate."))
+        description = str(row.get("description") or "").strip()
+        snippet = description[:300] if description else "YouTube video — description not available in discovery"
+        hits.append(_search_hit(title=title, url=url, snippet=snippet))
         if len(hits) >= limit:
             break
     return tuple(hits)

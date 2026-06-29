@@ -121,8 +121,8 @@ python3 -m py_compile hermes_trailhead/*.py
 python3 -m pytest -q
 python3 -m hermes_trailhead gauntlet
 python3 -m hermes_trailhead search all "test query" --execute --limit 2 --format json
-# Extraction is default. Use --score to add quality ranking.
-# Use --no-extract to skip extraction (discovery links only).
+# Extraction and scoring are default. Use --no-score to keep raw extracted summaries.
+# Use --no-extract to skip extraction and scoring (discovery links only).
 ```
 
 ## Key files

@@ -27,7 +27,7 @@ python3 -m hermes_trailhead search all "test query" --execute --extract --limit 
 ## Key commands
 
 ```bash
-python3 -m hermes_trailhead search all "query" --execute --extract --score --limit 3 --extract-limit 3 --format json
+python3 -m hermes_trailhead search all "query" --execute --limit 3 --extract-limit 3 --format json
 python3 -m hermes_trailhead route "task intent" --live --format json
 python3 -m hermes_trailhead doctor --live --record
 python3 -m hermes_trailhead reliability
@@ -38,7 +38,7 @@ python3 -m hermes_trailhead benchmark
 ## Current test baseline
 
 ```
-124 tests passing
+155 tests passing
 PhD gauntlet: 100/100 across 10 hard-source lanes
 Live benchmark: network canary, may degrade when public search blocks
 ```

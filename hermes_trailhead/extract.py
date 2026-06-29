@@ -13,7 +13,7 @@ import re
 import subprocess
 import time
 import urllib.request
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 from typing import Callable, Literal
 
 from .search import SearchHit
@@ -294,6 +294,33 @@ def _exception_summary(exc: Exception) -> str:
     if len(msg) > 200:
         msg = msg[:200] + "..."
     return f"{type(exc).__name__}: {msg}"
+
+
+def _is_platform_shell(source_type: str, content: str) -> bool:
+    """Detect login/error shells that are not usable source summaries."""
+    text = re.sub(r"\s+", " ", (content or "").strip().lower())
+    if not text:
+        return True
+    if source_type == "instagram":
+        bad = (
+            "instagramlog inerrorpost isn't available",
+            "post isn't availablethe link may be broken",
+            "this page isn’t working",
+            "this page isn't working",
+            "http error 429",
+            "sign up for instagram",
+            "log in to instagram",
+        )
+        return any(marker in text for marker in bad)
+    if source_type == "youtube":
+        bad = (
+            "sign in to confirm you’re not a bot",
+            "sign in to confirm you're not a bot",
+            "unusual traffic",
+            "captcha",
+        )
+        return any(marker in text for marker in bad)
+    return False
 
 # ── Stealth Chrome backend (primary) ──────────────────────────────────
 
@@ -587,9 +614,10 @@ def _fetch_instagram_api(url: str, timeout: int = 15) -> str:
 
     shortcode = _instagram_shortcode(url)
     if shortcode:
-        # Specific post — try oEmbed first (simplest)
+        # Specific post/reel — try oEmbed first (simplest)
+        embed_url = quote(url.split('?')[0], safe='')
         req = urllib.request.Request(
-            f"https://i.instagram.com/api/v1/oembed/?url=https://www.instagram.com/p/{shortcode}/",
+            f"https://i.instagram.com/api/v1/oembed/?url={embed_url}",
             headers=headers,
         )
         try:
@@ -1004,7 +1032,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     if source_type in ("tiktok", "instagram"):
 
         # ── TikTok: rehydration blob (PRIMARY — free, works from datacenter IPs) ──
-        if source_type == "tiktok":
+        if source_type == "tiktok" and fetch is None:
             try:
                 content = _fetch_tiktok_rehydration(url, timeout=max(timeout, 20))
                 if content and len(content) > 50:
@@ -1037,7 +1065,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                         title_text = data.get("title", "")
                         author = data.get("author_name", "")
                         desc = f"TikTok by @{author}: {title_text}" if author else title_text
-                        if desc and len(desc) > 30:
+                        if desc and len(desc) > 10:
                             return ExtractionResult(
                                 status="ok",
                                 content=desc[:2000],
@@ -1082,7 +1110,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
         cookies = _get_platform_cookies(source_type)
         try:
             content = _fetch_stealth_chrome(url, timeout=timeout, cookies=cookies)
-            if content and len(content) > 50:
+            if content and len(content) > 50 and not _is_platform_shell(source_type, content):
                 return ExtractionResult(
                     status="ok",
                     content=content[:8000],
@@ -1103,7 +1131,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
         if source_type == "instagram":
             try:
                 content = _fetch_browser_harness(url, timeout=timeout)
-                if content and len(content) > 50:
+                if content and len(content) > 50 and not _is_platform_shell(source_type, content):
                     return ExtractionResult(
                         status="ok",
                         content=content[:5000],
@@ -1226,7 +1254,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
         # Fallback 3: direct page fetch for metadata/title/description
         try:
             content = fetcher(url, timeout)
-            if content and len(content) > 50:
+            if content and len(content) > 50 and not _is_platform_shell(source_type, content):
                 return ExtractionResult(
                     status="ok",
                     content=content[:5000],
