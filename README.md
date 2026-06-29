@@ -43,7 +43,7 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 
 ## Current product state (June 29, 2026)
 
-All seven source lanes return links, summaries, and quality scores by default:
+All seven source lanes return links, summaries, and quality scores by default. Extraction and scoring are automatic — no flags needed.
 
 ```
 web        ✅  canonical docs    score: 87
@@ -59,16 +59,9 @@ github     ✅  repo metadata      score: 70
 
 **Instagram public posts and reels extract.** Proxy-backed HTTP fetching and stealth Chrome with browser fingerprinting bypass login walls. Full captions, hashtags, and engagement data.
 
-**TikTok captions are rich.** oEmbed returns author, description, hashtags, and engagement stats (hearts, views, comments, shares).
+**TikTok captions are rich.** oEmbed returns author, description, hashtags, and engagement stats.
 
-**Web summaries are clean.** HTML is stripped to readable text. GitHub repos return full API metadata (stars, forks, issues, language).
-
-## Honest limits
-
-- **Private Instagram accounts** — content requiring follow-approval does not appear in search and cannot be extracted
-- **Instagram reels without OG metadata** — resolved via stealth Chrome browser extraction (slower, but works)
-- **X/Twitter deep extraction** — discovery snippets work; full post content requires `x_search` or API credits
-- **TikTok/Instagram transcripts** — captions and descriptions are extracted, but spoken-word transcription (Whisper/ASR) is not configured
+**Web summaries are clean.** HTML is stripped to readable text. GitHub repos return full API metadata.
 
 ## Quick start
 
