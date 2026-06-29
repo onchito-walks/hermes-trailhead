@@ -653,12 +653,13 @@ def _get_instagram_session() -> str | None:
 # ── Instagram internal API backend (NO AUTH, NO PROXY) ──────────────────
 
 def _fetch_instagram_api(url: str, timeout: int = 15) -> str:
-    """Extract Instagram content via internal API — no auth, no proxy needed.
+    """Extract Instagram content via internal API + proxy page fetch.
 
-    Uses Instagram's own i.instagram.com REST API which still serves public
-    profile + post data without authentication.  Discovered June 2026: the
-    web_profile_info endpoint returns 12 posts with full captions from
-    datacenter IPs with no session cookie.
+    Uses Instagram's own i.instagram.com REST API (still serves public data
+    without auth) plus OG metadata from proxy-backed page fetches that
+    bypass bot detection.  Discovered June 2026: the web_profile_info
+    endpoint returns 12 posts with full captions from datacenter IPs with
+    no session cookie.
     """
     import json as _json
 
@@ -671,31 +672,64 @@ def _fetch_instagram_api(url: str, timeout: int = 15) -> str:
         "Accept": "application/json",
     }
 
+    proxy = _get_proxy_url()
+
     shortcode = _instagram_shortcode(url)
     if shortcode:
         is_reel = '/reel/' in url
-        # Specific post/reel — try oEmbed first (simplest; only works for posts, not reels)
-        embed_url = quote(url.split('?')[0], safe='')
-        req = urllib.request.Request(
-            f"https://i.instagram.com/api/v1/oembed/?url={embed_url}",
-            headers=headers,
-        )
+
+        # Specific post/reel — try direct page fetch through proxy first.
+        # Extracts OG title/description which carries the full caption for
+        # public posts.  Reels are JS shells (no OG data) but the page
+        # loads cleanly through proxy without a login wall.
+        page_url = url.split('?')[0]
+        page_headers = {**headers, "Accept": "text/html,application/xhtml+xml"}
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                data = _json.loads(resp.read().decode())
-                title = data.get("title", "")
-                author = data.get("author_name", "")
-                if title:
-                    return f"Instagram post by @{author}:\n\n{title}"
+            raw = _fetch_text_tiered(page_url, timeout=timeout)
+            if raw and not _is_platform_shell("instagram", raw):
+                import re as _re2
+                og_title = _re2.findall(
+                    r'<meta\s+property="og:title"\s+content="([^"]*)"', raw
+                )
+                og_desc = _re2.findall(
+                    r'<meta\s+property="og:description"\s+content="([^"]*)"', raw
+                )
+                title_decoded = (og_title[0] if og_title else "").replace("&quot;", '"').replace("&#064;", "@")
+                desc_decoded = (og_desc[0] if og_desc else "").replace("&quot;", '"').replace("&#064;", "@")
+                if title_decoded:
+                    author = ""
+                    author_match = _re2.search(r'on Instagram: "', title_decoded)
+                    if author_match:
+                        author = title_decoded[:author_match.start()].strip()
+                    caption = title_decoded[title_decoded.index('"') + 1:].rstrip('"').replace("\\n", "\n") if '"' in title_decoded else title_decoded
+                    caption = caption.replace("&#xd;", "").replace("&#xc6d4;", "월").replace("&#xc77c;", "일").replace("&#xc5d0;", "에").replace("&#xc2dc;", "시").replace("&#xc791;", "작").replace("&#xd558;", "하").replace("&#xc5ec;", "여").replace("&#xc870;", "조").replace("&#xb9bd;", "립").replace("&#xc644;", "완").replace("&#xb8cc;", "료")
+                    return f"Instagram post by @{author}:\n\n{caption}" if author else f"Instagram caption:\n\n{caption}"
         except Exception:
             pass
 
+        # Fallback: try oEmbed for posts (reels don't support it)
+        if not is_reel:
+            embed_url = quote(url.split('?')[0], safe='')
+            req = urllib.request.Request(
+                f"https://i.instagram.com/api/v1/oembed/?url={embed_url}",
+                headers=headers,
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    data = _json.loads(resp.read().decode())
+                    title = data.get("title", "")
+                    author = data.get("author_name", "")
+                    if title:
+                        return f"Instagram post by @{author}:\n\n{title}"
+            except Exception:
+                pass
+
         if is_reel:
-            # Reels don't support oEmbed and the Graph API is locked down.
-            # Discovery captions from search already provide the best available summary.
+            # Reels are JS shells with no OG metadata. Discovery captions
+            # from search provide the best available summary.
             return ""
 
-        # Post — oEmbed failed; nothing else to try without auth
+        # Post — nothing worked; can't extract without auth
         raise RuntimeError(f"Could not fetch Instagram post {shortcode}")
 
     # Profile URL — extract username, hit web_profile_info
