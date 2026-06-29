@@ -422,8 +422,11 @@ def _fetch_ytdlp_transcript(url: str, timeout: int = 30) -> str:
         "--sub-lang", "en",
         "--convert-subs", "srt",
         "-o", out_path,
-        url,
     ]
+    proxy = _get_proxy_url()
+    if proxy:
+        cmd.extend(["--proxy", proxy])
+    cmd.append(url)
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     if proc.returncode != 0:
         stderr = proc.stderr.strip()
