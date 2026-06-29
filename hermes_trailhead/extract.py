@@ -646,7 +646,8 @@ def _fetch_instagram_api(url: str, timeout: int = 15) -> str:
 
     shortcode = _instagram_shortcode(url)
     if shortcode:
-        # Specific post/reel — try oEmbed first (simplest)
+        is_reel = '/reel/' in url
+        # Specific post/reel — try oEmbed first (simplest; only works for posts, not reels)
         embed_url = quote(url.split('?')[0], safe='')
         req = urllib.request.Request(
             f"https://i.instagram.com/api/v1/oembed/?url={embed_url}",
@@ -662,7 +663,12 @@ def _fetch_instagram_api(url: str, timeout: int = 15) -> str:
         except Exception:
             pass
 
-        # Fallback: try profile API to find the post
+        if is_reel:
+            # Reels don't support oEmbed and the Graph API is locked down.
+            # Discovery captions from search already provide the best available summary.
+            return ""
+
+        # Post — oEmbed failed; nothing else to try without auth
         raise RuntimeError(f"Could not fetch Instagram post {shortcode}")
 
     # Profile URL — extract username, hit web_profile_info
