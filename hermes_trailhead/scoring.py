@@ -45,7 +45,8 @@ def _best_summary(content: str, snippet: str, title: str = "") -> str:
         or "youtube transcript:\n\ncomments" in lower
         or "javascript is not available" in lower
         or "enable javascript or switch to a supported browser" in lower
-        or raw.strip().startswith("Comments\n")
+        or "red lib" in lower
+        or "main feeds" in lower
     )
     cleaned = _clean_summary_text(raw)
     # If extraction is raw HTML/app chrome, try cleaning it.  If the cleaned

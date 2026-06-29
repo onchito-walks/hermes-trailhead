@@ -255,7 +255,7 @@ def test_x_runtime_falls_back_to_social_search_when_public_frontends_are_empty(m
     result = execute_backend_chain("x", "Voron StealthChanger", limit=1, fetch=fake_fetch, allow_native=True)
 
     assert result.engine == "social_search_x"
-    assert result.hits[0].url == "https://x.com/NeoKoi_Prints"
+    assert result.hits[0].url == "https://x.com/search?q=Voron+StealthChanger"
 
 
 def test_injected_fetch_path_skips_command_backends_for_deterministic_tests(monkeypatch):

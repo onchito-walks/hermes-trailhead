@@ -393,9 +393,7 @@ def _run_ytdlp_flat_search(query: str, limit: int, *, timeout: int = 20, runner:
 
 def _social_search_url(platform: str, title: str, author: str, query: str) -> str:
     if platform == "x":
-        handle = author.strip().lstrip("@")
-        if handle:
-            return f"https://x.com/{handle.split()[0]}"
+        # Profile pages are poor results — use search to find actual posts.
         return f"https://x.com/search?q={quote_plus(query)}"
     if platform == "tiktok":
         handle = author.strip().lstrip("@")
@@ -410,8 +408,10 @@ def _social_search_url(platform: str, title: str, author: str, query: str) -> st
     subreddit_match = re.search(r"r/([A-Za-z0-9_]+)", author)
     if subreddit_match:
         subreddit = subreddit_match.group(1)
-        return f"https://www.reddit.com/r/{subreddit}/search/?q={quote_plus(title)}&restrict_sr=1"
-    return f"https://www.reddit.com/search/?q={quote_plus(title or query)}"
+        # Use the original search query, not the post text, for the URL.
+        # Post text makes terrible search queries; the user's terms find the post.
+        return f"https://www.reddit.com/r/{subreddit}/search/?q={quote_plus(query)}&restrict_sr=1"
+    return f"https://www.reddit.com/search/?q={quote_plus(query)}"
 
 
 def _run_social_search(platform: str, query: str, limit: int, *, timeout: int = 20, runner: CommandFn | None = None):
@@ -545,10 +545,8 @@ BACKENDS: dict[str, list[Backend]] = {
         Backend("github_search", "GitHub repository search", _github_search_url, _hp, accept_url=_github_result_url),
     ],
     "reddit": [
-        Backend("searxng_site_reddit", "Local SearXNG site:reddit.com", lambda q: _searxng_url(f"site:reddit.com {q}"), _searxng_parser, accept_url=_reddit_result_url),
-        Backend("redlib_search", "Redlib privacy frontend", _redlib_search_url, _hp, accept_url=_reddit_result_url),
-        Backend("jina_duckduckgo_site_reddit", "Jina Reader over DuckDuckGo site:reddit.com",
-                lambda q: _jina_ddg_url(f"site:reddit.com {q}"), _mk, accept_url=_reddit_result_url),
+        # Redlib and SearXNG are unreliable for Reddit discovery.
+        # social-search returns high-quality practitioner text; use it as primary.
         Backend("ddg_lite_site_reddit", "DuckDuckGo Lite site:reddit.com",
                 lambda q: _ddg_lite_url(f"site:reddit.com {q}"), _hp, accept_url=_reddit_result_url),
     ],
