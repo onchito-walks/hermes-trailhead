@@ -177,6 +177,9 @@ def _fetch_text(url: str, timeout: int = 20) -> str:
         return response.read().decode("utf-8", errors="replace")
 
 
+_ORIGINAL_FETCH_TEXT = _fetch_text
+
+
 def _clean_title(raw: str) -> str:
     text = re.sub(r"<[^>]+>", "", raw)
     return html.unescape(text).strip()
@@ -384,7 +387,8 @@ def execute_action(action: SearchAction, *, limit: int = 5, fetch: Fetch | None 
     executed_query = action.site_query or action.query
     fetcher = fetch or _fetch_text
     evidence_state = "discovered_links_only" if action.status == "gap" or action.approval_required else "search_hits"
-    backend_result = backends.execute_backend_chain(action.platform, action.query, limit=limit, fetch=fetcher)
+    allow_native = fetch is None and _fetch_text is _ORIGINAL_FETCH_TEXT
+    backend_result = backends.execute_backend_chain(action.platform, action.query, limit=limit, fetch=fetcher, allow_native=allow_native)
     status: ExecutionStatus = "ok" if backend_result.hits else ("gap" if backend_result.saw_response else "blocked")
     error = "" if backend_result.hits else backend_result.error
     return SearchExecution(

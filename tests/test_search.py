@@ -148,6 +148,8 @@ Useful snippet.
 
 
 def test_execute_search_defaults_extract_limit_to_requested_hit_limit(monkeypatch, capsys):
+    from hermes_trailhead.extract import ExtractedHit, ExtractionResult
+
     markdown = """
 ## [First](https://example.com/1)
 ## [Second](https://example.com/2)
@@ -156,7 +158,11 @@ def test_execute_search_defaults_extract_limit_to_requested_hit_limit(monkeypatc
 ## [Fifth](https://example.com/5)
 """
 
+    def fake_extract(hits, limit, timeout):
+        return [ExtractedHit(title=hit.title, url=hit.url, snippet=hit.snippet, extraction=ExtractionResult(status="ok", content="fake extracted content " * 5, content_length=120)) for hit in hits[:limit]]
+
     monkeypatch.setattr("hermes_trailhead.search._fetch_text", lambda url, timeout: markdown)
+    monkeypatch.setattr("hermes_trailhead.cli.extract_hits", fake_extract)
     rc, data, _ = _json_from_cli(capsys, ["search", "web", "test query", "--execute", "--limit", "5", "--extract", "--format", "json"])
 
     assert rc == 0
@@ -164,6 +170,8 @@ def test_execute_search_defaults_extract_limit_to_requested_hit_limit(monkeypatc
 
 
 def test_execute_search_honors_explicit_extract_limit(monkeypatch, capsys):
+    from hermes_trailhead.extract import ExtractedHit, ExtractionResult
+
     markdown = """
 ## [First](https://example.com/1)
 ## [Second](https://example.com/2)
@@ -172,7 +180,11 @@ def test_execute_search_honors_explicit_extract_limit(monkeypatch, capsys):
 ## [Fifth](https://example.com/5)
 """
 
+    def fake_extract(hits, limit, timeout):
+        return [ExtractedHit(title=hit.title, url=hit.url, snippet=hit.snippet, extraction=ExtractionResult(status="ok", content="fake extracted content " * 5, content_length=120)) for hit in hits[:limit]]
+
     monkeypatch.setattr("hermes_trailhead.search._fetch_text", lambda url, timeout: markdown)
+    monkeypatch.setattr("hermes_trailhead.cli.extract_hits", fake_extract)
     rc, data, _ = _json_from_cli(capsys, ["search", "web", "test query", "--execute", "--limit", "5", "--extract", "--extract-limit", "2", "--format", "json"])
 
     assert rc == 0
@@ -181,6 +193,8 @@ def test_execute_search_honors_explicit_extract_limit(monkeypatch, capsys):
 
 
 def test_execute_search_extracts_all_returned_hits_by_default(monkeypatch, capsys):
+    from hermes_trailhead.extract import ExtractedHit, ExtractionResult
+
     markdown = """
 ## [First Result](https://example.com/1)
 One.
@@ -190,7 +204,11 @@ Two.
 Three.
 """
 
+    def fake_extract(hits, limit, timeout):
+        return [ExtractedHit(title=hit.title, url=hit.url, snippet=hit.snippet, extraction=ExtractionResult(status="ok", content="fake extracted content " * 5, content_length=120)) for hit in hits[:limit]]
+
     monkeypatch.setattr("hermes_trailhead.search._fetch_text", lambda url, timeout: markdown)
+    monkeypatch.setattr("hermes_trailhead.cli.extract_hits", fake_extract)
     rc, data, _ = _json_from_cli(capsys, ["search", "web", "test query", "--execute", "--extract", "--score", "--limit", "3", "--format", "json"])
 
     assert rc == 0

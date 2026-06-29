@@ -12,12 +12,15 @@ import base64
 import html
 import json
 import re
+import shutil
+import subprocess
 import urllib.request
 from typing import Callable
 from urllib.parse import parse_qs, quote_plus, urlparse
 
 
 FetchFn = Callable[[str, int], str]
+CommandFn = Callable[..., subprocess.CompletedProcess]
 
 
 @dataclass
@@ -234,6 +237,20 @@ def _youtube_result_url(url: str) -> bool:
     )
 
 
+def _tiktok_result_url(url: str) -> bool:
+    parsed = urlparse(url)
+    host = parsed.netloc.lower()
+    path = parsed.path.lower()
+    return "tiktok.com" in host and not path.startswith(("/about", "/legal", "/login"))
+
+
+def _instagram_result_url(url: str) -> bool:
+    parsed = urlparse(url)
+    host = parsed.netloc.lower()
+    path = parsed.path.lower()
+    return "instagram.com" in host and not path.startswith(("/about", "/accounts", "/explore/tags"))
+
+
 def _github_result_url(url: str) -> bool:
     parsed = urlparse(url)
     host = parsed.netloc.lower()
@@ -328,6 +345,124 @@ def _fetch(url: str, timeout: int = 20) -> str:
         return resp.read().decode("utf-8", errors="replace")
 
 
+# ── Lane-native discovery backends ────────────────────────────────────────
+
+def _search_hit(title: str, url: str, snippet: str = ""):
+    from .search import SearchHit
+
+    return SearchHit(title=title, url=url, snippet=snippet)
+
+
+def _run_ytdlp_flat_search(query: str, limit: int, *, timeout: int = 20, runner: CommandFn | None = None):
+    """Discover YouTube videos via yt-dlp flat search without fetching video pages."""
+    if runner is None and not shutil.which("yt-dlp"):
+        return tuple()
+    run = runner or subprocess.run
+    try:
+        completed = run(
+            ["yt-dlp", f"ytsearch{max(limit, 1)}:{query}", "--flat-playlist", "--dump-json", "--no-warnings"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except Exception:
+        return tuple()
+    hits = []
+    seen: set[str] = set()
+    for line in (completed.stdout or "").splitlines():
+        try:
+            row = json.loads(line)
+        except Exception:
+            continue
+        title = str(row.get("title") or "").strip()
+        url = str(row.get("webpage_url") or row.get("url") or "").strip()
+        video_id = str(row.get("id") or "").strip()
+        if video_id and not url.startswith("http"):
+            url = f"https://www.youtube.com/watch?v={video_id}"
+        if not title or not _youtube_result_url(url) or url in seen:
+            continue
+        seen.add(url)
+        hits.append(_search_hit(title=title, url=url, snippet="YouTube discovery via yt-dlp flat search; metadata/transcript extraction is separate."))
+        if len(hits) >= limit:
+            break
+    return tuple(hits)
+
+
+def _social_search_url(platform: str, title: str, author: str, query: str) -> str:
+    if platform == "x":
+        handle = author.strip().lstrip("@")
+        if handle:
+            return f"https://x.com/{handle.split()[0]}"
+        return f"https://x.com/search?q={quote_plus(query)}"
+    if platform == "tiktok":
+        handle = author.strip().lstrip("@")
+        if handle:
+            return f"https://www.tiktok.com/@{handle.split()[0]}"
+        return f"https://www.tiktok.com/search?q={quote_plus(title or query)}"
+    if platform == "instagram":
+        handle = author.strip().lstrip("@")
+        if handle:
+            return f"https://www.instagram.com/{handle.split()[0]}/"
+        return f"https://www.instagram.com/explore/search/keyword/?q={quote_plus(title or query)}"
+    subreddit_match = re.search(r"r/([A-Za-z0-9_]+)", author)
+    if subreddit_match:
+        subreddit = subreddit_match.group(1)
+        return f"https://www.reddit.com/r/{subreddit}/search/?q={quote_plus(title)}&restrict_sr=1"
+    return f"https://www.reddit.com/search/?q={quote_plus(title or query)}"
+
+
+def _run_social_search(platform: str, query: str, limit: int, *, timeout: int = 20, runner: CommandFn | None = None):
+    """Use the local composite social-search tool as lane-native discovery fallback."""
+    source = {"reddit": "reddit", "x": "x", "tiktok": "tiktok", "instagram": "ig"}.get(platform)
+    if not source:
+        return tuple()
+    if runner is None and not shutil.which("social-search"):
+        return tuple()
+    terms = _query_terms(query)
+    social_query = " ".join(terms) if terms else query
+    run = runner or subprocess.run
+    try:
+        completed = run(
+            ["social-search", social_query, "--sources", source, "--raw"],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+    except Exception:
+        return tuple()
+    try:
+        data = json.loads(completed.stdout or "{}")
+    except Exception:
+        return tuple()
+    key = {"reddit": "Reddit", "x": "X/Twitter", "tiktok": "TikTok", "instagram": "Instagram"}.get(platform, platform)
+    hits = []
+    seen: set[str] = set()
+    for row in data.get(key, []) if isinstance(data, dict) else []:
+        if not isinstance(row, dict):
+            continue
+        text = str(row.get("text") or "").strip()
+        author = str(row.get("author") or "").strip()
+        if not text:
+            continue
+        haystack = f"{text} {author}".lower()
+        if terms and not any(term in haystack for term in terms):
+            continue
+        title = text.splitlines()[0][:140]
+        url = _social_search_url(platform, title, author, query)
+        dedupe = f"{platform}:{title}:{author}"
+        if dedupe in seen:
+            continue
+        seen.add(dedupe)
+        meta = " ".join(part for part in [author, f"likes={row.get('likes')}" if row.get("likes") else "", f"comments/retweets={row.get('retweets')}" if row.get("retweets") else ""] if part)
+        snippet = f"{text}\n{meta}".strip()
+        hits.append(_search_hit(title=title, url=url, snippet=snippet))
+        if len(hits) >= limit:
+            break
+    return tuple(hits)
+
+
 # ── Platform backend chains ───────────────────────────────────────────────
 
 
@@ -374,17 +509,19 @@ BACKENDS: dict[str, list[Backend]] = {
     ],
     "tiktok": [
         Backend("ddg_lite_site_tiktok", "DuckDuckGo Lite site:tiktok.com (discovery only)",
-                lambda q: _ddg_lite_url(f"site:tiktok.com {q}"), _hp),
+                lambda q: _ddg_lite_url(f"site:tiktok.com {q}"), _hp, accept_url=_tiktok_result_url),
         Backend("jina_duckduckgo_site_tiktok", "Jina Reader over DDG site:tiktok.com (discovery only)",
-                lambda q: _jina_ddg_url(f"site:tiktok.com {q}"), _mk),
-        Backend("searxng_site_tiktok", "Local SearXNG site:tiktok.com (discovery only)", lambda q: _searxng_url(f"site:tiktok.com {q}"), _searxng_parser, timeout=10),
+                lambda q: _jina_ddg_url(f"site:tiktok.com {q}"), _mk, accept_url=_tiktok_result_url),
+        Backend("searxng_site_tiktok", "Local SearXNG site:tiktok.com (discovery only)", lambda q: _searxng_url(f"site:tiktok.com {q}"), _searxng_parser, accept_url=_tiktok_result_url, timeout=10),
+        Backend("bing_site_tiktok", "Bing site:tiktok.com (discovery only)", lambda q: _bing_search_url(f"site:tiktok.com {q}"), _bing_parser, accept_url=_tiktok_result_url),
     ],
     "instagram": [
         Backend("ddg_lite_site_instagram", "DuckDuckGo Lite site:instagram.com (discovery only)",
-                lambda q: _ddg_lite_url(f"site:instagram.com {q}"), _hp),
+                lambda q: _ddg_lite_url(f"site:instagram.com {q}"), _hp, accept_url=_instagram_result_url),
         Backend("jina_duckduckgo_site_instagram", "Jina Reader over DDG site:instagram.com (discovery only)",
-                lambda q: _jina_ddg_url(f"site:instagram.com {q}"), _mk),
-        Backend("searxng_site_instagram", "Local SearXNG site:instagram.com (discovery only)", lambda q: _searxng_url(f"site:instagram.com {q}"), _searxng_parser, timeout=10),
+                lambda q: _jina_ddg_url(f"site:instagram.com {q}"), _mk, accept_url=_instagram_result_url),
+        Backend("searxng_site_instagram", "Local SearXNG site:instagram.com (discovery only)", lambda q: _searxng_url(f"site:instagram.com {q}"), _searxng_parser, accept_url=_instagram_result_url, timeout=10),
+        Backend("bing_site_instagram", "Bing site:instagram.com (discovery only)", lambda q: _bing_search_url(f"site:instagram.com {q}"), _bing_parser, accept_url=_instagram_result_url),
     ],
 }
 
@@ -408,6 +545,7 @@ def execute_backend_chain(
     *,
     limit: int = 5,
     fetch: FetchFn | None = None,
+    allow_native: bool | None = None,
 ) -> BackendResult:
     """Try each backend in the platform's chain. First success wins."""
     chain = BACKENDS.get(platform, [])
@@ -418,6 +556,26 @@ def execute_backend_chain(
     attempts: list[str] = []
     saw_response = False
     last_error = ""
+
+    if allow_native is None:
+        allow_native = fetch is None
+
+    # Real runtime gets lane-native discovery before generic public-search fallbacks.
+    # Tests that inject `fetch` keep the old deterministic HTTP-only path unless
+    # callers explicitly opt in with allow_native=True.
+    if allow_native:
+        if platform == "youtube":
+            attempts.append("yt_dlp_flat_search")
+            hits = _run_ytdlp_flat_search(query, limit, timeout=20)
+            if hits:
+                return BackendResult(hits=hits, engine="yt_dlp_flat_search", backend_name="yt_dlp_flat_search", attempts=attempts, saw_response=True, error="")
+            last_error = "yt_dlp_flat_search returned no video discovery results."
+        elif platform == "reddit":
+            attempts.append("social_search_reddit")
+            hits = _run_social_search("reddit", query, limit, timeout=20)
+            if hits:
+                return BackendResult(hits=hits, engine="social_search_reddit", backend_name="social_search_reddit", attempts=attempts, saw_response=True, error="")
+            last_error = "social_search_reddit returned no practitioner leads."
 
     for backend in chain:
         attempts.append(backend.name)
@@ -447,5 +605,13 @@ def execute_backend_chain(
         except Exception:
             last_error = f"{backend.name} failed."
             continue
+
+    if allow_native and platform in {"x", "tiktok", "instagram"}:
+        backend_name = f"social_search_{platform}"
+        attempts.append(backend_name)
+        hits = _run_social_search(platform, query, limit, timeout=12)
+        if hits:
+            return BackendResult(hits=hits, engine=backend_name, backend_name=backend_name, attempts=attempts, saw_response=True, error="")
+        last_error = last_error or f"{backend_name} returned no social leads."
 
     return BackendResult(hits=(), engine=attempts[-1] if attempts else "none", backend_name=attempts[-1] if attempts else "", attempts=attempts, saw_response=saw_response, error=last_error)

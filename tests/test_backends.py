@@ -1,5 +1,7 @@
 import base64
+import subprocess
 
+from hermes_trailhead import backends
 from hermes_trailhead.backends import execute_backend_chain, _github_result_url, _youtube_result_url, _x_result_url
 
 
@@ -161,3 +163,89 @@ def test_youtube_backend_finds_voron_stealthchanger_video_results():
         "https://www.youtube.com/watch?v=EJFSqud2HKQ",
         "https://www.youtube.com/watch?v=cCbIjArKL4M",
     ]
+
+def test_tiktok_and_instagram_have_bing_discovery_fallbacks():
+    def fake_fetch(url, timeout):
+        if "bing.com/search" in url and "tiktok.com" in url:
+            return f'<a class="tilk" aria-label="TikTok Voron" href="{_bing_href("https://www.tiktok.com/@neokoiprints/video/7520003017949613367")}">TikTok Voron</a>'
+        if "bing.com/search" in url and "instagram.com" in url:
+            return f'<a class="tilk" aria-label="Instagram Voron" href="{_bing_href("https://www.instagram.com/reel/DQj40znkasX/")}">Instagram Voron</a>'
+        return "{}" if "127.0.0.1" in url else ""
+
+    tiktok = execute_backend_chain("tiktok", "VORON StealthChanger", limit=1, fetch=fake_fetch)
+    instagram = execute_backend_chain("instagram", "VORON StealthChanger", limit=1, fetch=fake_fetch)
+
+    assert tiktok.engine == "bing_site_tiktok"
+    assert tiktok.hits[0].url == "https://www.tiktok.com/@neokoiprints/video/7520003017949613367"
+    assert instagram.engine == "bing_site_instagram"
+    assert instagram.hits[0].url == "https://www.instagram.com/reel/DQj40znkasX/"
+
+
+def test_youtube_runtime_prefers_yt_dlp_flat_search(monkeypatch):
+    def fake_runner(*args, **kwargs):
+        payload = '{"title":"StealthChanger - Part 1","id":"EJFSqud2HKQ","webpage_url":"https://www.youtube.com/watch?v=EJFSqud2HKQ"}\n'
+        return subprocess.CompletedProcess(args=args[0], returncode=0, stdout=payload, stderr="")
+
+    monkeypatch.setattr(backends.shutil, "which", lambda command: "/usr/bin/yt-dlp" if command == "yt-dlp" else None)
+    monkeypatch.setattr(backends.subprocess, "run", fake_runner)
+
+    result = execute_backend_chain("youtube", "VORON StealthChanger Build", limit=1)
+
+    assert result.engine == "yt_dlp_flat_search"
+    assert result.attempts == ["yt_dlp_flat_search"]
+    assert result.hits[0].url == "https://www.youtube.com/watch?v=EJFSqud2HKQ"
+
+
+def test_reddit_runtime_prefers_social_search_before_fragile_frontends(monkeypatch):
+    raw = '''{
+      "Reddit": [
+        {"text": "Finished my first Voron and Stealthchanger Build", "author": "u/stingeragent · r/3Dprinting", "likes": "140", "retweets": "24 comments"}
+      ]
+    }'''
+
+    def fake_runner(*args, **kwargs):
+        return subprocess.CompletedProcess(args=args[0], returncode=0, stdout=raw, stderr="")
+
+    monkeypatch.setattr(backends.shutil, "which", lambda command: "/home/hermes/.local/bin/social-search" if command == "social-search" else None)
+    monkeypatch.setattr(backends.subprocess, "run", fake_runner)
+
+    result = execute_backend_chain("reddit", "VORON StealthChanger Build", limit=1)
+
+    assert result.engine == "social_search_reddit"
+    assert result.attempts == ["social_search_reddit"]
+    assert "Stealthchanger" in result.hits[0].title
+    assert result.hits[0].url.startswith("https://www.reddit.com/r/3Dprinting/search/")
+
+
+def test_x_runtime_falls_back_to_social_search_when_public_frontends_are_empty(monkeypatch):
+    raw = '''{
+      "X/Twitter": [
+        {"text": "Voron StealthChanger build progress", "author": "@NeoKoi_Prints", "likes": "408", "retweets": "14"}
+      ]
+    }'''
+
+    def fake_fetch(url, timeout):
+        return "{}" if "127.0.0.1" in url else ""
+
+    def fake_runner(*args, **kwargs):
+        return subprocess.CompletedProcess(args=args[0], returncode=0, stdout=raw, stderr="")
+
+    monkeypatch.setattr(backends.shutil, "which", lambda command: "/home/hermes/.local/bin/social-search" if command == "social-search" else None)
+    monkeypatch.setattr(backends.subprocess, "run", fake_runner)
+
+    result = execute_backend_chain("x", "Voron StealthChanger", limit=1, fetch=fake_fetch, allow_native=True)
+
+    assert result.engine == "social_search_x"
+    assert result.hits[0].url == "https://x.com/NeoKoi_Prints"
+
+
+def test_injected_fetch_path_skips_command_backends_for_deterministic_tests(monkeypatch):
+    monkeypatch.setattr(backends.subprocess, "run", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("command backend should not run")))
+
+    def fake_fetch(url, timeout):
+        return '<a href="https://www.youtube.com/watch?v=abc123">Real demo video</a>'
+
+    result = execute_backend_chain("youtube", "demo", limit=1, fetch=fake_fetch)
+
+    assert result.engine == "ddg_lite_site_youtube"
+    assert result.hits[0].url == "https://www.youtube.com/watch?v=abc123"
