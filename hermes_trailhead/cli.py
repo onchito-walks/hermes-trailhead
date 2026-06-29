@@ -402,7 +402,7 @@ def build_parser() -> argparse.ArgumentParser:
     search.add_argument("--format", choices=["text", "json"], default="text")
     search.add_argument("--live", action="store_true", help="Probe configured live frontends where supported")
     search.add_argument("--execute", action="store_true", help="Execute search using loginless public search paths and return real hits")
-    search.add_argument("--limit", type=int, default=5, help="Max hits per platform when --execute is used")
+    search.add_argument("--limit", type=int, default=12, help="Max hits per platform when --execute is used")
     search.add_argument("--extract", action="store_true", default=True, help="Extract page content from search hits (default: on)")
     search.add_argument("--no-extract", action="store_false", dest="extract", help="Skip extraction — return discovery links only")
     search.add_argument("--extract-limit", type=int, default=None, help="Max hits to extract per platform (defaults to --limit)")

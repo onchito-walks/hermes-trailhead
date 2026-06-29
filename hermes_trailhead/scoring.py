@@ -49,9 +49,16 @@ def _best_summary(content: str, snippet: str, title: str = "") -> str:
         or "main feeds" in lower
     )
     cleaned = _clean_summary_text(raw)
-    # If extraction is raw HTML/app chrome, try cleaning it.  If the cleaned
-    # text is substantial, prefer it over the search snippet/title which is
-    # often just a one-line label.
+    # Platform shells (Redlib feeds, X JS blockers, YouTube bot walls) produce
+    # useless cleaned text — navigation menus, trending garbage.  Always use
+    # the search snippet for these.
+    platform_shell = any(m in lower for m in (
+        "red lib", "main feeds", "youtube transcript:\n\ncomments",
+        "javascript is not available", "enable javascript or switch to a supported browser",
+    ))
+    if platform_shell:
+        return fallback[:1200]
+    # Regular HTML (web pages, docs) — try cleaned text first.
     if looks_like_shell:
         if len(cleaned) >= 80:
             return cleaned[:1200] + ("..." if len(cleaned) > 1200 else "")
