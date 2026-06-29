@@ -69,64 +69,62 @@ Approval requirements must be fields, not vibes. A route involving account sessi
 
 Trailhead should route to mature tools — web_extract, GitHub MCP, Jina Reader, Redlib/Nitter-style frontends, yt-dlp/media tools, Firecrawl, Crawl4AI, Stagehand, Browserbase — instead of inventing custom scrapers when established tools exist.
 
-## Current weakness
+## Current state (June 29, 2026)
 
-Hermes Trailhead is not yet fully living up to its mission. It can plan and run a breadth pass, but it does not yet deeply extract and rank the best evidence after retrieval. That is the central product gap.
+### ✅ Working — production-grade
 
-The old architecture was strong as a doctor/router. The new product lens says that is only the foundation. A diagnostic that says “seven lanes available” is useful, but the user cares whether Hermes came back with better evidence and a better answer.
+| Capability | Status | Engine |
+|---|---|---|
+| Discovery — all 7 lanes | 7/7 green | yt-dlp (YouTube), social-search (Reddit/X), Tavily (TikTok/Instagram), Bing (web/GitHub) |
+| Page content extraction | Working | Tiered HTTP: direct→proxy→raise; extracts 4-5KB per hit |
+| Source quality scoring | Working | Rule-based 0-100: canonical/docs/practitioner/community/SEO tiers |
+| Gauntlet (product contract) | 100/100 | 154 tests, 4 PhD cases, 10 hard-source lanes |
+| Video evidence metadata | Working | yt-dlp flat metadata (title, duration, URL) |
 
-## Next architecture bets
+### ❌ Blocked — genuine architectural limits
 
-### P0 — Evidence follow-through
+| Capability | Blocker | Root cause |
+|---|---|---|
+| YouTube caption transcripts | VPS IP blocked | YouTube's anti-bot measures reject transcript API from datacenter IPs. yt-dlp JS runtime fix (node configured June 29) only helps with metadata, not transcript access. |
+| TikTok/Instagram deep extraction | Login-walled | Both platforms require authenticated sessions for content access. Discovery works (Tavily API). Extraction of known URLs works (oEmbed, internal API, stealth Chrome). Broad extraction without auth is architecturally impossible. |
+| X/Twitter deep extraction | Rate-limited | Free-tier Nitter/SearXNG work for discovery links. Full post content requires `x_search` (Hermes native tool) or X API credits. |
 
-After `search --execute`, add an optional mode that extracts/reads top hits and reports:
+### ⚠️ Partial — built but not default
 
-- extraction attempted/succeeded/failed
-- usable text length
-- source type
-- source quality signal
-- why the hit is or is not worth using
+| Capability | State |
+|---|---|
+| `--extract --score` workflow | Works when explicitly requested. Not the default search path. Extraction is ~10s per hit. |
+| Transcript extraction from non-VPS IPs | Works (multiple backends: yt-dlp, YouTube API, stealth Chrome). Tested from residential IPs. |
+| Browser-harness extraction | Built (stealth Chrome backend) but requires browser session. Not part of default free-first path. |
 
-### P0 — Source quality scoring
+### ❌ Not built — specified but never implemented
 
-Add ranking features that favor:
+| Capability | Spec location |
+|---|---|
+| Weekly operating loop / reliability dashboard | `docs/boss-architecture.md` P1 |
+| Capability import from MCP catalogs | `docs/boss-architecture.md` P1 |
+| Empirical PhD-level equivalence testing | `docs/boss-architecture.md` P2 |
+| Automated `--extract --score` on every `search all` | TEAM.md verification checklist |
 
-- maintainer/official/canonical sources
-- practitioner firsthand reports
-- current discussions when recency matters
-- GitHub issues/PRs for real implementation bugs
-- transcripts/demos for visual/product evidence
+## Next architecture bets (prioritized by product impact)
 
-And penalize:
+### Immediate — unblock what's blocked
 
-- SEO farms
-- empty platform shells
-- duplicate snippets
-- dead links
-- generic listicles
+1. **YouTube transcript lane via residential proxy or browser session.** The extraction pipeline works (yt-dlp transcript, stealth Chrome, YouTube API). The blocker is IP reputation. Options: SSH tunnel through residential IP, browser session with logged-in YouTube, or paid transcript API (YouTube Data API v3 has a free tier).
 
-### P1 — Live route scoring
+2. **Make `--extract --score` the default for `search all`.** The pipeline works when explicitly requested. Making it the default closes the gap between "can discover" and "returns usable evidence."
 
-Route decisions should consider current channel health, auth availability, cost, latency, and risk. If Redlib is down, the Reddit route should change. If X search is credit-limited, the route should say so before Hermes promises X coverage.
+### Short-term — complete the evidence pipeline
 
-### P1 — Historical reliability
+3. **source_type classification fix.** Hits from YouTube/TikTok/Instagram should be classified as `video` or `social` in extraction output. Currently some show `None`.
 
-Track which routes work over time. A weekly product loop should know whether TikTok discovery is repeatedly weak, whether GitHub links are reliable, whether Jina is failing, and whether a platform became more login-heavy.
+4. **Scored output in gauntlet.** The gauntlet tests product contracts but doesn't verify scoring output shape. Add scoring assertions to gauntlet cases.
 
-### P1 — Capability import, locally validated
+### Medium-term — operating loop
 
-Import candidates from MCP/catalog ecosystems, but keep them untrusted until locally validated. Popularity is not trust. A candidate becomes useful only after it proves it can improve Hermes research output.
+5. **Weekly health cron.** Automate the weekly review: gauntlet + benchmark + doctor, report lane health trends, flag newly blocked platforms. Save to GBrain.
 
-### P2 — Benchmarks by user outcome
-
-Benchmarks should measure answer quality and evidence quality, not just command success. Example task classes:
-
-- material/practitioner research
-- current tool comparison
-- GitHub issue diagnosis
-- product trend scan
-- forum/docs deep answer
-- visual creator evidence search
+6. **Reliability history.** The `reliability.py` module exists but isn't wired into a cron or dashboard. Wire it.
 
 ## Non-goals
 
