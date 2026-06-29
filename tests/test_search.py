@@ -217,6 +217,53 @@ Three.
     assert [hit["url"] for hit in extracted] == ["https://example.com/1", "https://example.com/2", "https://example.com/3"]
 
 
+
+def test_execute_search_scores_by_default_and_can_skip_score(monkeypatch, capsys):
+    from hermes_trailhead.extract import ExtractedHit, ExtractionResult
+
+    markdown = """
+## [GitHub Issue](https://github.com/example/project/issues/42)
+Maintainer bug discussion.
+## [Medium Listicle](https://medium.com/@writer/top-10-agent-tips)
+SEO filler.
+"""
+
+    def fake_extract(hits, limit, timeout):
+        return [
+            ExtractedHit(
+                title=hit.title,
+                url=hit.url,
+                snippet=hit.snippet,
+                extraction=ExtractionResult(status="ok", content="fake extracted content " * 5, content_length=120),
+            )
+            for hit in hits[:limit]
+        ]
+
+    monkeypatch.setattr("hermes_trailhead.search._fetch_text", lambda url, timeout: markdown)
+    monkeypatch.setattr("hermes_trailhead.cli.extract_hits", fake_extract)
+
+    rc, data, _ = _json_from_cli(capsys, ["search", "web", "test query", "--execute", "--limit", "2", "--format", "json"])
+
+    assert rc == 0
+    extracted = data["executions"][0]["extracted"]
+    assert extracted[0]["url"] == "https://github.com/example/project/issues/42"
+    assert extracted[0]["scoring"]["score"] > extracted[1]["scoring"]["score"]
+
+    rc, data, _ = _json_from_cli(capsys, ["search", "web", "test query", "--execute", "--limit", "2", "--no-score", "--format", "json"])
+
+    assert rc == 0
+    unscored = data["executions"][0]["extracted"]
+    assert [hit["url"] for hit in unscored] == [
+        "https://github.com/example/project/issues/42",
+        "https://medium.com/@writer/top-10-agent-tips",
+    ]
+    assert all(hit["scoring"] is None for hit in unscored)
+
+    rc, data, _ = _json_from_cli(capsys, ["search", "web", "test query", "--execute", "--limit", "2", "--no-extract", "--format", "json"])
+
+    assert rc == 0
+    assert "extracted" not in data["executions"][0]
+
 def test_execute_gap_lane_keeps_discovery_only_caveat(monkeypatch, capsys):
     markdown = """
 ## [Creator demo](https://www.tiktok.com/@example/video/123)

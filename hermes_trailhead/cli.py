@@ -245,17 +245,25 @@ def cmd_search(args: argparse.Namespace) -> int:
         executed = search_execute_data(args.platform, args.query, live=args.live, limit=args.limit)
         if args.format == "json":
             result = executed.to_dict()
-            # Extraction is default; --no-extract skips it. Scoring is additive on top.
+            # Extraction and scoring are default; use --no-extract / --no-score to skip.
             do_extract = getattr(args, 'extract', True)
-            if do_extract or getattr(args, 'score', False):
+            # Scoring is an annotation/ranking pass over extracted evidence.
+            # Respect --no-extract literally: discovery-only output should not
+            # perform hidden page reads just because scoring defaults on.
+            do_score = do_extract and getattr(args, 'score', True)
+            if do_extract:
                 for i, execution in enumerate(executed.executions):
                     if execution.hits:
                         extract_limit = len(execution.hits) if args.extract_limit is None else min(args.extract_limit, len(execution.hits))
                         extracted = extract_hits(execution.hits, limit=extract_limit, timeout=10)
                         scored = [ScoredHit.from_extracted_hit(eh) for eh in extracted]
-                        if getattr(args, 'score', False):
+                        if do_score:
                             scored = rank_hits(score_hits(scored))
-                        result["executions"][i]["extracted"] = [sh.to_dict() for sh in scored]
+                        extracted_dicts = [sh.to_dict() for sh in scored]
+                        if not do_score:
+                            for hit in extracted_dicts:
+                                hit["scoring"] = None
+                        result["executions"][i]["extracted"] = extracted_dicts
             print(json.dumps(result, indent=2))
             return 0
         print(f"# Hermes Trailhead executed search: {args.platform}\n")
@@ -398,7 +406,8 @@ def build_parser() -> argparse.ArgumentParser:
     search.add_argument("--extract", action="store_true", default=True, help="Extract page content from search hits (default: on)")
     search.add_argument("--no-extract", action="store_false", dest="extract", help="Skip extraction — return discovery links only")
     search.add_argument("--extract-limit", type=int, default=None, help="Max hits to extract per platform (defaults to --limit)")
-    search.add_argument("--score", action="store_true", help="Score and rank search hits by source quality")
+    search.add_argument("--score", action="store_true", default=True, help="Score and rank search hits by source quality (default: on)")
+    search.add_argument("--no-score", action="store_false", dest="score", help="Skip scoring — return raw summaries only")
     search.set_defaults(func=cmd_search)
 
     return parser
