@@ -377,7 +377,7 @@ def check_x_search(live: bool = False) -> CheckResult:
     if live:
         try:
             url = "http://localhost:8788"
-            status_code, _body = _io.http_head(url, timeout=5)
+            status_code, _body = _io.http_get(url, timeout=5)
             if 200 <= status_code < 400:
                 return _result(
                     "ok",
