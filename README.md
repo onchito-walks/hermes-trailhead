@@ -6,6 +6,8 @@ Ask Hermes a research question. Trailhead finds the right source terrain across 
 
 The product is not a scraper. It is a research trailhead: real links, real summaries, real transcripts, real quality rankings, and real blind-spot reporting across the entire source landscape.
 
+**Self-healing and redundant by design.** Trailhead uses per-lane backend chains — each source family has multiple independent discovery paths. If one backend fails (DDG blocks, Jina rate-limits, SearXNG engine jams), the next backend picks up immediately. Circuit breakers track per-backend failure rates and auto-disable backends that fail 3+ times in 5 minutes — they auto-recover when the failure window passes. The Lane Guardian runs every 30 minutes to proactively probe Nitter, SearXNG, and other fragile infrastructure, restarting containers and rotating engine pools before the user notices. Together, these three layers mean Trailhead does not "quit" when a lane degrades — it routes around the failure.
+
 ## What Trailhead delivers
 
 For any research question, you get:

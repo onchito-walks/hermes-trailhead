@@ -14,6 +14,7 @@ import json
 import re
 import shutil
 import subprocess
+from pathlib import Path
 import urllib.request
 from typing import Callable
 from urllib.parse import parse_qs, quote_plus, urlparse
@@ -597,6 +598,66 @@ BACKENDS: dict[str, list[Backend]] = {
 # ── Chain executor ────────────────────────────────────────────────────────
 
 
+# ── Circuit breaker ───────────────────────────────────────────────────────
+# Prevents thrashing on backends that are consistently failing.  If a backend
+# fails 3+ times in the last 5-minute window, the circuit opens — Trailhead
+# skips that backend and tries the next one.  The circuit auto-closes when
+# enough time passes (5 min since last failure).  Successful requests reset
+# the counter immediately.
+#
+# State lives in ~/.hermes/state/trailhead-circuits.json — lightweight JSON,
+# no external dependencies.  The Lane Guardian cron auto-clears stale state.
+
+import time as _time
+
+_DEFAULT_CIRCUIT_PATH = Path.home() / ".hermes" / "state" / "trailhead-circuits.json"
+_CIRCUIT_WINDOW_SECONDS = 300   # 5 min
+_CIRCUIT_THRESHOLD = 3          # open after 3 consecutive failures
+
+
+def _load_circuits(path: Path | None = None) -> dict[str, list[float]]:
+    p = path or _DEFAULT_CIRCUIT_PATH
+    if not p.exists():
+        return {}
+    try:
+        raw = json.loads(p.read_text())
+        return {k: [float(t) for t in v] for k, v in (raw or {}).items()}
+    except Exception:
+        return {}
+
+
+def _save_circuits(circuits: dict[str, list[float]], path: Path | None = None) -> None:
+    p = path or _DEFAULT_CIRCUIT_PATH
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(circuits, indent=2))
+
+
+def _circuit_open(backend_name: str, path: Path | None = None) -> bool:
+    """Return True if this backend's circuit breaker is open (skip it)."""
+    circuits = _load_circuits(path)
+    failures = circuits.get(backend_name, [])
+    now = _time.time()
+    # Drop stale failures outside the window
+    fresh = [t for t in failures if now - t < _CIRCUIT_WINDOW_SECONDS]
+    return len(fresh) >= _CIRCUIT_THRESHOLD
+
+
+def _record_circuit_failure(backend_name: str, path: Path | None = None) -> None:
+    """Record a failure for this backend."""
+    circuits = _load_circuits(path)
+    circuits.setdefault(backend_name, []).append(_time.time())
+    # Trim to last 10 entries per backend (avoids unbounded growth)
+    circuits[backend_name] = circuits[backend_name][-10:]
+    _save_circuits(circuits, path)
+
+
+def _reset_circuit(backend_name: str, path: Path | None = None) -> None:
+    """Reset the circuit for this backend (it returned results successfully)."""
+    circuits = _load_circuits(path)
+    circuits.pop(backend_name, None)
+    _save_circuits(circuits, path)
+
+
 @dataclass
 class BackendResult:
     hits: tuple  # tuple[SearchHit, ...] — lazy type to avoid circular import
@@ -647,6 +708,11 @@ def execute_backend_chain(
 
     for backend in chain:
         attempts.append(backend.name)
+        # Circuit breaker: skip backends that have failed 3+ times in 5 min
+        if _circuit_open(backend.name):
+            attempts.append(f"{backend.name}_circuit_open")
+            last_error = f"{backend.name} skipped — circuit breaker open."
+            continue
         try:
             # Tavily backends call the API directly instead of HTTP fetch+parse.
             if backend.name.startswith("tavily_"):
@@ -677,6 +743,7 @@ def execute_backend_chain(
                 and (platform not in {"github", "reddit"} or _result_matches_query(hit.url, hit.title, query, hit.snippet))
             )[:limit]
             if hits:
+                _reset_circuit(backend.name)
                 return BackendResult(
                     hits=hits,
                     engine=backend.name,
@@ -686,8 +753,10 @@ def execute_backend_chain(
                     error="",
                 )
             last_error = f"{backend.name} returned no parseable search results."
+            _record_circuit_failure(backend.name)
         except Exception:
             last_error = f"{backend.name} failed."
+            _record_circuit_failure(backend.name)
             continue
 
     if allow_native and platform in {"x", "tiktok", "instagram"}:
