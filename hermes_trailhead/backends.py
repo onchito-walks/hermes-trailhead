@@ -546,10 +546,14 @@ BACKENDS: dict[str, list[Backend]] = {
         Backend("github_search", "GitHub repository search", _github_search_url, _hp, accept_url=_github_result_url),
     ],
     "reddit": [
-        # Redlib and SearXNG are unreliable for Reddit discovery.
-        # social-search returns high-quality practitioner text; use it as primary.
+        # Redlib (VPS IP blocked) and SearXNG (0 results for site:reddit.com)
+        # are unreliable for Reddit discovery on both Oracle and RackNerd.
+        # social-search binary is not installed on either machine.
+        # Jina DDG is the only working Reddit discovery backend as of 2026-07-07.
         Backend("ddg_lite_site_reddit", "DuckDuckGo Lite site:reddit.com",
                 lambda q: _ddg_lite_url(f"site:reddit.com {q}"), _hp, accept_url=_reddit_result_url),
+        Backend("jina_duckduckgo_site_reddit", "Jina Reader over DuckDuckGo site:reddit.com",
+                lambda q: _jina_ddg_url(f"site:reddit.com {q}"), _mk, accept_url=_reddit_result_url),
     ],
     "youtube": [
         Backend("ddg_lite_site_youtube", "DuckDuckGo Lite site:youtube.com",
