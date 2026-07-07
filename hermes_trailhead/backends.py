@@ -550,6 +550,8 @@ BACKENDS: dict[str, list[Backend]] = {
         # social-search returns high-quality practitioner text; use it as primary.
         Backend("ddg_lite_site_reddit", "DuckDuckGo Lite site:reddit.com",
                 lambda q: _ddg_lite_url(f"site:reddit.com {q}"), _hp, accept_url=_reddit_result_url),
+        Backend("jina_duckduckgo_site_reddit", "Jina Reader over DuckDuckGo site:reddit.com",
+                lambda q: _jina_ddg_url(f"site:reddit.com {q}"), _mk, accept_url=_reddit_result_url),
     ],
     "youtube": [
         Backend("ddg_lite_site_youtube", "DuckDuckGo Lite site:youtube.com",
