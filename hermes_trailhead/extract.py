@@ -234,11 +234,17 @@ def _fetch_youtube_transcript(url: str, timeout: int = 20) -> str:
 
 
 def _reddit_frontend_url(url: str) -> str:
-    """Convert Reddit URLs to the configured Redlib privacy frontend."""
+    """Convert Reddit URLs to old.reddit.com for proxy-backed extraction.
+    
+    Redlib OAuth is blocked from VPS/residential IPs. old.reddit.com serves
+    full HTML without auth when fetched through a residential proxy with
+    proper browser headers. 
+    """
     parsed = urlparse(url)
     if "reddit.com" not in parsed.netloc.lower():
         return url
-    return f"https://redlib.perennialte.ch{parsed.path}"
+    # Use old.reddit.com which returns clean HTML with full post + comments
+    return f"https://old.reddit.com{parsed.path}"
 
 
 def _fetch_github_summary(url: str, timeout: int = 15) -> str:
