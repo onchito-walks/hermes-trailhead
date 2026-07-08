@@ -1,12 +1,22 @@
 # Hermes Trailhead
 
-**Hermes Trailhead makes the hard-to-reach, high-signal internet part of Hermes' normal research plane.**
+The internet is full of answers that search engines can''t reach. Practitioner
+discussions on X that never make it to Google. Reddit threads with the exact
+workaround you need. YouTube videos where someone explains the bug and the fix
+but the transcript lives behind a proxy wall. GitHub issues where maintainers
+debate the architecture before it becomes a blog post.
 
-Ask Hermes a research question. Trailhead finds the right source terrain across seven platform families, extracts summaries, transcripts, and metadata from every reachable source, ranks results by quality, and returns honest caveats for what it could not reach.
+Hermes Trailhead makes that terrain accessible to AI agents. It is a research
+control plane that spans seven platform families — X/Twitter, Reddit, YouTube,
+TikTok, Instagram, GitHub, and the open web — with per-lane backend chains,
+automatic failover, and honest blind-spot reporting. When a research question
+hits, Trailhead fans out across every reachable source, extracts summaries and
+transcripts, ranks results by quality, and returns what it found along with
+exactly what it could not reach.
 
-The product is not a scraper. It is a research trailhead: real links, real summaries, real transcripts, real quality rankings, and real blind-spot reporting across the entire source landscape.
-
-**Self-healing and redundant by design.** Trailhead uses per-lane backend chains — each source family has multiple independent discovery paths. If one backend fails (DDG blocks, Jina rate-limits, SearXNG engine jams), the next backend picks up immediately. Circuit breakers track per-backend failure rates and auto-disable backends that fail 3+ times in 5 minutes — they auto-recover when the failure window passes. The Lane Guardian runs every 30 minutes to proactively probe Nitter, SearXNG, and other fragile infrastructure, restarting containers and rotating engine pools before the user notices. Together, these three layers mean Trailhead does not "quit" when a lane degrades — it routes around the failure.
+Trailhead exists because the best answer to a technical question is often on a
+platform that search engines treat as invisible. It lives to make that invisible
+terrain part of every agent''s normal research surface.
 
 ## What Trailhead delivers
 
