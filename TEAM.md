@@ -116,7 +116,9 @@ docs: TEAM.md engineering conventions
 ## Verification checklist (every PR)
 
 ```bash
-cd /home/hermes/src/hermes-trailhead
+cd /home/ubuntu/src/hermes-trailhead
+command -v hermes-trailhead
+hermes-trailhead --version
 python3 -m py_compile hermes_trailhead/*.py
 python3 -m pytest -q
 python3 -m hermes_trailhead gauntlet
