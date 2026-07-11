@@ -154,23 +154,23 @@ def test_reddit_extraction_network_error_reports_reddit_source_type(monkeypatch)
     assert not result.usable
 
 
-def test_reddit_extraction_uses_redlib_frontend_before_generic_extract(monkeypatch):
+def test_reddit_extraction_uses_old_reddit_frontend_before_generic_extract(monkeypatch):
     monkeypatch.setattr(extract_mod, "_fetch_hermes_web_extract", lambda url, timeout: (_ for _ in ()).throw(AssertionError("generic extract should not run")))
 
     seen = []
 
     def fake_fetch(url, timeout):
         seen.append(url)
-        return "Redlib thread content about StealthChanger build. " * 5
+        return "old.reddit thread content about StealthChanger build. " * 5
 
     result = extract_one("https://www.reddit.com/r/VORONDesign/comments/abc123/title/", fetch=fake_fetch)
     assert result.status == "ok"
     assert result.source_type == "reddit"
-    assert seen == ["https://redlib.perennialte.ch/r/VORONDesign/comments/abc123/title/"]
+    assert seen == ["https://old.reddit.com/r/VORONDesign/comments/abc123/title/"]
 
 
 def test_reddit_frontend_url_preserves_path():
-    assert _reddit_frontend_url("https://www.reddit.com/r/VORONDesign/comments/abc123/title/") == "https://redlib.perennialte.ch/r/VORONDesign/comments/abc123/title/"
+    assert _reddit_frontend_url("https://www.reddit.com/r/VORONDesign/comments/abc123/title/") == "https://old.reddit.com/r/VORONDesign/comments/abc123/title/"
 
 
 def test_extraction_result_to_dict():
