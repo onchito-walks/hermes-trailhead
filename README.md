@@ -91,9 +91,18 @@ python3 -m hermes_trailhead gauntlet
 ## Install
 
 ```bash
+# Put the hermes-trailhead command on PATH for this machine
+sudo bash scripts/install-hermes-trailhead-wrapper.sh
+
+# Verify the active install
+hermes-trailhead doctor
+
+# Source-mode fallback
 python3 -m pytest -q
 python3 -m hermes_trailhead doctor
 ```
+
+See `docs/HERMES-INTEGRATION.md` for how Trailhead fits into Hermes and Quiver.
 
 ## What Trailhead is not:
 
