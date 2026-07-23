@@ -520,15 +520,22 @@ def _fetch_ytdlp_transcript(url: str, timeout: int = 30) -> str:
 # ── Browser Harness backend (legacy fallback) ─────────────────────────
 
 def _fetch_browser_harness(url: str, timeout: int = 30) -> str:
-    """Fetch page content through the local browser-harness daemon (Chrome CDP).
+    """Fetch page content through the repo-local Chrome CDP adapter.
 
-    Uses the running Chrome instance on CDP port 9222.  Navigates to the URL,
-    waits for page settle, then extracts visible text.  Kept as fallback for
-    platforms where stealth Chrome is unavailable.
+    The adapter is invoked by absolute path rather than relying on a
+    ``browser-harness`` executable being installed in PATH. Its CDP endpoint
+    is configured with ``TRAILHEAD_BROWSER_CDP_URL`` (the HP worker tunnel by
+    default).
     """
+    from pathlib import Path
+
     script = _BROWSER_EXTRACT_SCRIPT.replace("{url}", url).replace("{timeout}", str(timeout))
+    # The legacy DSL hard-coded 14 settle attempts. Keep the adapter's CDP
+    # wait budget aligned with the caller's timeout (one 0.8s attempt/second).
+    script = script.replace("range(1, 15)", f"range(1, {max(2, timeout + 1)})")
+    adapter = Path(__file__).resolve().parent.parent / "scripts" / "browser-harness.js"
     proc = subprocess.run(
-        ["browser-harness"],
+        ["node", str(adapter)],
         input=script,
         capture_output=True,
         text=True,
