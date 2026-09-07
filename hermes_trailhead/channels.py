@@ -10,8 +10,26 @@ import subprocess
 import urllib.request
 from typing import Callable, Literal
 
-ROOT = Path.home()
-HERMES_HOME = ROOT / ".hermes"
+
+def _resolve_hermes_home(home: Path | None = None) -> Path:
+    """Resolve the Hermes home directory robustly.
+
+    Normally ``$HOME/.hermes``. In chroot/container deployments ``$HOME`` may
+    itself point inside a ``.hermes`` dir (e.g. ``.../.hermes/home``), in which
+    case the enclosing ``.hermes`` holding ``config.yaml`` is the real home —
+    resolving to ``$HOME/.hermes`` there would miss the actual config.
+    """
+    home = home or Path.home()
+    nested = home / ".hermes"
+    if (nested / "config.yaml").exists():
+        return nested
+    parent = home.parent
+    if parent.name == ".hermes" and (parent / "config.yaml").exists():
+        return parent
+    return nested
+
+
+HERMES_HOME = _resolve_hermes_home()
 HERMES_AGENT_REPO = HERMES_HOME / "hermes-agent"
 CONFIG = HERMES_HOME / "config.yaml"
 CRON = HERMES_HOME / "cron" / "jobs.json"
