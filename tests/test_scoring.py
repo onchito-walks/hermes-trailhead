@@ -94,6 +94,60 @@ def test_official_docs_domain_outranks_third_party_mirror():
     assert official.score > mirror.score
 
 
+def test_official_owner_release_strictly_outranks_fork():
+    # Regression: without owner-awareness, a fork's /releases page ties the
+    # official NousResearch release on path shape alone, and stable rank keeps
+    # input order — so the fork could sort above the upstream release.
+    official = _score_url("https://github.com/NousResearch/hermes-agent/releases/tag/v0.21.0")
+    fork = _score_url("https://github.com/other-user/hermes-agent/releases/tag/v0.21.0")
+    assert "GitHub release" in official.reasons[0]
+    assert "GitHub release" in fork.reasons[0]
+    assert "Official GitHub owner (not a fork)" in official.reasons
+    assert "Official GitHub owner (not a fork)" not in fork.reasons
+    assert official.score > fork.score
+
+
+def test_official_owner_docs_strictly_outranks_fork():
+    # Same owner-aware rule for in-repo docs (index + blob paths): official
+    # NousResearch docs beat the identical fork mirror of the same repo.
+    fork = _score_url("https://github.com/other-user/hermes-agent/docs")
+    for url in (
+        "https://github.com/NousResearch/hermes-agent/docs",
+        "https://github.com/NousResearch/hermes-agent/docs/user-guide/configuration",
+        "https://github.com/NousResearch/hermes-agent/blob/main/docs/configuration.md",
+        "https://github.com/NousResearch/hermes-agent/tree/main/docs",
+    ):
+        official = _score_url(url)
+        assert "GitHub official docs" in official.reasons[0], url
+        assert "Official GitHub owner (not a fork)" in official.reasons, url
+        assert official.score > fork.score, url
+
+
+def test_official_owner_rank_is_stable_over_fork_even_when_fork_first():
+    # rank_hits must not let a fork sort above the official page merely because
+    # it appeared earlier in the input (stable-sort tie hazard). The owner bonus
+    # gives the official page a strictly higher score.
+    from tests.test_scoring import _score_url as _su
+    from hermes_trailhead.scoring import rank_hits
+    from hermes_trailhead.scoring import ScoredHit
+    from hermes_trailhead.scoring import SourceScore
+
+    def scored(hit_url):
+        s = _su(hit_url)
+        return ScoredHit(
+            title="t", url=hit_url, snippet="",
+            scoring=SourceScore(quality=s.quality, score=s.score,
+                                reasons=s.reasons, label=s.reasons[0] if s.reasons else ""),
+        )
+
+    # Deliberately feed the fork FIRST to expose any stable-sort tie.
+    fork_first = rank_hits([
+        scored("https://github.com/other-user/hermes-agent/releases/tag/v0.21.0"),
+        scored("https://github.com/NousResearch/hermes-agent/releases/tag/v0.21.0"),
+    ])
+    assert fork_first[0].url == "https://github.com/NousResearch/hermes-agent/releases/tag/v0.21.0"
+
+
 def test_reddit_thread_scores_practitioner():
     hit = ScoredHit(
         title="Anyone else seeing this?",

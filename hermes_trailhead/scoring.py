@@ -138,6 +138,13 @@ DOMAIN_RULES: list[tuple[str, SourceQuality, int, str]] = [
     (r"hubspot\.com", SourceQuality.SEO, 10, "HubSpot content"),
 ]
 
+# Official/canonical GitHub owners whose repos must strictly outrank forks of
+# the same project. A fork mirrors the full path shape (releases/, /docs), so a
+# plain path-based tie lets a fork sort above the upstream release/docs. We
+# boost recognized upstream-owner repo pages so the official source always wins.
+CANONICAL_GITHUB_OWNERS: frozenset[str] = frozenset({"nousresearch"})
+OFFICIAL_OWNER_BONUS = 6
+
 # URL keywords that signal high quality regardless of domain
 HIGH_SIGNAL_KEYWORDS = [
     "changelog", "release", "migration", "breaking", "deprecated",
@@ -305,6 +312,7 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
 
     # GitHub needs explicit path-aware handling so marketing and nav pages
     # never outrank actual repos/issues/PRs.
+    github_repo_page = False
     if parsed.netloc == "github.com":
         parts = [p for p in parsed.path.split("/") if p]
         if parts and parts[0] in github_reserved_roots:
@@ -314,39 +322,55 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
         elif len(parts) == 2:
             quality = SourceQuality.CANONICAL
             score = 70
+            github_repo_page = True
             reasons.append("GitHub repo root")
         elif len(parts) >= 4 and parts[2] in {"issues", "pull"} and parts[3].isdigit():
             quality = SourceQuality.TECHNICAL
             score = 85
+            github_repo_page = True
             reasons.append("GitHub issue/PR")
         elif len(parts) >= 3 and parts[2] == "releases":
             # Release index, tagged release, or asset download — all official
             # release notes/artifacts. Must outrank third-party doc mirrors.
             quality = SourceQuality.TECHNICAL
             score = 80
+            github_repo_page = True
             reasons.append("GitHub release")
         elif len(parts) >= 3 and parts[2] == "commit":
             quality = SourceQuality.TECHNICAL
             score = 75
+            github_repo_page = True
             reasons.append("GitHub commit")
         elif len(parts) >= 3 and parts[2] == "docs":
             # Official docs directory inside the repository (index + subpages).
             quality = SourceQuality.CANONICAL
             score = 76
+            github_repo_page = True
             reasons.append("GitHub official docs")
         elif len(parts) >= 4 and parts[2] in {"tree", "blob"} and "docs" in parts:
             # Docs files served from the repo source tree — authoritative source.
             quality = SourceQuality.CANONICAL
             score = 76
+            github_repo_page = True
             reasons.append("GitHub official docs")
         elif len(parts) >= 3 and parts[2] in {"tree", "blob", "wiki", "discussions"}:
             quality = SourceQuality.CANONICAL
             score = 68
+            github_repo_page = True
             reasons.append("GitHub repo page")
         else:
             quality = SourceQuality.GENERIC
             score = 35
             reasons.append("Generic GitHub page")
+
+        # Owner-aware boost: official/canonical owner repos strictly outrank
+        # forks of the same project. A fork URL (github.com/<other-user>/repo/)
+        # shares the same path shape and, without owner awareness, ties the
+        # official page on score and can sort above it (stable rank keeps input
+        # order). Recognized upstream owners always beat their forks.
+        if github_repo_page and parts and parts[0].lower() in CANONICAL_GITHUB_OWNERS:
+            score += OFFICIAL_OWNER_BONUS
+            reasons.append("Official GitHub owner (not a fork)")
     else:
         for pattern, quality, base_score, label in DOMAIN_RULES:
             if re.search(pattern, url_lower):
