@@ -11,25 +11,11 @@ import urllib.request
 from typing import Callable, Literal
 
 
-def _resolve_hermes_home(home: Path | None = None) -> Path:
-    """Resolve the Hermes home directory robustly.
-
-    Normally ``$HOME/.hermes``. In chroot/container deployments ``$HOME`` may
-    itself point inside a ``.hermes`` dir (e.g. ``.../.hermes/home``), in which
-    case the enclosing ``.hermes`` holding ``config.yaml`` is the real home —
-    resolving to ``$HOME/.hermes`` there would miss the actual config.
-    """
-    home = home or Path.home()
-    nested = home / ".hermes"
-    if (nested / "config.yaml").exists():
-        return nested
-    parent = home.parent
-    if parent.name == ".hermes" and (parent / "config.yaml").exists():
-        return parent
-    return nested
+from .paths import resolve_hermes_home
+from .backends import _resolve_ytdlp
 
 
-HERMES_HOME = _resolve_hermes_home()
+HERMES_HOME = resolve_hermes_home()
 HERMES_AGENT_REPO = HERMES_HOME / "hermes-agent"
 CONFIG = HERMES_HOME / "config.yaml"
 CRON = HERMES_HOME / "cron" / "jobs.json"
@@ -477,14 +463,14 @@ def check_reddit(live: bool = False) -> CheckResult:
 
 
 def check_youtube() -> CheckResult:
-    if _cmd("yt-dlp"):
-        return _result("ok", "yt-dlp installed; use for transcripts/metadata when native media tools are not enough.", evidence=(CommandEvidence("command", "yt-dlp found on PATH", command="which yt-dlp"),))
-    return _result("off", "yt-dlp not installed globally.", action="Install in a project venv only when a YouTube task needs it.", evidence=(CommandEvidence("command", "yt-dlp not found", command="which yt-dlp", return_code=127),), error_kind="unknown_tool")
+    if _resolve_ytdlp():
+        return _result("ok", "yt-dlp available; use for transcripts/metadata when native media tools are not enough.", evidence=(CommandEvidence("command", "yt-dlp found (PATH or project venv)", command="backend _resolve_ytdlp()"),))
+    return _result("off", "yt-dlp not available.", action="Install in a project venv only when a YouTube task needs it.", evidence=(CommandEvidence("command", "yt-dlp not found", command="which yt-dlp", return_code=127),), error_kind="unknown_tool")
 
 
 def check_tiktok() -> CheckResult:
-    if _cmd("proxitok") or _cmd("yt-dlp"):
-        return _result("warn", "TikTok can be probed through available media/frontends, but coverage should be verified per query.", action="For TikTok research, run a platform-specific probe and report retrieved-count + dead-link count.", evidence=(CommandEvidence("command", "TikTok-capable helper candidate found", command="which proxitok || which yt-dlp"),))
+    if _cmd("proxitok") or _resolve_ytdlp():
+        return _result("warn", "TikTok can be probed through available media/frontends, but coverage should be verified per query.", action="For TikTok research, run a platform-specific probe and report retrieved-count + dead-link count.", evidence=(CommandEvidence("command", "TikTok-capable helper candidate found", command="which proxitok || yt-dlp"),))
     return _result(
         "off",
         "No dedicated TikTok reader/frontend is configured. Use web_search site:tiktok.com or supervised browser as fallback.",
