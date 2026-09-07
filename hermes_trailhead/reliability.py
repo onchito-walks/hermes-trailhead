@@ -12,8 +12,10 @@ import os
 from pathlib import Path
 from typing import Any
 
+from .paths import hermes_state_dir
 
-DEFAULT_STATE_PATH = Path.home() / ".hermes" / "state" / "trailhead-reliability.json"
+
+DEFAULT_STATE_PATH = hermes_state_dir() / "trailhead-reliability.json"
 
 
 @dataclass

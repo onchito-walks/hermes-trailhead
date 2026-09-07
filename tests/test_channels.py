@@ -1,4 +1,5 @@
-from hermes_trailhead.channels import _resolve_hermes_home, CHANNELS, get_channel
+from hermes_trailhead.channels import CHANNELS, get_channel
+from hermes_trailhead.paths import resolve_hermes_home
 
 
 def test_channels_have_unique_keys():
@@ -22,7 +23,7 @@ def test_resolve_hermes_home_normal(tmp_path):
     # Standard layout: $HOME/.hermes holds config.yaml.
     (tmp_path / ".hermes").mkdir()
     (tmp_path / ".hermes" / "config.yaml").write_text("x: 1")
-    got = _resolve_hermes_home(tmp_path)
+    got = resolve_hermes_home(tmp_path)
     assert got == tmp_path / ".hermes"
 
 
@@ -34,7 +35,7 @@ def test_resolve_hermes_home_nested_chroot(tmp_path):
     fake_home = hermes / "home"
     fake_home.mkdir(parents=True)
     (hermes / "config.yaml").write_text("x: 1")
-    got = _resolve_hermes_home(fake_home)
+    got = resolve_hermes_home(fake_home)
     assert got == hermes
 
 
@@ -42,5 +43,5 @@ def test_resolve_hermes_home_falls_back_when_no_config(tmp_path):
     # No config anywhere: fall back to $HOME/.hermes so the doctor reports it
     # as missing rather than guessing.
     (tmp_path / ".hermes").mkdir()
-    got = _resolve_hermes_home(tmp_path)
+    got = resolve_hermes_home(tmp_path)
     assert got == tmp_path / ".hermes"

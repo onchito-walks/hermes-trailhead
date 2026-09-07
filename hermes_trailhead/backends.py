@@ -354,14 +354,33 @@ def _search_hit(title: str, url: str, snippet: str = ""):
     return SearchHit(title=title, url=url, snippet=snippet)
 
 
+def _resolve_ytdlp() -> str | None:
+    """Resolve the yt-dlp executable, including the project venv.
+
+    The doctor/capability check and the flat-search backend must agree on where
+    yt-dlp lives. It is normally installed only in the Trailhead project venv,
+    which may not be on PATH under a cron/chroot profile HOME — so check PATH
+    first, then fall back to the canonical Trailhead venv binary.
+    """
+    on_path = shutil.which("yt-dlp")
+    if on_path:
+        return on_path
+    venv = Path(__file__).resolve().parent.parent / ".venv" / "bin" / "yt-dlp"
+    if venv.exists():
+        return str(venv)
+    return None
+
+
 def _run_ytdlp_flat_search(query: str, limit: int, *, timeout: int = 20, runner: CommandFn | None = None):
     """Discover YouTube videos via yt-dlp flat search without fetching video pages."""
-    if runner is None and not shutil.which("yt-dlp"):
+    ytdlp = _resolve_ytdlp() if runner is None else "yt-dlp"
+    if runner is None and ytdlp is None:
         return tuple()
+    assert ytdlp is not None
     run = runner or subprocess.run
     try:
         completed = run(
-            ["yt-dlp", f"ytsearch{max(limit, 1)}:{query}", "--flat-playlist", "--dump-json", "--no-warnings"],
+            [ytdlp, f"ytsearch{max(limit, 1)}:{query}", "--flat-playlist", "--dump-json", "--no-warnings"],
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -614,7 +633,9 @@ BACKENDS: dict[str, list[Backend]] = {
 
 import time as _time
 
-_DEFAULT_CIRCUIT_PATH = Path.home() / ".hermes" / "state" / "trailhead-circuits.json"
+from .paths import hermes_state_dir
+
+_DEFAULT_CIRCUIT_PATH = hermes_state_dir() / "trailhead-circuits.json"
 _CIRCUIT_WINDOW_SECONDS = 300   # 5 min
 _CIRCUIT_THRESHOLD = 3          # open after 3 consecutive failures
 
