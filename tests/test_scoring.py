@@ -48,6 +48,52 @@ def test_github_issue_scores_high():
     assert "GitHub issue/PR" in result.scoring.reasons[0]
 
 
+def _score_url(url: str) -> SourceScore:
+    eh = ExtractedHit(
+        title="",
+        url=url,
+        snippet="",
+        extraction=ExtractionResult(status="ok", content_length=600),
+    )
+    return score_hit(ScoredHit.from_extracted_hit(eh)).scoring
+
+
+def test_official_repo_releases_index_outranks_third_party_mirror():
+    # Regression: the official releases listing used to fall to the generic
+    # GitHub bucket (score ~38) and lose to third-party documentation mirrors.
+    official = _score_url("https://github.com/NousResearch/hermes-agent/releases")
+    mirror = _score_url("https://hermes-agent.readthedocs.io/en/latest/")
+    assert official.quality == SourceQuality.TECHNICAL
+    assert "GitHub release" in official.reasons[0]
+    assert official.score > mirror.score
+
+
+def test_official_repo_docs_outrank_third_party_mirror():
+    # Official docs inside the repo (directory index and blob) must outrank
+    # third-party doc mirrors, not fall to the generic bucket.
+    mirror = _score_url("https://example-mirror.dev/documentation/hermes-agent")
+    for url in (
+        "https://github.com/NousResearch/hermes-agent/docs",
+        "https://github.com/NousResearch/hermes-agent/docs/user-guide/configuration",
+        "https://github.com/NousResearch/hermes-agent/blob/main/docs/configuration.md",
+        "https://github.com/NousResearch/hermes-agent/tree/main/docs",
+    ):
+        official = _score_url(url)
+        assert official.quality == SourceQuality.CANONICAL, url
+        assert "GitHub official docs" in official.reasons[0], url
+        assert official.score > mirror.score, url
+
+
+def test_official_docs_domain_outranks_third_party_mirror():
+    # The specific NousResearch docs domain must fire before the broad /docs/
+    # path rule, so the canonical project docs outrank generic mirrors.
+    official = _score_url("https://hermes-agent.nousresearch.com/docs/user-guide/configuration/")
+    mirror = _score_url("https://docs.mirror-com.example/hermes-agent")
+    assert official.quality == SourceQuality.CANONICAL
+    assert "Hermes Agent docs" in official.reasons[0]
+    assert official.score > mirror.score
+
+
 def test_reddit_thread_scores_practitioner():
     hit = ScoredHit(
         title="Anyone else seeing this?",

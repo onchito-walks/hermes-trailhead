@@ -96,6 +96,10 @@ DOMAIN_RULES: list[tuple[str, SourceQuality, int, str]] = [
     (r"github\.com/[^/]+/[^/]+/commit/", SourceQuality.TECHNICAL, 75, "GitHub commit"),
     (r"github\.com/[^/]+/[^/]+$", SourceQuality.CANONICAL, 70, "GitHub repo root"),
     (r"github\.com/[^/]+/[^/]+/", SourceQuality.CANONICAL, 68, "GitHub repo page"),
+    # Specific official domains must be matched before the broad /docs/ path
+    # rule below, so the canonical project domain outranks generic mirrors.
+    (r"hermes-agent\.nousresearch\.com", SourceQuality.CANONICAL, 78, "Hermes Agent docs"),
+    (r"nousresearch\.com", SourceQuality.CANONICAL, 75, "Nous Research"),
     (r"docs\.", SourceQuality.CANONICAL, 75, "Documentation site"),
     (r"readthedocs\.io", SourceQuality.CANONICAL, 75, "ReadTheDocs"),
     (r"help\.[^/]+/", SourceQuality.CANONICAL, 72, "Official help docs"),
@@ -112,8 +116,6 @@ DOMAIN_RULES: list[tuple[str, SourceQuality, int, str]] = [
     (r"discourse\.", SourceQuality.PRACTITIONER, 60, "Discourse forum"),
     (r"forum\.", SourceQuality.PRACTITIONER, 58, "Forum"),
     (r"openrouter\.ai/blog", SourceQuality.PRACTITIONER, 55, "OpenRouter blog"),
-    (r"nousresearch\.com", SourceQuality.CANONICAL, 75, "Nous Research"),
-    (r"hermes-agent\.nousresearch\.com", SourceQuality.CANONICAL, 78, "Hermes Agent docs"),
 
     # Current — X/Twitter, maintainer activity
     (r"x\.com/[^/]+/status/", SourceQuality.CURRENT, 55, "X/Twitter post"),
@@ -317,7 +319,9 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
             quality = SourceQuality.TECHNICAL
             score = 85
             reasons.append("GitHub issue/PR")
-        elif len(parts) >= 4 and parts[2] == "releases" and parts[3] == "tag":
+        elif len(parts) >= 3 and parts[2] == "releases":
+            # Release index, tagged release, or asset download — all official
+            # release notes/artifacts. Must outrank third-party doc mirrors.
             quality = SourceQuality.TECHNICAL
             score = 80
             reasons.append("GitHub release")
@@ -325,6 +329,16 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
             quality = SourceQuality.TECHNICAL
             score = 75
             reasons.append("GitHub commit")
+        elif len(parts) >= 3 and parts[2] == "docs":
+            # Official docs directory inside the repository (index + subpages).
+            quality = SourceQuality.CANONICAL
+            score = 76
+            reasons.append("GitHub official docs")
+        elif len(parts) >= 4 and parts[2] in {"tree", "blob"} and "docs" in parts:
+            # Docs files served from the repo source tree — authoritative source.
+            quality = SourceQuality.CANONICAL
+            score = 76
+            reasons.append("GitHub official docs")
         elif len(parts) >= 3 and parts[2] in {"tree", "blob", "wiki", "discussions"}:
             quality = SourceQuality.CANONICAL
             score = 68
