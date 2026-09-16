@@ -493,7 +493,7 @@ def _tavily_api_key() -> str:
     key = os.environ.get("TAVILY_API_KEY", "")
     if key:
         return key
-    env_path = os.path.expanduser("~/.hermes/.env")
+    env_path = resolve_hermes_home() / ".env"
     if os.path.exists(env_path):
         try:
             for line in open(env_path):
@@ -633,7 +633,7 @@ BACKENDS: dict[str, list[Backend]] = {
 
 import time as _time
 
-from .paths import hermes_state_dir
+from .paths import hermes_state_dir, resolve_hermes_home
 
 _DEFAULT_CIRCUIT_PATH = hermes_state_dir() / "trailhead-circuits.json"
 _CIRCUIT_WINDOW_SECONDS = 300   # 5 min

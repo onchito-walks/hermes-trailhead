@@ -9,13 +9,11 @@ if [[ ! -d "$REPO/hermes_trailhead" ]]; then
   exit 1
 fi
 
-cat > /tmp/hermes-trailhead-wrapper <<EOF
-#!/usr/bin/env bash
-cd "$REPO"
-exec python3 -m hermes_trailhead "\$@"
-EOF
-
-install -m 0755 /tmp/hermes-trailhead-wrapper "$TARGET"
-rm -f /tmp/hermes-trailhead-wrapper
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TMP_WRAPPER="$(mktemp /tmp/hermes-trailhead-wrapper.XXXXXX)"
+trap 'rm -f "$TMP_WRAPPER"' EXIT
+sed "s|__REPO__|$REPO|" "$SELF_DIR/hermes-trailhead-wrapper.template" \
+  > "$TMP_WRAPPER"
+install -m 0755 "$TMP_WRAPPER" "$TARGET"
 printf 'installed %s -> %s\n' "$TARGET" "$REPO"
 printf 'run: hermes-trailhead doctor\n'
