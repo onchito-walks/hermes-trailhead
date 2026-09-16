@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Generated wrapper for the Hermes Trailhead CLI (see
+# scripts/install-hermes-trailhead-wrapper.sh). __REPO__ is substituted at
+# install time.
+cd "__REPO__"
+# Normalize to the canonical Hermes home even when invoked from a non-login
+# shell (cron, scripts, other tools). HERMES_HOME is exported by ~/.profile
+# for login shells and by the Hermes runtime for agent sessions, but a bare
+# caller may not have it. Fall back to the operator's ~/.profile export so
+# secrets/state resolve to the canonical home (e.g.
+# <HERMES_ROOT>/.hermes) instead of $HOME/.hermes.
+if [[ -z "${HERMES_HOME:-}" && -f "$HOME/.profile" ]]; then
+  _hermes_home="$(sed -n 's/^export HERMES_HOME=//p' "$HOME/.profile" | head -1)"
+  _hermes_home="${_hermes_home%\"}"
+  _hermes_home="${_hermes_home%\'}"
+  if [[ -n "$_hermes_home" ]]; then
+    export HERMES_HOME="$_hermes_home"
+  fi
+  unset _hermes_home
+fi
+exec python3 -m hermes_trailhead "$@"

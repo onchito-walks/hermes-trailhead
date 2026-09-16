@@ -17,6 +17,7 @@ from urllib.parse import parse_qs, quote, urlparse
 from typing import Callable, Literal
 
 from .search import SearchHit
+from .paths import hermes_secrets_dir, hermes_state_dir
 
 ExtractionStatus = Literal["ok", "blocked", "error", "not_attempted"]
 TranscriptAttemptStatus = Literal["ok", "blocked", "not_available", "not_attempted"]
@@ -561,7 +562,7 @@ def _get_apify_token() -> str | None:
     token = _os.environ.get("APIFY_API_KEY")
     if token:
         return token
-    token_path = _os.path.expanduser("~/.hermes/secrets/apify-api-key.txt")
+    token_path = hermes_secrets_dir() / "apify-api-key.txt"
     try:
         with open(token_path) as f:
             token = f.read().strip()
@@ -594,10 +595,14 @@ def _instagram_shortcode(url: str) -> str:
 def _get_proxy_url() -> str | None:
     """Read and rotate through residential proxy URLs.
 
-    Reads from ~/.hermes/secrets/trailhead-proxy-url.txt — one URL per line.
+    Reads from the canonical Hermes secrets dir
+    (``<hermes-home>/secrets/trailhead-proxy-url.txt`` — one URL per line).
     Rotates roundrobin across all configured proxies using a counter stored
-    in ~/.hermes/state/trailhead-proxy-round.txt so successive calls cycle
-    through different residential IPs.
+    in the canonical Hermes state dir so successive calls cycle through
+    different residential IPs.  Resolution follows ``HERMES_HOME`` (see
+    ``hermes_trailhead.paths``) instead of raw ``~`` expansion, so proxy
+    lookup works from the normal host shell where ``$HOME`` is not the
+    Hermes home.
 
     Also respects TRAILHEAD_PROXY_URL env var (single proxy, no rotation).
     """
@@ -606,7 +611,7 @@ def _get_proxy_url() -> str | None:
     if proxy:
         return proxy
 
-    proxy_path = _os.path.expanduser("~/.hermes/secrets/trailhead-proxy-url.txt")
+    proxy_path = hermes_secrets_dir() / "trailhead-proxy-url.txt"
     proxy_urls: list[str] = []
     try:
         with open(proxy_path) as f:
@@ -623,7 +628,7 @@ def _get_proxy_url() -> str | None:
         return proxy_urls[0]
 
     # Roundrobin rotation
-    counter_path = _os.path.expanduser("~/.hermes/state/trailhead-proxy-round.txt")
+    counter_path = hermes_state_dir() / "trailhead-proxy-round.txt"
     idx = 0
     try:
         with open(counter_path) as f:
@@ -701,9 +706,8 @@ def _fetch_proxy(url: str, timeout: int = 15) -> str:
 
 
 def _get_instagram_session() -> str | None:
-    """Read Instagram session cookie from secrets file."""
-    import os as _os
-    session_path = _os.path.expanduser("~/.hermes/secrets/instagram-session.txt")
+    """Read Instagram session cookie from the canonical Hermes secrets dir."""
+    session_path = hermes_secrets_dir() / "instagram-session.txt"
     try:
         with open(session_path) as f:
             return f.read().strip()
@@ -877,7 +881,7 @@ def _fetch_instaloader_instagram(url: str, timeout: int = 30) -> str:
     import os as _os
 
     proxy_url = _get_proxy_url()
-    session_file = _os.path.expanduser("~/.hermes/state/instagram-sessionfile")
+    session_file = hermes_state_dir() / "instagram-sessionfile"
 
     L = _il.Instaloader(
         download_pictures=False,
@@ -1147,11 +1151,13 @@ def _fetch_tiktok_scraper(url: str, timeout: int = 30) -> str:
 # ── Instagram / TikTok cookie paths ───────────────────────────────────
 
 def _get_platform_cookies(platform: str) -> str | None:
-    """Return path to burner-account cookies file if it exists."""
-    cookie_path = __import__("os").path.expanduser(
-        f"~/.hermes/state/{platform}-cookies.json"
-    )
-    return cookie_path if __import__("os").path.exists(cookie_path) else None
+    """Return path to burner-account cookies file if it exists.
+
+    Lives in the canonical Hermes state dir so the path is the same from the
+    normal host shell, agent sessions, and cron.
+    """
+    cookie_path = hermes_state_dir() / f"{platform}-cookies.json"
+    return str(cookie_path) if cookie_path.exists() else None
 
 
 _BROWSER_EXTRACT_SCRIPT = """

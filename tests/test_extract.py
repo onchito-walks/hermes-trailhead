@@ -274,3 +274,77 @@ def test_github_repo_summary_extraction(monkeypatch):
     assert "GitHub repository: owner/repo" in result.content
     assert "Useful repo description." in result.content
     assert "Requested path: /wiki" in result.content
+
+
+# ── Canonical Hermes home resolution (HOME != Hermes home) ─────────────
+# Regression: extract.py used raw ~/.hermes expansion, so from the normal
+# host shell (HOME=<user-home>, canonical home exported as HERMES_HOME) the
+# proxy file was looked up under the shell home and YouTube transcript
+# extraction ran without the residential proxy (and failed).
+
+def _canonical_env(tmp_path, monkeypatch, proxies="http://proxy.example:8080"):
+    """Point HERMES_HOME at a temp canonical Hermes home and HOME at an
+    unrelated shell home without any .hermes — the layout of the normal
+    host shell that regressed proxy-backed extraction."""
+    canonical = tmp_path / "hermes"
+    (canonical / "secrets").mkdir(parents=True)
+    (canonical / "secrets" / "trailhead-proxy-url.txt").write_text(proxies + "\n")
+    shell_home = tmp_path / "shell-home"
+    shell_home.mkdir()
+    monkeypatch.setenv("HERMES_HOME", str(canonical))
+    monkeypatch.setenv("HOME", str(shell_home))
+    monkeypatch.delenv("TRAILHEAD_PROXY_URL", raising=False)
+    return canonical
+
+
+def test_get_proxy_url_resolves_canonical_home_not_shell_home(tmp_path, monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    _canonical_env(tmp_path, monkeypatch)
+    assert extract_mod._get_proxy_url() == "http://proxy.example:8080"
+
+
+def test_proxy_rotation_counter_lives_in_canonical_state_dir(tmp_path, monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    _canonical_env(tmp_path, monkeypatch, proxies="http://p1\nhttp://p2")
+    assert extract_mod._get_proxy_url() == "http://p1"
+    assert extract_mod._get_proxy_url() == "http://p2"
+    counter = tmp_path / "hermes" / "state" / "trailhead-proxy-round.txt"
+    assert counter.read_text().strip() == "2"
+
+
+def test_fetch_ytdlp_transcript_uses_canonical_proxy(tmp_path, monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    _canonical_env(tmp_path, monkeypatch)
+
+    captured = {}
+
+    class FakeProc:
+        returncode = 0
+        stderr = ""
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        out_path = cmd[cmd.index("-o") + 1]
+        with open(out_path + ".en.srt", "w") as f:
+            f.write(
+                "1\n00:00:00,000 --> 00:00:02,000\nHello world test\n\n"
+                "2\n00:00:02,000 --> 00:00:04,000\nSecond line here\n"
+            )
+        return FakeProc()
+
+    monkeypatch.setattr(extract_mod.subprocess, "run", fake_run)
+    out = extract_mod._fetch_ytdlp_transcript("https://www.youtube.com/watch?v=abc123XYZ")
+    assert "YouTube auto-captions" in out
+    cmd = captured["cmd"]
+    assert cmd[cmd.index("--proxy") + 1] == "http://proxy.example:8080"
+
+
+def test_instagram_session_reads_canonical_secrets(tmp_path, monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    canonical = _canonical_env(tmp_path, monkeypatch)
+    (canonical / "secrets" / "instagram-session.txt").write_text("session-cookie")
+    assert extract_mod._get_instagram_session() == "session-cookie"
