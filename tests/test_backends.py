@@ -2,7 +2,14 @@ import base64
 import subprocess
 
 from hermes_trailhead import backends
-from hermes_trailhead.backends import execute_backend_chain, _github_result_url, _youtube_result_url, _x_result_url
+from hermes_trailhead.backends import (
+    execute_backend_chain,
+    _github_result_url,
+    _youtube_result_url,
+    _x_result_url,
+    _run_github_api_search,
+)
+from hermes_trailhead.backends import _instagram_result_url
 
 
 def _bing_href(url: str) -> str:
@@ -292,3 +299,82 @@ def test_ytdlp_flat_search_preserves_descriptions(monkeypatch):
     assert result.engine == "yt_dlp_flat_search"
     assert result.hits[0].snippet == "This is the detailed video description with useful build notes."
     assert "metadata/transcript extraction is separate" not in result.hits[0].snippet
+
+
+def test_github_run_api_search_returns_canonical_repos_and_issues():
+    import json as _json
+
+    def fake_opener(url, timeout):
+        if "/search/repositories" in url:
+            return _json.dumps({"items": [
+                {
+                    "html_url": "https://github.com/DraftShift/StealthChanger",
+                    "full_name": "DraftShift/StealthChanger",
+                    "description": "Tool changing system for Vorons",
+                    "stargazers_count": 1169,
+                },
+                # Marketing path that must be filtered out
+                {"html_url": "https://github.com/features/copilot", "full_name": "github/features"},
+            ]})
+        # issues endpoint
+        return _json.dumps({"items": [
+            {
+                "html_url": "https://github.com/DraftShift/StealthChanger/issues/5",
+                "repository": {"full_name": "DraftShift/StealthChanger"},
+                "title": "stealthchanger toolhead swap not aligning",
+            },
+        ]})
+
+    hits = _run_github_api_search("stealthchanger", limit=3, opener=fake_opener)
+    urls = [h.url for h in hits]
+
+    assert "https://github.com/DraftShift/StealthChanger" in urls
+    assert "https://github.com/DraftShift/StealthChanger/issues/5" in urls
+    assert "https://github.com/features/copilot" not in urls  # marketing filtered
+
+
+def test_github_run_api_search_degrades_gracefully_on_error():
+    def fail_opener(url, timeout):
+        raise RuntimeError("simulated API rate limit / network failure")
+
+    # Empty result — chain falls through to HTTP backends instead of crashing.
+    assert _run_github_api_search("stealthchanger", limit=3, opener=fail_opener) == ()
+
+
+def test_github_runtime_prefers_api_repo_discovery(monkeypatch):
+    import json as _json
+
+    class FakeResp:
+        def read(self):
+            return _json.dumps({"items": [
+                {
+                    "html_url": "https://github.com/DraftShift/StealthChanger",
+                    "full_name": "DraftShift/StealthChanger",
+                    "description": "Tool changing system for Vorons",
+                    "stargazers_count": 1169,
+                },
+            ]}).encode()
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(backends.urllib.request, "urlopen", lambda req, timeout=20: FakeResp())
+
+    result = execute_backend_chain("github", "stealthchanger voron", limit=2)
+
+    assert result.engine == "github_api_search"
+    assert result.hits[0].url == "https://github.com/DraftShift/StealthChanger"
+
+
+def test_instagram_result_url_rejects_popular_aggregation_pages():
+    # Deep post/reel and profile routes are kept for discovery.
+    assert _instagram_result_url("https://www.instagram.com/reel/DYHibt4PCLB/") is True
+    assert _instagram_result_url("https://www.instagram.com/p/DQj40znkasX/") is True
+    assert _instagram_result_url("https://www.instagram.com/voron_design/") is True
+    # Aggregation/navigation shells are discarded — they extract as junk.
+    assert _instagram_result_url("https://www.instagram.com/popular/voron-stealthchanger/") is False
+    assert _instagram_result_url("https://www.instagram.com/explore/tags/voron/") is False
+    assert _instagram_result_url("https://www.instagram.com/about/") is False
