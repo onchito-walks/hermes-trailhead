@@ -86,6 +86,9 @@ python3 -m hermes_trailhead doctor
 
 # Run the deterministic product contract (no network dependency)
 python3 -m hermes_trailhead gauntlet
+
+# Emit a repeatable research deliverable (writes docs/outcome-loop/deliverable-<slug>.md)
+python3 -m hermes_trailhead report "your research question" --out docs/outcome-loop
 ```
 
 ## Install
