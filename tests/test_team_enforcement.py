@@ -8,12 +8,40 @@ team structure before shipping code.
 from pathlib import Path
 import re
 
+from hermes_trailhead.paths import resolve_hermes_home
+
 
 ROOT = Path(__file__).resolve().parent.parent
 TEAM_MD = ROOT / "TEAM.md"
 AGENTS_MD = ROOT / "AGENTS.md"
 README = ROOT / "README.md"
-SKILL_MD = Path.home() / ".hermes" / "skills" / "research" / "hermes-trailhead" / "SKILL.md"
+
+
+def _installed_skill_md() -> Path | None:
+    """Locate the installed Hermes Trailhead ``SKILL.md`` for *this* run context.
+
+    The installed skill lives in the canonical Hermes profile skills tree, which
+    is NOT ``$HOME/.hermes``: ``HOME`` often names the service-user home (e.g.
+    ``<HERMES_SHARED>``), whose ``.hermes`` is a private cross-user
+    directory.  Resolve it through the same canonical-home doctrine the rest of
+    the codebase uses (``paths.resolve_hermes_home``, from ``HERMES_HOME``), so
+    the check validates the real installed source instead of ``$HOME/.hermes``.
+
+    Returns ``None`` when the skill is absent or sits on the far side of a
+    cross-user permission boundary — the private ``.hermes`` must never be
+    loosened to read it, and an unreadable skill in an unrelated context is not
+    a build failure.  The repo is the source of truth; this is a best-effort
+    sync guard.
+    """
+    try:
+        skill = (
+            resolve_hermes_home() / "skills" / "research" / "hermes-trailhead" / "SKILL.md"
+        )
+        if not skill.exists():
+            return None
+        return skill
+    except OSError:
+        return None
 
 
 def test_agents_md_exists():
@@ -71,9 +99,10 @@ def test_team_md_has_verification_checklist():
 
 def test_skill_references_team_md():
     """The Hermes skill must point to TEAM.md so future sessions load it."""
-    if not SKILL_MD.exists():
-        return  # Optional in test environments
-    content = SKILL_MD.read_text()
+    skill = _installed_skill_md()
+    if skill is None:
+        return  # Optional: not installed here, or behind a cross-user barrier
+    content = skill.read_text()
     assert "TEAM.md" in content, "Hermes skill must reference TEAM.md for session bootstrap"
 
 
