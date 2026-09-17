@@ -436,86 +436,101 @@ def _fetch_ytdlp_transcript(url: str, timeout: int = 30) -> str:
         raise RuntimeError("Could not parse YouTube video id")
 
     out_path = f"/tmp/yt-trailhead-{video_id}"
-    cmd = [
-        "yt-dlp",
-        "--skip-download",
-        "--write-auto-subs",
-        "--sub-lang", "en",
-        "--convert-subs", "srt",
-        "-o", out_path,
-    ]
-    proxy = _get_proxy_url()
-    if proxy:
-        cmd.extend(["--proxy", proxy])
-    cmd.append(url)
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-    if proc.returncode != 0:
-        stderr = proc.stderr.strip()
-        if "Video unavailable" in stderr or "Private video" in stderr:
-            raise RuntimeError(f"YouTube: Video unavailable or private")
-        raise RuntimeError(f"yt-dlp failed: {stderr[:200]}")
 
-    # Read the downloaded SRT file
-    import glob as _glob
-    srt_files = _glob.glob(f"{out_path}.en.srt")
-    if not srt_files:
-        raise RuntimeError("yt-dlp: no subtitle file produced (video may lack auto-captions)")
+    # Proxy failover: prefer the round-robin proxy, but if a residential
+    # route has died (e.g. expired auth -> 407), fall back to every other
+    # enabled proxy BEFORE giving up.  A dead route should never block a
+    # transcript while a working residential route still exists.
+    proxy_plan = _proxy_failover_plan()
 
-    with open(srt_files[0], "r", encoding="utf-8", errors="replace") as f:
-        raw = f.read()
-
-    # Clean up temp file
-    try:
-        __import__("os").remove(srt_files[0])
-    except Exception:
-        pass
-
-    # Strip SRT timestamps and sequence numbers, keep only text.
-    # Gemini auto-captions produce overlapping time windows that triple
-    # every word — build incrementally and dedup as we go.
-    lines: list[str] = []
-    for line in raw.splitlines():
-        line = line.strip()
-        if not line:
+    last_error: str | None = None
+    for proxy in proxy_plan:
+        cmd = [
+            "yt-dlp",
+            "--skip-download",
+            "--write-auto-subs",
+            "--sub-lang", "en",
+            "--convert-subs", "srt",
+            "-o", out_path,
+        ]
+        if proxy:
+            cmd.extend(["--proxy", proxy])
+        cmd.append(url)
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            last_error = f"yt-dlp timed out (proxy: {_proxy_host(proxy)})"
             continue
-        if line.isdigit():
-            continue  # sequence number
-        if "-->" in line:
-            continue  # timestamp
-        if line.startswith("[") and line.endswith("]"):
-            continue  # music/sound effect tags
-        lines.append(line)
-
-    # Gemini auto-captions produce incremental overlapping entries:
-    #   "This is the machine that I built. It"
-    #   "This is the machine that I built. It doesn't just have one tool head."
-    # Each line restates the previous plus a few new words.  Build
-    # incrementally: if a line starts with the previous accumulated text,
-    # only append the suffix.  Fall back to simple dedup on word boundaries.
-    prev = ""
-    deduped_lines: list[str] = []
-    for line in lines:
-        # Remove leading/trailing punctuation noise that breaks prefix matching
-        clean = line.strip(" ,;.!?-")
-        if not clean:
+        if proc.returncode != 0:
+            stderr = proc.stderr.strip()
+            if "Video unavailable" in stderr or "Private video" in stderr:
+                raise RuntimeError(f"YouTube: Video unavailable or private")
+            last_error = f"yt-dlp failed: {stderr[:200]}"
+            # A transport/auth failure on one proxy doesn't mean the video
+            # is unwritable — try the next route.
             continue
-        if prev and clean.startswith(prev):
-            suffix = clean[len(prev):].strip()
-            if suffix:
-                deduped_lines.append(suffix)
+
+        # Read the downloaded SRT file
+        import glob as _glob
+        srt_files = _glob.glob(f"{out_path}.en.srt")
+        if not srt_files:
+            last_error = "yt-dlp: no subtitle file produced (video may lack auto-captions)"
+            continue
+
+        raw = ""
+        try:
+            with open(srt_files[0], "r", encoding="utf-8", errors="replace") as f:
+                raw = f.read()
+        except Exception as exc:
+            last_error = f"yt-dlp: could not read subtitle file: {exc}"
+            continue
+        finally:
+            try:
+                __import__("os").remove(srt_files[0])
+            except Exception:
+                pass
+
+        # ---- successful proxy route produced an SRT — parse and return ----
+        lines: list[str] = []
+        for line in raw.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if line.isdigit():
+                continue  # sequence number
+            if "-->" in line:
+                continue  # timestamp
+            if line.startswith("[") and line.endswith("]"):
+                continue  # music/sound effect tags
+            lines.append(line)
+
+        prev = ""
+        deduped_lines: list[str] = []
+        for line in lines:
+            clean = line.strip(" ,;.!?-")
+            if not clean:
+                continue
+            if prev and clean.startswith(prev):
+                suffix = clean[len(prev):].strip()
+                if suffix:
+                    deduped_lines.append(suffix)
+                    prev = clean
+            elif prev and prev.startswith(clean):
+                pass
+            else:
+                deduped_lines.append(line)
                 prev = clean
-        elif prev and prev.startswith(clean):
-            # New line is shorter — just skip it (we already have more text)
-            pass
-        else:
-            deduped_lines.append(line)
-            prev = clean
 
-    content = " ".join(deduped_lines).strip()
-    if not content or len(content) < 30:
-        raise RuntimeError("yt-dlp: subtitle content too short or empty")
+        content = " ".join(deduped_lines).strip()
+        if not content or len(content) < 30:
+            last_error = "yt-dlp: subtitle content too short or empty"
+            continue
 
-    return f"YouTube auto-captions for {video_id}\n\n{content}"
+        return f"YouTube auto-captions for {video_id}\n\n{content}"
+
+    # All proxy routes failed (including the direct/no-proxy route when
+    # proxy_plan is empty).
+    raise RuntimeError(last_error or "yt-dlp: no proxy route produced a transcript")
 
 
 # ── Browser Harness backend (legacy fallback) ─────────────────────────
@@ -645,6 +660,60 @@ def _get_proxy_url() -> str | None:
         pass
 
     return chosen
+
+
+def _enabled_proxy_urls() -> list[str]:
+    """Read every enabled residential proxy URL (no rotation).
+
+    Honors TRAILHEAD_PROXY_URL env var as a single-proxy list.  Reads one
+    URL per line from the canonical Hermes secrets file.  Secrets are never
+    logged or printed by this module — only handed to yt-dlp as a ``--proxy``
+    value.  The list keeps the proxy components, order, and values intact.
+    """
+    import os as _os
+    env = _os.environ.get("TRAILHEAD_PROXY_URL")
+    if env:
+        return [env]
+    proxy_path = hermes_secrets_dir() / "trailhead-proxy-url.txt"
+    urls: list[str] = []
+    try:
+        with open(proxy_path) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    urls.append(line)
+    except Exception:
+        pass
+    return urls
+
+
+def _proxy_host(proxy: str | None) -> str:
+    """Return host:port of a proxy URL for logging, without credentials."""
+    if not proxy:
+        return "direct"
+    # http://user:pass@host:port  -> host:port
+    after_scheme = proxy.split("://", 1)[-1]
+    host_part = after_scheme.split("@", 1)[-1]
+    return host_part
+
+
+def _proxy_failover_plan() -> list[str | None]:
+    """Build the ordered proxy list for a yt-dlp transcript attempt.
+
+    Starts with the round-robin-chosen proxy (or None for direct), then
+    appends the remaining enabled proxies, deduplicated.  If no proxy is
+    configured, returns [None] so the fetch still attempts a direct route.
+    This is what lets a transcript succeed even when the rotating proxy has
+    died (e.g. expired residential auth returning 407) — the call falls back
+    to another working residential route already in the config.
+    """
+    plan: list[str | None] = []
+    first = _get_proxy_url()
+    plan.append(first if first else None)
+    for extra in _enabled_proxy_urls():
+        if extra not in plan:
+            plan.append(extra)
+    return plan
 
 
 def _fetch_proxy(url: str, timeout: int = 15) -> str:
