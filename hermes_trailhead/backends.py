@@ -249,7 +249,13 @@ def _instagram_result_url(url: str) -> bool:
     parsed = urlparse(url)
     host = parsed.netloc.lower()
     path = parsed.path.lower()
-    return "instagram.com" in host and not path.startswith(("/about", "/accounts", "/explore/tags"))
+    # Reject navigation/aggregation shells. `/popular/x` (and the legacy
+    # `/explore/tags/`) resolve to hashtag aggregation pages, not deep post
+    # content — they carry no caption and extract as junk. Only real post/reel
+    # and profile routes are worth keeping for discovery.
+    return "instagram.com" in host and not path.startswith(
+        ("/about", "/accounts", "/explore/tags", "/popular")
+    )
 
 
 def _github_result_url(url: str) -> bool:
