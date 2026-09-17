@@ -342,6 +342,47 @@ def test_fetch_ytdlp_transcript_uses_canonical_proxy(tmp_path, monkeypatch):
     assert cmd[cmd.index("--proxy") + 1] == "http://proxy.example:8080"
 
 
+def test_fetch_ytdlp_transcript_fails_over_when_first_proxy_dead(tmp_path, monkeypatch):
+    """A dead/expired proxy route (e.g. residential 407) must not block the
+    transcript when another enabled proxy still works: yt-dlp tries the
+    rotated proxy, then falls back to the remaining enabled proxies."""
+    import hermes_trailhead.extract as extract_mod
+
+    canonical = _canonical_env(
+        tmp_path, monkeypatch, proxies="http://p1.example:8080\nhttp://p2.example:8080"
+    )
+
+    attempts: list[str] = []
+
+    class FakeProc:
+        returncode = 0
+        stderr = ""
+
+    def fake_run(cmd, **kwargs):
+        proxy = cmd[cmd.index("--proxy") + 1] if "--proxy" in cmd else ""
+        out_path = cmd[cmd.index("-o") + 1]
+        if proxy == "http://p1.example:8080":
+            # Simulate a dead route: auth failure, non-zero exit, no SRT.
+            attempts.append(proxy.split("//")[1].split("@")[-1])
+            return type("Proc", (), {"returncode": 1, "stderr": "ERROR: 407 Proxy Authentication Required"})()
+        attempts.append(proxy.split("//")[1].split("@")[-1])
+        with open(out_path + ".en.srt", "w") as f:
+            f.write(
+                "1\n"
+                "00:00:00,000 --> 00:00:01,000\n"
+                "The proxy failover worked exactly as designed today\n\n"
+            )
+        return FakeProc()
+
+    monkeypatch.setattr(extract_mod.subprocess, "run", fake_run)
+
+    out = extract_mod._fetch_ytdlp_transcript("https://www.youtube.com/watch?v=abc123XYZ")
+    assert "YouTube auto-captions" in out
+    assert "The proxy failover worked" in out
+    # Both proxies were tried: rotated first, working one second.
+    assert attempts == ["p1.example:8080", "p2.example:8080"]
+
+
 def test_instagram_session_reads_canonical_secrets(tmp_path, monkeypatch):
     import hermes_trailhead.extract as extract_mod
 
