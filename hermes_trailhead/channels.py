@@ -11,12 +11,12 @@ import urllib.request
 from typing import Callable, Literal
 
 
-from .paths import resolve_hermes_home
+from .paths import resolve_hermes_agent_repo, resolve_hermes_home
 from .backends import _resolve_ytdlp
 
 
 HERMES_HOME = resolve_hermes_home()
-HERMES_AGENT_REPO = HERMES_HOME / "hermes-agent"
+HERMES_AGENT_REPO = resolve_hermes_agent_repo()
 CONFIG = HERMES_HOME / "config.yaml"
 CRON = HERMES_HOME / "cron" / "jobs.json"
 NEWSLETTER = HERMES_HOME / "scripts" / "hermes-morning-brief-v3.py"
@@ -618,7 +618,7 @@ CHANNELS: tuple[Channel, ...] = (
     Channel("jina-reader", "Jina Reader", "URL-to-markdown reading", "https://r.jina.ai", "low", check_jina_reader, ("Jina Reader is optional; Hermes web_extract is the default.", "Use Jina only when web_extract fails on a known URL."), hermes_native=False, tags=("extract", "api", "external"), timeout=5),
     Channel("exa", "Exa", "Semantic search and extraction", "EXA_API_KEY", "medium", check_exa, ("Set EXA_API_KEY for semantic/deep search.", "Hermes web_search is sufficient for most discovery."), hermes_native=False, tags=("search", "api", "external"), timeout=5),
     Channel("stagehand", "Stagehand", "Browser primitives (act/observe/extract)", "npx stagehand", "high", check_stagehand, ("Install only for sites needing programmatic observe/extract.", "Hermes browser tools cover most interactive needs."), approval_required=True, hermes_native=False, tags=("browser", "external"), timeout=10),
-    Channel("hermes-upstream", "Hermes upstream", "Docs/commit capability drift", "git fetch/log/diff", "low", check_hermes_upstream, ("Use git fetch/log/diff in /home/hermes/.hermes/hermes-agent.", "Feed actionable deltas to newsletter capability radar."), required=True, tags=("hermes", "upstream")),
+    Channel("hermes-upstream", "Hermes upstream", "Docs/commit capability drift", "git fetch/log/diff", "low", check_hermes_upstream, (f"Use git fetch/log/diff in {HERMES_AGENT_REPO}.", "Feed actionable deltas to newsletter capability radar."), required=True, tags=("hermes", "upstream")),
     Channel("newsletter", "Daily newsletter", "AI/Hermes intelligence report", "morning brief v3", "low", check_newsletter, ("Keep acceptance gate mandatory.", "Keep Capability Radar frontloaded."), required=True, tags=("hermes", "reporting")),
     Channel("docs-watcher", "Docs watcher", "Silent upstream opportunity alerts", "no-agent cron", "low", check_docs_watcher, ("Keep no_agent=true.", "Silent stdout means healthy/no-change."), required=True, tags=("hermes", "cron")),
     Channel("agent-reach", "Agent-Reach upstream", "External broad internet scaffold", "sandbox only", "high", check_agent_reach_upstream, ("Do not install into main Hermes by default.", "Clone/test in /tmp or a venv.", "Adopt individual safe backends only after doctor proof."), approval_required=True, hermes_native=False, tags=("external", "sandbox")),
