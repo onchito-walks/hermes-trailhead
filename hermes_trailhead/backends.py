@@ -418,9 +418,17 @@ def _run_ytdlp_flat_search(query: str, limit: int, *, timeout: int = 20, runner:
 
 
 def _github_api_search_url(query: str, endpoint: str) -> str:
-    """GitHub public search API URL (free, no auth, rate-limited unauthenticated)."""
+    """GitHub public search API URL (free, no auth, rate-limited unauthenticated).
+
+    GitHub search is exact-match over the raw query string, unlike web search:
+    a verbose multi-word query (e.g. "VORON Stealthchanger 3D printer") returns
+    zero results because every token must match.  Reduce to the top meaningful
+    terms so the API finds the canonical repos/issues the caller actually wants.
+    """
+    terms = _query_terms(query)
+    gh_query = " ".join(terms) if terms else query
     qualifier = "+in:title" if endpoint == "issues" else ""
-    return f"https://api.github.com/search/{endpoint}?q={quote_plus(query)}{qualifier}&per_page=6"
+    return f"https://api.github.com/search/{endpoint}?q={quote_plus(gh_query)}{qualifier}&per_page=6"
 
 
 def _run_github_api_search(
