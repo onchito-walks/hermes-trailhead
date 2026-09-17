@@ -411,6 +411,77 @@ def _run_ytdlp_flat_search(query: str, limit: int, *, timeout: int = 20, runner:
     return tuple(hits)
 
 
+def _github_api_search_url(query: str, endpoint: str) -> str:
+    """GitHub public search API URL (free, no auth, rate-limited unauthenticated)."""
+    qualifier = "+in:title" if endpoint == "issues" else ""
+    return f"https://api.github.com/search/{endpoint}?q={quote_plus(query)}{qualifier}&per_page=6"
+
+
+def _run_github_api_search(
+    query: str,
+    limit: int,
+    *,
+    timeout: int = 20,
+    opener: Callable[[str, int], str] | None = None,
+):
+    """Discover GitHub repos, issues, and PRs via GitHub's public search API.
+
+    This is the canonical lane-native discovery for GitHub.  The native
+    ``github.com/search`` HTML page is a JS shell that parses to nothing but
+    marketing links, and generic ``site:github.com`` web search routinely
+    misses the primary repo.  GitHub's search API returns real repo/issue/PR
+    URLs from a datacenter IP with no account, well within the free
+    unauthenticated limit (~10 search req/min).  On rate-limit or transient
+    errors it returns empty so the chain falls through to HTTP backends.
+    """
+    from .search import SearchHit
+
+    hits: list[SearchHit] = []
+    seen: set[str] = set()
+    for endpoint in ("repositories", "issues"):
+        url = _github_api_search_url(query, endpoint)
+        try:
+            if opener is not None:
+                page = opener(url, timeout)
+            else:
+                req = urllib.request.Request(
+                    url,
+                    headers={"Accept": "application/vnd.github+json", "User-Agent": "Hermes-Trailhead"},
+                )
+                with urllib.request.urlopen(req, timeout=timeout) as resp:
+                    page = resp.read().decode("utf-8", errors="replace")
+            data = json.loads(page)
+        except Exception:
+            continue
+        items = data.get("items", []) if isinstance(data, dict) else []
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            if endpoint == "repositories":
+                url = str(item.get("html_url") or "").strip()
+                full_name = str(item.get("full_name") or "").strip()
+                title = full_name or url
+                stars = item.get("stargazers_count") or 0
+                desc = str(item.get("description") or "").strip()
+                snippet = f"{desc} — {stars} stars" if desc else f"{stars} stars"
+            else:
+                url = str(item.get("html_url") or "").strip()
+                repo = item.get("repository", {}) or {}
+                repo_name = str(repo.get("full_name") or "").strip()
+                ititle = str(item.get("title") or "").strip()
+                title = f"[{repo_name}] {ititle}" if repo_name else ititle
+                snippet = ititle
+            if not url or not _github_result_url(url) or url in seen:
+                continue
+            if not _result_matches_query(url, title, query, snippet):
+                continue
+            seen.add(url)
+            hits.append(_search_hit(title=title, url=url, snippet=snippet))
+            if len(hits) >= limit:
+                return tuple(hits)
+    return tuple(hits)
+
+
 def _social_search_url(platform: str, title: str, author: str, query: str) -> str:
     if platform == "x":
         # Profile pages are poor results — use search to find actual posts.
@@ -730,6 +801,12 @@ def execute_backend_chain(
             if hits:
                 return BackendResult(hits=hits, engine="social_search_reddit", backend_name="social_search_reddit", attempts=attempts, saw_response=True, error="")
             last_error = "social_search_reddit returned no practitioner leads."
+        elif platform == "github":
+            attempts.append("github_api_search")
+            hits = _run_github_api_search(query, limit, timeout=20)
+            if hits:
+                return BackendResult(hits=hits, engine="github_api_search", backend_name="github_api_search", attempts=attempts, saw_response=True, error="")
+            last_error = "github_api_search returned no repos/issues."
 
     for backend in chain:
         attempts.append(backend.name)
