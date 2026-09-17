@@ -34,6 +34,7 @@ from .scoring import score_hits, rank_hits, ScoredHit
 from .reliability import record_all_checks, reliability_summary
 from .benchmarks import BENCHMARK_TASKS, run_all_benchmarks, run_benchmark, BenchmarkScore
 from .gauntlet import run_gauntlet
+from .report import run_report, render_markdown, write_report
 
 
 RADAR_KEYS = [
@@ -327,6 +328,49 @@ def cmd_search(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_report(args: argparse.Namespace) -> int:
+    """Run a live `search all --execute --extract` and emit a markdown research deliverable."""
+    report = run_report(
+        args.query,
+        title=args.title or None,
+        slug=args.slug or None,
+        limit=args.limit,
+        extract_limit=args.extract_limit,
+    )
+    if args.dry_run:
+        print(render_markdown(report))
+        return 0
+    path = write_report(report, args.out)
+    if args.format == "json":
+        print(
+            json.dumps(
+                {
+                    "slug": report.slug,
+                    "title": report.title,
+                    "query": report.query,
+                    "generated_at": report.generated_at,
+                    "path": path,
+                    "coverage": [
+                        {
+                            "platform": c.platform,
+                            "status": c.status,
+                            "engine": c.engine,
+                            "hit_count": c.hit_count,
+                            "extracted_count": c.extracted_count,
+                        }
+                        for c in report.coverage
+                    ],
+                    "notable_count": len(report.notable),
+                    "caveats_count": len(report.caveats),
+                },
+                indent=2,
+            )
+        )
+        return 0
+    print(path)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="hermes-trailhead",
@@ -409,6 +453,25 @@ def build_parser() -> argparse.ArgumentParser:
     search.add_argument("--score", action="store_true", default=True, help="Score and rank search hits by source quality (default: on)")
     search.add_argument("--no-score", action="store_false", dest="score", help="Skip scoring — return raw summaries only")
     search.set_defaults(func=cmd_search)
+
+    report = sub.add_parser(
+        "report",
+        help="Run a live search-all and emit a markdown research deliverable",
+        description=(
+            "Run `search all QUERY --execute --extract` and format the collected, scored "
+            "evidence into a self-contained markdown report. By default writes "
+            "docs/outcome-loop/deliverable-<slug>.md; use --dry-run to print without writing."
+        ),
+    )
+    report.add_argument("query", help="Research question / topic to report on")
+    report.add_argument("--title", help="Report title (default: derived from slug)")
+    report.add_argument("--slug", help="Output filename slug (default: derived from query)")
+    report.add_argument("--out", default="docs/outcome-loop", help="Output directory (default: docs/outcome-loop)")
+    report.add_argument("--limit", type=int, default=3, help="Max hits per lane (default: 3)")
+    report.add_argument("--extract-limit", type=int, default=None, help="Max hits to extract per lane (defaults to --limit)")
+    report.add_argument("--dry-run", action="store_true", help="Print the markdown report instead of writing a file")
+    report.add_argument("--format", choices=["text", "json"], default="text")
+    report.set_defaults(func=cmd_report)
 
     return parser
 
