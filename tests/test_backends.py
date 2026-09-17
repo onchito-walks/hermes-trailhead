@@ -369,6 +369,19 @@ def test_github_runtime_prefers_api_repo_discovery(monkeypatch):
     assert result.hits[0].url == "https://github.com/DraftShift/StealthChanger"
 
 
+def test_github_api_search_url_reduces_verbose_exact_match_query():
+    # GitHub search is exact-match over the raw query: a verbose multi-word
+    # query returns 0 results. The API URL must reduce to top meaningful terms.
+    from hermes_trailhead.backends import _github_api_search_url
+
+    url = _github_api_search_url("VORON Stealthchanger 3D printer build", "repositories")
+    assert "q=voron+stealthchanger" in url
+    assert "printer" not in url  # stopword dropped
+
+    issues = _github_api_search_url("VORON Stealthchanger 3D printer build", "issues")
+    assert "q=voron+stealthchanger+in:title" in issues
+
+
 def test_instagram_result_url_rejects_popular_aggregation_pages():
     # Deep post/reel and profile routes are kept for discovery.
     assert _instagram_result_url("https://www.instagram.com/reel/DYHibt4PCLB/") is True
