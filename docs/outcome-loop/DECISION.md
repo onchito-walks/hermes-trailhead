@@ -54,7 +54,7 @@ Verified on 2026-09-17, local, no network spend, no signups:
 - Live `search all --execute --extract` across all 7 platform lanes returned
   real, scored, extracted hits (web, x, reddit, tiktok, instagram, youtube,
   github) — no paid API, free-first paths only.
-- 155 tests passing; BSD-3-Clause; agent-facing product installed on the
+- 196 tests passing; BSD-3-Clause; agent-facing product installed on the
   Hermes path.
 
 Trailhead is a working, continuously-used product we own. It compounds

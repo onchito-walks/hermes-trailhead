@@ -43,7 +43,7 @@ The orchestrator:
 
 ## Current P0 roadmap (June 15, 2026)
 
-### P0a — Evidence extraction follow-through
+### P0a — Evidence extraction follow-through ✅
 
 After `search --execute`, optionally extract/read top hits and report:
 - Extraction attempted / succeeded / failed
@@ -55,7 +55,7 @@ New module: `hermes_trailhead/extract.py`
 New dataclasses: `ExtractionResult`, `ExtractedHit`
 New CLI flag: `--extract` on `search`
 
-### P0b — Source-quality scoring
+### P0b — Source-quality scoring ✅
 
 Rank hits by likely usefulness:
 - Favor: maintainer/official/canonical, practitioner firsthand, current, GitHub issues/PRs
@@ -82,7 +82,7 @@ Aggregate: 77/100 across 6 benchmark tasks (4 pass, 2 partial, 0 fail).
 ```
 delegate_task(
     goal="Implement extraction follow-through in hermes_trailhead/extract.py",
-    context="Working in /home/hermes/src/hermes-trailhead. Read hermes_trailhead/search.py first. ...",
+    context="Working in <repo-root>. Read hermes_trailhead/search.py first. ...",
     toolsets=["terminal", "file"]
 )
 ```
@@ -140,7 +140,7 @@ python3 -m hermes_trailhead search all "test query" --execute --limit 2 --format
 | `tests/test_contracts.py` | QA | After any contract change |
 | `README.md` | PM | Product language approval |
 | `docs/` | PM + Tech Lead | Documentation review |
-| `~/.hermes/skills/research/hermes-trailhead/SKILL.md` | DevOps | After conventions change |
+| `$HERMES_HOME/skills/research/hermes-trailhead/SKILL.md` | DevOps | After conventions change |
 
 ## This file is the entry point
 
