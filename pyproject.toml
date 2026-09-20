@@ -1,6 +1,6 @@
 [project]
 name = "hermes-trailhead"
-version = "0.1.0"
+version = "1.0.0"
 description = "Make hard-to-reach, high-signal internet sources part of Hermes research without paid APIs by default"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -21,3 +21,7 @@ packages = ["hermes_trailhead"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+# Dev/test dependencies — install with:  uv sync --group dev  (or: pip install -e ".[dev]")
+[dependency-groups]
+dev = ["pytest>=7.4"]
