@@ -18,7 +18,7 @@ Failure to follow the team structure is a build failure. `tests/test_team_enforc
 ## Verification checklist (run before every push)
 
 ```bash
-cd /home/hermes/src/hermes-trailhead
+cd <repo-root>
 python3 -m py_compile hermes_trailhead/*.py
 python3 -m pytest -q
 python3 -m hermes_trailhead search all "test query" --execute --extract --limit 2 --format json
@@ -38,7 +38,7 @@ python3 -m hermes_trailhead benchmark
 ## Current test baseline
 
 ```
-155 tests passing
+196 tests passing
 PhD gauntlet: 100/100 across 10 hard-source lanes
 Live benchmark: network canary, may degrade when public search blocks
 ```
