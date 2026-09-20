@@ -53,7 +53,7 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 
 **Honest about limits.** Login-walled content, JS-rendered shells, VPS IP blocks — these are reported truthfully with caveats, not painted green.
 
-## Current product state (June 29, 2026)
+## Current product state (September 20, 2026 — v1.0.0)
 
 All seven source lanes return links, summaries, and quality scores by default. Extraction and scoring are automatic — no flags needed.
 
@@ -100,9 +100,15 @@ sudo bash scripts/install-hermes-trailhead-wrapper.sh
 # Verify the active install
 hermes-trailhead doctor
 
-# Source-mode fallback
+# Source-mode: run the full deterministic test suite (196 tests + 100/100 PhD gauntlet)
 python3 -m pytest -q
-python3 -m hermes_trailhead doctor
+python3 -m hermes_trailhead gauntlet
+
+# Python dev/test dependencies (pytest). Either:
+uv sync --group dev          # if using uv
+pip install -e ".[dev]"       # or pip
+# npm mirrors the Python suite once installed:
+npm install && npm test
 ```
 
 See `docs/HERMES-INTEGRATION.md` for how Trailhead fits into Hermes and Quiver.
@@ -124,7 +130,8 @@ See [`TEAM.md`](TEAM.md) for the engineering team structure.
 ## Prior art
 
 - **[Agent-Reach](https://github.com/Panniantong/Agent-Reach)** — the direct launchpad for the access doctrine: channel registry, probes, upstream-tool realism
-- **Jina Reader, yt-dlp, Redlib, Tavily, social-search** — pragmatic access paths for current social/practitioner signal
+- **Jina Reader, yt-dlp, Tavily, social-search, old.reddit.com** — pragmatic access paths for current social/practitioner signal.
+  (Redlib is not listed: Reddit blocks its OAuth flow from datacenter and residential IPs, so the Reddit lane extracts via `old.reddit.com` through the residential proxy instead.)
 - **Firecrawl, Crawl4AI, Puppeteer** — mature extraction primitives Trailhead routes to, not replaces
 
 ## Launchpad
