@@ -55,7 +55,7 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 
 ## Current product state (September 20, 2026 — v1.0.0)
 
-All seven source lanes return links, summaries, and quality scores by default. Extraction and scoring are automatic — no flags needed.
+All seven source families have implemented discovery/extraction routes, with links, summaries, and quality scores when the active backend works. This table describes the release's implemented routes, **not a guarantee that every lane is reachable on every host or for every query**. Check `hermes-trailhead doctor --format json` and the per-query `search all` caveats before claiming coverage. On Oracle on 2026-09-30, the doctor reported 9 ok / 3 warn / 6 off auxiliary channels (X warn; dedicated Instagram frontend off); a search returned irrelevant social hits alongside useful web sources. Scores rank leads; they do not verify claims or authorize automatic GBrain ingestion.
 
 ```
 web        ✅  canonical docs    score: 87
