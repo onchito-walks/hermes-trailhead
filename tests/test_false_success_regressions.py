@@ -9,6 +9,8 @@ These encode the audited failures observed on live probes:
 3. A requested GitHub release/blob page returned only repository metadata
    (stars/forks) instead of the release notes / file body that was asked for.
 4. A media caption/description was reported as a successful transcript.
+5. Helper web_extract runs surfaced in the operator's session lists; they are
+   tagged ``--source tool`` so Hermes keeps them out of those lists.
 """
 import json
 
@@ -301,3 +303,28 @@ def test_youtube_transcript_still_reports_ok(monkeypatch):
         ExtractedHit(title="v", url="https://www.youtube.com/watch?v=abc123", snippet="",
                      extraction=result)
     )).to_dict()["transcript_status"] == "ok"
+
+
+# ── 5. Helper runs stay out of operator session lists ──────────────────
+
+
+def test_fetch_hermes_web_extract_tags_runs_as_tool_source(monkeypatch):
+    captured = {}
+
+    class FakeProc:
+        returncode = 0
+        stdout = "Extracted article body with enough readable content to return."
+        stderr = ""
+
+    def fake_run(cmd, *args, **kwargs):
+        captured["cmd"] = cmd
+        return FakeProc()
+
+    monkeypatch.setattr(extract_mod.subprocess, "run", fake_run)
+
+    content = _fetch_hermes_web_extract("https://www.reddit.com/r/x/comments/1/y/")
+    assert content == "Extracted article body with enough readable content to return."
+    cmd = captured["cmd"]
+    assert "--source" in cmd and cmd[cmd.index("--source") + 1] == "tool", (
+        "helper runs must be tagged 'tool' so they never surface in operator session lists"
+    )

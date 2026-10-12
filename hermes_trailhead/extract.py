@@ -398,7 +398,11 @@ def _strip_hermes_web_extract_output(output: str) -> str:
 
 
 def _fetch_hermes_web_extract(url: str, timeout: int = 30) -> str:
-    """Fetch readable markdown using Hermes' native web_extract tool path."""
+    """Fetch readable markdown using Hermes' native web_extract tool path.
+
+    The helper run is tagged ``--source tool`` so it stays out of the
+    operator's session lists.
+    """
     prompt = (
         "Use the native web_extract tool on the URL below and return only the "
         "extracted markdown content, with no explanation, no preamble, and no "
@@ -415,6 +419,8 @@ def _fetch_hermes_web_extract(url: str, timeout: int = 30) -> str:
         "-Q",
         "--ignore-rules",
         "--ignore-user-config",
+        "--source",
+        "tool",
         "--safe-mode",
     ]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=max(timeout, 30))
