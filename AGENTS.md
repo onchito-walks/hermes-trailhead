@@ -38,7 +38,7 @@ python3 -m hermes_trailhead benchmark
 ## Current test baseline
 
 ```
-196 tests passing
+212 tests passing
 PhD gauntlet: 100/100 across 10 hard-source lanes
 Live benchmark: network canary, may degrade when public search blocks
 ```

@@ -4,6 +4,26 @@ All notable changes to **Hermes Trailhead** are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+**Fixed** — false-success extraction and evidence scoring
+
+- The extractor's own failure narration (e.g. `Extraction failed: web_extract is
+  configured to use "tavily," …`) is no longer reported as a successful
+  extraction; the native web_extract path raises instead of returning it.
+- Client-rendered HTML/JS shells (new Reddit, X, JS-only apps) are detected as
+  non-readable and reported `blocked`, not `ok`; they no longer inherit the
+  URL's practitioner/canonical quality or the long-content bonus.
+- A requested GitHub release/blob/tree page now returns the release notes or
+  file body it was asked for; when that specific resource cannot be retrieved
+  it raises rather than substituting repository metadata (stars/forks).
+- Media captions/descriptions are no longer reported as transcripts: video
+  evidence now carries a distinct `caption_status`/`caption_text` alongside
+  `caption_transcript_status`, so a caption-only TikTok/Instagram result reports
+  `transcript_status: not_attempted` instead of `ok`.
+
+Adds `tests/test_false_success_regressions.py` (test baseline 212).
+
 ## [1.0.0] - 2026-09-20
 
 First stable release. All seven source lanes (X/Twitter, Reddit, YouTube,

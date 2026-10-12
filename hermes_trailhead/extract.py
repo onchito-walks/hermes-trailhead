@@ -31,7 +31,16 @@ FetchFn = Callable[[str, int], str]
 
 @dataclass(frozen=True)
 class VideoEvidence:
-    """First-class video-only evidence for sources where page text is not the primary content."""
+    """First-class video-only evidence for sources where page text is not the primary content.
+
+    Caption and transcript are deliberately separate: a platform caption/description
+    ("TikTok by @user: ...") is NOT a transcript.  ``caption_status`` reports the
+    caption/description we actually retrieved; ``caption_transcript_status`` reports a
+    real spoken/auto transcript.  Conflating them let a caption be reported as a
+    successful transcript.
+    """
+    caption_status: TranscriptAttemptStatus = "not_attempted"
+    caption_text: str = ""
     caption_transcript_status: TranscriptAttemptStatus = "not_attempted"
     caption_transcript: str = ""
     caption_transcript_length: int = 0
@@ -45,6 +54,8 @@ class VideoEvidence:
 
     def to_dict(self) -> dict:
         d = asdict(self)
+        if len(d.get("caption_text", "")) > 2000:
+            d["caption_text"] = d["caption_text"][:2000] + "..."
         if len(d.get("caption_transcript", "")) > 2000:
             d["caption_transcript"] = d["caption_transcript"][:2000] + "..."
         if len(d.get("audio_transcript", "")) > 2000:
@@ -248,19 +259,20 @@ def _reddit_frontend_url(url: str) -> str:
     return f"https://old.reddit.com{parsed.path}"
 
 
-def _fetch_github_summary(url: str, timeout: int = 15) -> str:
-    """Fetch useful GitHub repository metadata without requiring auth."""
-    parsed = urlparse(url)
-    if parsed.netloc.lower() != "github.com":
-        raise RuntimeError("Not a GitHub URL")
-    parts = [p for p in parsed.path.split("/") if p]
-    if len(parts) < 2:
-        raise RuntimeError("GitHub URL does not identify a repository")
-    owner, repo = parts[0], parts[1]
-    api = f"https://api.github.com/repos/{owner}/{repo}"
-    req = urllib.request.Request(api, headers={"Accept": "application/vnd.github+json", "User-Agent": "Hermes-Trailhead"})
+def _github_api_json(api: str, timeout: int = 15):
+    """GET a GitHub JSON API URL and decode it (raises on failure)."""
+    req = urllib.request.Request(
+        api,
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "Hermes-Trailhead"},
+    )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        return json.loads(resp.read().decode("utf-8", errors="replace"))
+
+
+def _github_repo_metadata(owner: str, repo: str, parts: list[str], timeout: int) -> str:
+    """Repository-level metadata (the best non-auth evidence for a bare repo URL)."""
+    api = f"https://api.github.com/repos/{owner}/{repo}"
+    data = _github_api_json(api, timeout)
     full_name = data.get('full_name') or f"{owner}/{repo}"
     lines = [f"GitHub repository: {full_name}"]
     desc = data.get("description") or ""
@@ -275,6 +287,98 @@ def _fetch_github_summary(url: str, timeout: int = 15) -> str:
     if len(parts) >= 3:
         lines.append(f"Requested path: /{'/'.join(parts[2:])}")
     return "\n".join(lines)
+
+
+def _fetch_github_releases(owner: str, repo: str, rest: list[str], timeout: int) -> str:
+    """Fetch real release notes/body for a /releases page (not repo stats)."""
+    base = f"https://api.github.com/repos/{owner}/{repo}/releases"
+    if len(rest) >= 3 and rest[1] == "tag":
+        api = f"{base}/tags/{rest[2]}"
+    elif len(rest) >= 2 and rest[1] == "latest":
+        api = f"{base}/latest"
+    else:
+        api = f"{base}?per_page=10"
+    data = _github_api_json(api, timeout)
+    releases = data if isinstance(data, list) else [data]
+    releases = [r for r in releases if isinstance(r, dict)]
+    if not releases:
+        raise RuntimeError(f"GitHub returned no releases for {owner}/{repo}")
+    lines = [f"GitHub releases for {owner}/{repo}"]
+    for r in releases:
+        tag = r.get("tag_name") or r.get("name") or ""
+        name = r.get("name") or ""
+        published = (r.get("published_at") or "")[:10]
+        body = (r.get("body") or "").strip()
+        header = f"Release {tag}"
+        if name and name != tag:
+            header += f" — {name}"
+        if published:
+            header += f" ({published})"
+        lines.append(f"\n---\n{header}")
+        lines.append(body[:4000] if body else "(no release notes body)")
+    return "\n".join(lines)
+
+
+def _fetch_github_file(owner: str, repo: str, ref: str, path: str, timeout: int) -> str:
+    """Fetch the requested repository file's actual content."""
+    raw = f"https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}"
+    try:
+        req = urllib.request.Request(
+            raw, headers={"User-Agent": "Hermes-Trailhead", "Accept": "text/plain,*/*"}
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            text = resp.read().decode("utf-8", errors="replace")
+    except Exception:
+        # Fallback: contents API (base64-encoded file body).
+        import base64 as _b64
+        api = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={ref}"
+        data = _github_api_json(api, timeout)
+        if not isinstance(data, dict) or "content" not in data:
+            raise RuntimeError(f"Could not read GitHub file {owner}/{repo}/{ref}/{path}")
+        text = _b64.b64decode(data["content"]).decode("utf-8", errors="replace")
+    if not text.strip():
+        raise RuntimeError(f"GitHub file {owner}/{repo}/{ref}/{path} was empty")
+    return f"GitHub file {owner}/{repo}/{ref}/{path}\n\n{text}"
+
+
+def _fetch_github_tree(owner: str, repo: str, ref: str, path: str, timeout: int) -> str:
+    """Fetch a directory listing for a /tree page."""
+    api = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={ref}"
+    data = _github_api_json(api, timeout)
+    if isinstance(data, dict):  # it was actually a file path
+        return _fetch_github_file(owner, repo, ref, path, timeout)
+    if not isinstance(data, list) or not data:
+        raise RuntimeError(f"GitHub returned no directory listing for {owner}/{repo}/{ref}/{path}")
+    names = [f"{e.get('type', '')}: {e.get('name', '')}" for e in data if isinstance(e, dict)]
+    return f"GitHub directory {owner}/{repo}/{ref}/{path}\n\n" + "\n".join(names)
+
+
+def _fetch_github_summary(url: str, timeout: int = 15) -> str:
+    """Fetch the resource the GitHub URL actually requests.
+
+    A requested release/releases page yields release notes, and a requested
+    blob/tree page yields the file/directory content.  When the specifically
+    requested resource cannot be retrieved we raise rather than silently
+    returning repository metadata, which would misrepresent the page as the
+    evidence that was asked for.
+    """
+    parsed = urlparse(url)
+    if parsed.netloc.lower() != "github.com":
+        raise RuntimeError("Not a GitHub URL")
+    parts = [p for p in parsed.path.split("/") if p]
+    if len(parts) < 2:
+        raise RuntimeError("GitHub URL does not identify a repository")
+    owner, repo = parts[0], parts[1]
+    rest = parts[2:]
+
+    if rest and rest[0] == "releases":
+        return _fetch_github_releases(owner, repo, rest, timeout)
+    if len(rest) >= 3 and rest[0] in {"blob", "raw"}:
+        return _fetch_github_file(owner, repo, rest[1], "/".join(rest[2:]), timeout)
+    if len(rest) >= 2 and rest[0] == "tree":
+        return _fetch_github_tree(owner, repo, rest[1], "/".join(rest[2:]), timeout)
+    return _github_repo_metadata(owner, repo, parts, timeout)
+
 
 
 def _strip_hermes_web_extract_output(output: str) -> str:
@@ -321,6 +425,9 @@ def _fetch_hermes_web_extract(url: str, timeout: int = 30) -> str:
     content = _strip_hermes_web_extract_output(proc.stdout)
     if not content:
         raise RuntimeError("hermes web_extract returned empty content")
+    if _looks_like_extraction_error(content):
+        # The subprocess relayed its own failure narration as "content".
+        raise RuntimeError(f"hermes web_extract reported failure: {content[:200]}")
     return content
 
 
@@ -330,6 +437,69 @@ def _exception_summary(exc: Exception) -> str:
     if len(msg) > 200:
         msg = msg[:200] + "..."
     return f"{type(exc).__name__}: {msg}"
+
+
+# Hermes' native web_extract subprocess relays its own failure narration as the
+# "content" (provider misconfiguration, tool error).  That text is tool output,
+# never page evidence — reporting it as a successful extraction is a false success.
+_EXTRACTION_ERROR_MARKERS = (
+    "extraction failed",
+    "no registered web extract provider",
+    "web_extract is configured to use",
+    "web_extract returned empty content",
+)
+
+_HTML_SCRIPT_STYLE_RE = re.compile(r"<(script|style)\b.*?</\1>", re.I | re.S)
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _looks_like_extraction_error(text: str) -> bool:
+    """True when ``text`` is the extractor's own failure message, not content."""
+    head = re.sub(r"\s+", " ", (text or "").strip().lower())[:200]
+    if not head:
+        return False
+    return any(marker in head for marker in _EXTRACTION_ERROR_MARKERS)
+
+
+def _clean_html_text(text: str) -> str:
+    text = _HTML_SCRIPT_STYLE_RE.sub(" ", text or "")
+    text = _HTML_TAG_RE.sub(" ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _is_html_shell(content: str) -> bool:
+    """Detect client-rendered HTML/JS shells that carry no readable source text.
+
+    A genuine fetched HTML page (docs, article, forum thread) keeps a large
+    share of unique words once tags and scripts are stripped.  Platform shells
+    (new Reddit, X, JS-only apps) leave only navigation/boilerplate that
+    collapses to a handful of repeated tokens — that is not evidence.
+    """
+    raw = content or ""
+    low = raw.lower()
+    if not any(t in low for t in ("<!doctype html", "<html", "<body", "<script", "<div")):
+        return False
+    cleaned = _clean_html_text(raw)
+    words = [w for w in cleaned.split() if any(c.isalnum() for c in w)]
+    if len(words) < 25:
+        return True
+    unique = len({w.lower() for w in words})
+    return (unique / len(words)) < 0.2
+
+
+def _is_usable_page_text(content: str) -> bool:
+    """True when fetched text is genuine, readable source text.
+
+    Rejects the extractor's own failure narration and client-rendered HTML
+    shells so they are never reported (or scored) as successful extraction.
+    """
+    if not content or len(content) <= 50:
+        return False
+    if _looks_like_extraction_error(content):
+        return False
+    if _is_html_shell(content):
+        return False
+    return True
 
 
 def _is_platform_shell(source_type: str, content: str) -> bool:
@@ -1299,9 +1469,9 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                         content_length=len(content),
                         source_type=source_type,
                         video_evidence=VideoEvidence(
-                            caption_transcript_status="ok",
-                            caption_transcript=content[:2000],
-                            caption_transcript_length=min(len(content), 2000),
+                            caption_status="ok",
+                            caption_text=content[:2000],
+                            caption_transcript_status="not_attempted",
                             visual_analysis_status="available",
                             visual_analysis_summary=content[:2000],
                             metadata_url=url,
@@ -1331,9 +1501,9 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                                 content_length=len(desc),
                                 source_type=source_type,
                                 video_evidence=VideoEvidence(
-                                    caption_transcript_status="ok",
-                                    caption_transcript=desc[:2000],
-                                    caption_transcript_length=len(desc),
+                                    caption_status="ok",
+                                    caption_text=desc[:2000],
+                                    caption_transcript_status="not_attempted",
                                     visual_analysis_status="available",
                                     metadata_url=url,
                                     metadata_title=desc[:200],
@@ -1357,9 +1527,9 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                     content_length=len(content),
                     source_type=source_type,
                     video_evidence=VideoEvidence(
-                        caption_transcript_status="ok" if source_type == "instagram" else "not_attempted",
-                        caption_transcript=content[:2000] if source_type == "instagram" else "",
-                        caption_transcript_length=min(len(content), 2000) if source_type == "instagram" else 0,
+                        caption_status="ok",
+                        caption_text=content[:2000],
+                        caption_transcript_status="not_attempted",
                         visual_analysis_status="available",
                         visual_analysis_summary=content[:2000],
                         metadata_url=url,
@@ -1541,29 +1711,34 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
         )
 
     # Reddit often blocks direct fetches; try Redlib before generic page extraction.
+    shell_seen = False
     if source_type == "reddit":
         try:
             content = fetcher(_reddit_frontend_url(url), timeout)
-            if content and len(content) > 50:
+            if _is_usable_page_text(content):
                 return ExtractionResult(
                     status="ok",
                     content=content,
                     content_length=len(content),
                     source_type=source_type,
                 )
+            if _is_html_shell(content):
+                shell_seen = True
         except Exception:
             pass  # Fall through to Hermes/Jina/direct fetch
 
     # Try direct fetch first (fast, no subprocess).
     try:
         content = fetcher(url, timeout)
-        if content and len(content) > 50:
+        if _is_usable_page_text(content):
             return ExtractionResult(
                 status="ok",
                 content=content,
                 content_length=len(content),
                 source_type=source_type,
             )
+        if _is_html_shell(content):
+            shell_seen = True
     except Exception:
         pass  # Fall through to Jina
 
@@ -1571,28 +1746,42 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     if fetch is None:  # Only try Jina when not testing
         try:
             content = _fetch_jina(url, timeout=timeout)
-            if content and len(content) > 50:
+            if _is_usable_page_text(content):
                 return ExtractionResult(
                     status="ok",
                     content=content,
                     content_length=len(content),
                     source_type=source_type,
                 )
+            if _is_html_shell(content):
+                shell_seen = True
         except Exception:
             pass
 
     # Try Hermes native web_extract last (slow subprocess).
     try:
         content = (extract or _fetch_hermes_web_extract)(url, timeout)
-        if content and len(content) > 50:
+        if _is_usable_page_text(content):
             return ExtractionResult(
                 status="ok",
                 content=content,
                 content_length=len(content),
                 source_type=source_type,
             )
+        if _is_html_shell(content):
+            shell_seen = True
     except Exception:
         pass  # Fall through to error
+
+    if shell_seen:
+        return ExtractionResult(
+            status="blocked",
+            source_type=source_type,
+            error_message=(
+                f"Fetched {source_type} HTML is a client-rendered app shell with no "
+                "readable source text; requires browser extraction."
+            ),
+        )
 
     return ExtractionResult(
         status="error",
