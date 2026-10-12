@@ -290,9 +290,10 @@ def cmd_search(args: argparse.Namespace) -> int:
                 for eh in extracted:
                     ve = eh.extraction.video_evidence
                     ts = getattr(ve, 'caption_transcript_status', 'not_applicable') if ve else 'not_applicable'
+                    cap = getattr(ve, 'caption_status', 'not_applicable') if ve else 'not_applicable'
                     desc = eh.extraction.content[:200] if eh.extraction.content else '(no description)'
                     icon = {'ok': '✅', 'available': '✅', 'blocked': '❌', 'not_available': '⚠️', 'not_configured': '⚠️'}.get(ts, '❓')
-                    print(f"     {icon} transcript: {ts} | source: {eh.extraction.source_type or '?'} | {eh.extraction.content_length}B")
+                    print(f"     {icon} transcript: {ts} | caption: {cap} | source: {eh.extraction.source_type or '?'} | {eh.extraction.content_length}B")
                     print(f"     desc: {desc}")
             print()
         return 0

@@ -12,7 +12,7 @@ from enum import Enum
 import re
 from urllib.parse import urlparse
 
-from .extract import ExtractedHit
+from .extract import ExtractedHit, _is_html_shell, _looks_like_extraction_error
 
 
 def _clean_summary_text(text: str) -> str:
@@ -307,6 +307,28 @@ def score_hit(hit: ScoredHit) -> ScoredHit:
                 score=0,
                 reasons=("Content unreachable or empty",),
                 label="Dead link",
+            ),
+        )
+
+    # A nominally successful extraction whose text is actually the extractor's own
+    # failure narration or a client-rendered HTML shell is not evidence: never let
+    # it inherit the URL's domain quality.
+    if hit.extraction_status == "ok" and (
+        _looks_like_extraction_error(hit.summary) or _is_html_shell(hit.summary)
+    ):
+        return ScoredHit(
+            title=hit.title,
+            url=hit.url,
+            snippet=hit.snippet,
+            summary=hit.summary,
+            extraction_status=hit.extraction_status,
+            extraction_length=hit.extraction_length,
+            video_evidence=hit.video_evidence,
+            scoring=SourceScore(
+                quality=SourceQuality.PLATFORM_SHELL,
+                score=0,
+                reasons=("Extraction produced no readable source text",),
+                label="Platform shell (discovery only)",
             ),
         )
 
