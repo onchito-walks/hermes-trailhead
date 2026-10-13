@@ -397,11 +397,38 @@ def _strip_hermes_web_extract_output(output: str) -> str:
     return "\n".join(lines).strip()
 
 
+# Optional per-invocation route pin for the helper run below. The helper runs
+# with ``--ignore-user-config``, so without an explicit pin it inherits
+# ``hermes chat``'s built-in default route. Setting one or both variables
+# appends the corresponding supported CLI argument for that invocation only;
+# left unset (the default for every other caller) the command is exactly the
+# historical built-in behavior.
+HERMES_WEB_EXTRACT_MODEL_ENV = "TRAILHEAD_HERMES_EXTRACT_MODEL"
+HERMES_WEB_EXTRACT_PROVIDER_ENV = "TRAILHEAD_HERMES_EXTRACT_PROVIDER"
+
+
+def _hermes_web_extract_route_args() -> list[str]:
+    """Return ``-m``/``--provider`` args when the optional env pin is set."""
+    import os as _os
+
+    route_args: list[str] = []
+    model = (_os.environ.get(HERMES_WEB_EXTRACT_MODEL_ENV) or "").strip()
+    provider = (_os.environ.get(HERMES_WEB_EXTRACT_PROVIDER_ENV) or "").strip()
+    if model:
+        route_args += ["-m", model]
+    if provider:
+        route_args += ["--provider", provider]
+    return route_args
+
+
 def _fetch_hermes_web_extract(url: str, timeout: int = 30) -> str:
     """Fetch readable markdown using Hermes' native web_extract tool path.
 
     The helper run is tagged ``--source tool`` so it stays out of the
-    operator's session lists.
+    operator's session lists.  When ``TRAILHEAD_HERMES_EXTRACT_MODEL`` /
+    ``TRAILHEAD_HERMES_EXTRACT_PROVIDER`` are set (e.g. by the weekly
+    social-digest cron), the helper is pinned to that explicit route;
+    unset keeps ``hermes chat``'s built-in default.
     """
     prompt = (
         "Use the native web_extract tool on the URL below and return only the "
@@ -412,6 +439,7 @@ def _fetch_hermes_web_extract(url: str, timeout: int = 30) -> str:
     cmd = [
         "hermes",
         "chat",
+        *_hermes_web_extract_route_args(),
         "-q",
         prompt,
         "-t",
