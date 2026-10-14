@@ -387,6 +387,153 @@ def _fetch_arctic_shift(url: str, timeout: int = 20) -> str:
     return _fetch_pushshift_thread(url, timeout, service="arctic-shift")
 
 
+# ── Lane-native content methods (probed + verified 2026-10-14) ──────────────
+# Structured text per platform without whole-page reader bloat:
+# FxTwitter (tweets), local Nitter (tweet + replies), TikWM (TikTok metadata),
+# Instagram's loginless embed (caption + social proof).
+
+_FXTWITTER_RE = re.compile(r"(?:x|twitter)\.com/[^/]+/status(?:es)?/(\d+)")
+
+
+def _http_text(url: str, timeout: int = 15, headers: dict | None = None) -> str:
+    """GET a text body with an explicit UA (defaults to a neutral bot UA)."""
+    req = urllib.request.Request(url, headers=headers or {"User-Agent": "curl/8.5.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return resp.read().decode("utf-8", errors="replace")
+
+
+def _fetch_fxtwitter(url: str, timeout: int = 20) -> str:
+    """Tweet content via FxTwitter's public API (free, no auth, any IP)."""
+    m = _FXTWITTER_RE.search(url)
+    if not m:
+        raise ValueError(f"no tweet id in {url}")
+    data = _http_json(f"https://api.fxtwitter.com/status/{m.group(1)}", timeout)
+    tweet = data.get("tweet") or {}
+    text = (tweet.get("text") or "").strip()
+    if not text:
+        raise RuntimeError("fxtwitter: empty tweet text")
+    author = (tweet.get("author") or {}).get("screen_name") or "?"
+    parts = [f"Tweet by @{author} ({tweet.get('created_at', '')}):", text]
+    stats = " · ".join(
+        x
+        for x in (
+            f"{tweet.get('likes', 0)} likes",
+            f"{tweet.get('retweets', 0)} retweets",
+            f"{tweet.get('replies', 0)} replies",
+            f"{tweet.get('views', 0)} views" if tweet.get("views") else "",
+        )
+        if x
+    )
+    if stats:
+        parts.append(stats)
+    quote = tweet.get("quote") or {}
+    if quote.get("text"):
+        parts.append(
+            f"Quoted @{(quote.get('author') or {}).get('screen_name', '?')}: {quote['text'][:400]}"
+        )
+    media = tweet.get("media") or {}
+    n_photos = len(media.get("photos") or [])
+    n_videos = len(media.get("videos") or [])
+    if n_photos or n_videos:
+        parts.append(f"Media: {n_photos} photo(s), {n_videos} video(s)")
+    return "\n\n".join(parts)
+
+
+def _fetch_nitter(url: str, timeout: int = 15) -> str:
+    """Tweet + top replies from the local Nitter instance (no proxy, no auth)."""
+    parsed = urlparse(url)
+    if "x.com" not in parsed.netloc and "twitter.com" not in parsed.netloc:
+        raise ValueError("not an x/twitter URL")
+    stripped = parsed.path.strip("/")
+    handle = stripped.split("/")[0] if stripped else "?"
+    html = _fetch_text(f"http://127.0.0.1:8788{parsed.path}", timeout=timeout)
+    if not html or "tweet-content" not in html:
+        raise RuntimeError("nitter: no tweet content in page")
+    blocks = re.findall(r'<div class="tweet-content[^"]*"[^>]*>(.*?)</div>', html, re.S)
+    texts = []
+    for b in blocks:
+        t = " ".join(re.sub(r"<[^>]+>", " ", b).split())
+        if t and len(t) > 8:
+            texts.append(t)
+    if not texts:
+        raise RuntimeError("nitter: empty tweet content")
+    out = f"X post by @{handle} (via local Nitter):\n{texts[0][:2000]}"
+    if len(texts) > 1:
+        out += "\n\nReplies:\n" + "\n".join(f"- {t[:300]}" for t in texts[1:6])
+    return out
+
+
+def _fetch_tikwm(url: str, timeout: int = 25) -> str:
+    """TikTok video metadata via the public TikWM API (free, no auth, any IP)."""
+    data = _http_json(f"https://www.tikwm.com/api/?url={quote(url, safe='')}", timeout)
+    if data.get("code") != 0:
+        raise RuntimeError(f"tikwm error: {data.get('msg')}")
+    d = data.get("data") or {}
+    desc = (d.get("title") or "").strip() or (d.get("content_desc") or "").strip()
+    author = (d.get("author") or {}).get("unique_id") or "?"
+    parts = [f"TikTok by @{author}: {desc[:1200]}"]
+    stats = " · ".join(
+        f"{label}: {d.get(key)}"
+        for key, label in (
+            ("play_count", "plays"),
+            ("digg_count", "likes"),
+            ("comment_count", "comments"),
+            ("share_count", "shares"),
+            ("collect_count", "saves"),
+        )
+        if d.get(key) is not None
+    )
+    if stats:
+        parts.append(stats)
+    music = (d.get("music_info") or {}).get("title")
+    if music:
+        parts.append(f"Music: {music}")
+    if d.get("duration"):
+        parts.append(f"Duration: {d['duration']}s")
+    return "\n\n".join(parts)
+
+
+def _fetch_instagram_embed(url: str, timeout: int = 20) -> str:
+    """Public Instagram content via the loginless /embed/captioned/ page.
+
+    The embed is meant for third-party embedding: it serves the full caption
+    + author (+ social proof) without login from any IP.  The static variant
+    appears for non-browser user agents (verified 2026-10-14); a browser UA
+    gets a JS shell instead, hence the explicit UA.
+    """
+    short = _instagram_shortcode(url)
+    if not short:
+        raise ValueError(f"no instagram shortcode in {url}")
+    kind = "reel" if "/reel" in url else "p"
+    embed_url = f"https://www.instagram.com/{kind}/{short}/embed/captioned/?_fb_noscript=1"
+    html = _http_text(embed_url, timeout=timeout)
+    i = html.find('class="Caption"')
+    if i < 0:
+        raise RuntimeError("instagram embed: no caption block (blocked or removed?)")
+    user_m = re.search(r"CaptionUsername[^>]*>([^<]{1,60})</a>", html[i : i + 2000])
+    user = user_m.group(1).strip() if user_m else "?"
+    j = html.find('class="SocialProof"', i)
+    seg = html[i : j if j > 0 else i + 4000]
+    seg = re.sub(r"<br\s*/?>", " ", seg)
+    caption = " ".join(re.sub(r"<[^>]+>", " ", seg).split())
+    if caption.startswith("class="):
+        caption = caption.split(">", 1)[1].lstrip() if ">" in caption else caption
+    import html as _html
+
+    caption = _html.unescape(caption)
+    if user != "?":
+        caption = re.sub(rf"^\s*{re.escape(user)}\s*", "", caption)
+    out = [f"Instagram {'reel' if kind == 'reel' else 'post'} by @{user}:", caption]
+    if j > 0:
+        proof = " ".join(re.sub(r"<[^>]+>", " ", html[j : j + 1200]).split())
+        if proof:
+            out.append(proof[:500])
+    text = "\n\n".join(out)
+    if len(text) < 60:
+        raise RuntimeError("instagram embed: caption too short")
+    return text
+
+
 def _github_api_json(api: str, timeout: int = 15):
     """GET a GitHub JSON API URL and decode it (raises on failure)."""
     req = urllib.request.Request(
@@ -414,6 +561,21 @@ def _github_repo_metadata(owner: str, repo: str, parts: list[str], timeout: int)
     )
     if len(parts) >= 3:
         lines.append(f"Requested path: /{'/'.join(parts[2:])}")
+    # README excerpt — real content beyond stats (best-effort, never fatal).
+    try:
+        import base64
+
+        readme = _github_api_json(f"{api}/readme", timeout)
+        raw = base64.b64decode(readme.get("content") or "", validate=False).decode(
+            "utf-8", "replace"
+        )
+        clean = re.sub(r"\n{3,}", "\n\n", raw).strip()
+        if clean:
+            lines.append("")
+            lines.append("README excerpt:")
+            lines.append(clean[:1200])
+    except Exception:
+        pass
     return "\n".join(lines)
 
 
@@ -772,6 +934,18 @@ def _fetch_ytdlp_transcript(url: str, timeout: int = 30) -> str:
     # but the call times out → false "blocked"). Floor per-attempt timeout.
     timeout = max(timeout, 30)
 
+    # Transcript cache: repeat queries never re-hit YouTube — fewer caption
+    # 429 windows and instant re-extraction of videos seen before.
+    cache_dir = hermes_state_dir() / "trailhead-transcripts"
+    try:
+        cached_file = cache_dir / f"{video_id}.txt"
+        if cached_file.exists():
+            cached_text = cached_file.read_text(encoding="utf-8")
+            if len(cached_text) > 50:
+                return cached_text
+    except Exception:
+        pass
+
     out_path = f"/tmp/yt-trailhead-{video_id}"
 
     # Proxy failover: prefer the round-robin proxy, but if a residential
@@ -877,7 +1051,13 @@ def _fetch_ytdlp_transcript(url: str, timeout: int = 30) -> str:
             last_error = "yt-dlp: subtitle content too short or empty"
             continue
 
-        return f"YouTube auto-captions for {video_id}\n\n{content}"
+        result = f"YouTube auto-captions for {video_id}\n\n{content}"
+        try:
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            (cache_dir / f"{video_id}.txt").write_text(result, encoding="utf-8")
+        except Exception:
+            pass
+        return result
 
     # All proxy routes failed (including the direct/no-proxy route when
     # proxy_plan is empty).
@@ -1652,7 +1832,49 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
 
     # TikTok / Instagram: Apify first (primary), then oEmbed, stealth Chrome,
     # then browser-harness fallback.
+    # X/Twitter: lane-native structured content — FxTwitter API (tweet text +
+    # engagement) then local Nitter (tweet + replies).  Replaces the old
+    # whole-page Jina text (~150k chars of page chrome for a single tweet).
+    if source_type == "x" and fetch is None:
+        for _x_fetch in (_fetch_fxtwitter, _fetch_nitter):
+            try:
+                x_content = _x_fetch(url, timeout=max(timeout, 15))
+                if x_content and len(x_content) > 80:
+                    return ExtractionResult(
+                        status="ok",
+                        content=x_content[:8000],
+                        content_length=len(x_content),
+                        source_type=source_type,
+                    )
+            except Exception:
+                pass
+        # Fall through to generic tiers (Jina etc.)
+
     if source_type in ("tiktok", "instagram"):
+
+        # ── TikTok: TikWM public API — full metadata + engagement (free, no
+        # auth, any IP; verified direct 2026-10-14) ──
+        if source_type == "tiktok" and fetch is None:
+            try:
+                content = _fetch_tikwm(url, timeout=max(timeout, 20))
+                if content and len(content) > 200:
+                    return ExtractionResult(
+                        status="ok",
+                        content=content[:8000],
+                        content_length=len(content),
+                        source_type=source_type,
+                        video_evidence=VideoEvidence(
+                            caption_status="ok",
+                            caption_text=content[:2000],
+                            caption_transcript_status="not_attempted",
+                            visual_analysis_status="available",
+                            visual_analysis_summary=content[:2000],
+                            metadata_url=url,
+                            metadata_title=title,
+                        ),
+                    )
+            except Exception:
+                pass  # TikWM unreachable → rehydration / oEmbed fallbacks
 
         # ── TikTok: rehydration blob (PRIMARY — free, works from datacenter IPs) ──
         if source_type == "tiktok" and fetch is None:
@@ -1709,6 +1931,31 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                         pass
             except Exception:
                 pass
+
+        # ── Instagram: loginless /embed/captioned/ page — full caption + author
+        # + social proof, static variant for bot UAs (verified direct from this
+        # host 2026-10-14) ──
+        if source_type == "instagram" and fetch is None:
+            try:
+                content = _fetch_instagram_embed(url, timeout=max(timeout, 20))
+                if content and len(content) > 120:
+                    return ExtractionResult(
+                        status="ok",
+                        content=content[:8000],
+                        content_length=len(content),
+                        source_type=source_type,
+                        video_evidence=VideoEvidence(
+                            caption_status="ok",
+                            caption_text=content[:2000],
+                            caption_transcript_status="not_attempted",
+                            visual_analysis_status="available",
+                            visual_analysis_summary=content[:2000],
+                            metadata_url=url,
+                            metadata_title=title,
+                        ),
+                    )
+            except Exception:
+                pass  # Embed unavailable → self-hosted / browser tiers
 
         # Primary: self-hosted scrapers (internal API for IG, tiktok-scraper for TT)
         try:

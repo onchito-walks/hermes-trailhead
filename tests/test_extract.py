@@ -85,9 +85,18 @@ def test_tiktok_oembed_extraction_works_with_content(monkeypatch):
     assert result.source_type == "tiktok"
 
 
-def test_instagram_source_type_is_preserved():
+def test_instagram_source_type_is_preserved(monkeypatch):
     # Instagram extraction now uses browser‑harness; may succeed on real machines.
     # The invariant is correct source_type classification.
+    import hermes_trailhead.extract as extract_mod
+
+    # Keep the test hermetic: the embed tier is the first live attempt since
+    # 2026-10-14; disable it so the test does not depend on Instagram network.
+    monkeypatch.setattr(
+        extract_mod,
+        "_fetch_instagram_embed",
+        lambda url, timeout=20: (_ for _ in ()).throw(RuntimeError("embed disabled in test")),
+    )
     result = extract_one("https://www.instagram.com/p/abc123/")
     assert result.source_type == "instagram"
 
@@ -315,6 +324,155 @@ def test_fetch_pullpush_composes_ranked_thread_text(monkeypatch):
     assert text.index("top comment about kinematics") < text.index("low score comment")
 
 
+def test_fetch_fxtwitter_composes_tweet_text(monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    def fake_http_json(url, timeout=15):
+        assert url == "https://api.fxtwitter.com/status/2096236913044636091"
+        return {
+            "tweet": {
+                "text": "5-axis 3D printing is pushing additive manufacturing beyond limits.",
+                "author": {"screen_name": "ctorobotics"},
+                "created_at": "Wed Oct 01 12:00:00 +0000 2026",
+                "likes": 234,
+                "retweets": 34,
+                "replies": 4,
+                "views": 12000,
+                "media": {"photos": [{}], "videos": []},
+            }
+        }
+
+    monkeypatch.setattr(extract_mod, "_http_json", fake_http_json)
+    out = extract_mod._fetch_fxtwitter("https://x.com/ctorobotics/status/2096236913044636091")
+    assert "Tweet by @ctorobotics" in out
+    assert "5-axis 3D printing" in out
+    assert "234 likes" in out
+    assert "1 photo(s)" in out
+
+
+def test_fetch_nitter_extracts_tweet_and_replies(monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    html = (
+        '<div class="tweet-content media-body">Great 5-axis build here</div>'
+        '<div class="tweet-content media-body">First reply about kinematics</div>'
+    )
+
+    def fake_fetch_text(url, timeout=15):
+        assert url == "http://127.0.0.1:8788/ctorobotics/status/2096236913044636091"
+        return html
+
+    monkeypatch.setattr(extract_mod, "_fetch_text", fake_fetch_text)
+    out = extract_mod._fetch_nitter("https://x.com/ctorobotics/status/2096236913044636091")
+    assert "X post by @ctorobotics" in out
+    assert "Great 5-axis build here" in out
+    assert "Replies:" in out
+    assert "First reply about kinematics" in out
+
+
+def test_fetch_tikwm_composes_metadata(monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    def fake_http_json(url, timeout=15):
+        assert url.startswith("https://www.tikwm.com/api/?url=")
+        return {
+            "code": 0,
+            "data": {
+                "title": "Proof of non-planar 5-axis printing in action",
+                "author": {"unique_id": "3dprintingdoctor"},
+                "play_count": 118810,
+                "digg_count": 3258,
+                "comment_count": 123,
+                "share_count": 45,
+                "collect_count": 67,
+                "music_info": {"title": "original sound - 3dprintingdoctor"},
+                "duration": 37,
+            },
+        }
+
+    monkeypatch.setattr(extract_mod, "_http_json", fake_http_json)
+    out = extract_mod._fetch_tikwm(
+        "https://www.tiktok.com/@3dprintingdoctor/video/7665567402905685261"
+    )
+    assert "TikTok by @3dprintingdoctor" in out
+    assert "plays: 118810" in out
+    assert "likes: 3258" in out
+    assert "Duration: 37s" in out
+
+
+def test_fetch_instagram_embed_maps_url_and_parses(monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    captured = {}
+
+    def fake_http_text(url, timeout=15, headers=None):
+        captured["url"] = url
+        return (
+            '<div class="Caption">'
+            '<a class="CaptionUsername" href="https://www.instagram.com/3dmartes/">3dmartes</a>'
+            " 5-Axis 3D Printer made by Philip. This custom printer &amp; build.&#064;koaladeen"
+            "</div>"
+            '<div class="SocialProof">1,234 likes</div>'
+        )
+
+    monkeypatch.setattr(extract_mod, "_http_text", fake_http_text)
+    out = extract_mod._fetch_instagram_embed("https://www.instagram.com/reel/DeFDW0wKa-3/")
+    assert captured["url"].startswith(
+        "https://www.instagram.com/reel/DeFDW0wKa-3/embed/captioned/"
+    )
+    assert "Instagram reel by @3dmartes" in out
+    assert "5-Axis 3D Printer made by Philip" in out
+    assert "@koaladeen" in out  # &#064; unescaped
+    assert "1,234 likes" in out
+
+
+def test_ytdlp_transcript_cache_hit(tmp_path, monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    _canonical_env(tmp_path, monkeypatch)
+    cache_dir = tmp_path / "hermes" / "state" / "trailhead-transcripts"
+    cache_dir.mkdir(parents=True)
+    (cache_dir / "abc123XYZ.txt").write_text(
+        "YouTube auto-captions for abc123XYZ\n\ncached transcript content here"
+    )
+
+    def explode(*a, **k):
+        raise AssertionError("subprocess.run must not run on cache hit")
+
+    monkeypatch.setattr(extract_mod.subprocess, "run", explode)
+    out = extract_mod._fetch_ytdlp_transcript(
+        "https://www.youtube.com/watch?v=abc123XYZ", timeout=10
+    )
+    assert "cached transcript content here" in out
+
+
+def test_github_repo_metadata_includes_readme_excerpt(monkeypatch):
+    import base64
+
+    import hermes_trailhead.extract as extract_mod
+
+    def fake_json(api, timeout=15):
+        if api.endswith("/readme"):
+            content = base64.b64encode(
+                b"# Open5x\nThis is a Github repository for 5-axis 3D printing"
+            ).decode()
+            return {"content": content}
+        return {
+            "full_name": "FreddieHong19/Open5x",
+            "description": "5-axis 3D printing",
+            "homepage": "",
+            "stargazers_count": 1194,
+            "forks_count": 178,
+            "open_issues_count": 21,
+            "language": "Python",
+        }
+
+    monkeypatch.setattr(extract_mod, "_github_api_json", fake_json)
+    out = extract_mod._github_repo_metadata("FreddieHong19", "Open5x", ["FreddieHong19", "Open5x"], 10)
+    assert "README excerpt" in out
+    assert "5-axis 3D printing" in out
+
+
 def test_reddit_frontend_url_preserves_path():
     assert _reddit_frontend_url("https://www.reddit.com/r/VORONDesign/comments/abc123/title/") == "https://old.reddit.com/r/VORONDesign/comments/abc123/title/"
 
@@ -382,6 +540,13 @@ def test_instagram_login_shell_is_blocked_not_summary(monkeypatch):
     monkeypatch.setattr(extract_mod, "_fetch_instagram_api", lambda url, timeout: (_ for _ in ()).throw(RuntimeError("oEmbed failed")))
     monkeypatch.setattr(extract_mod, "_fetch_stealth_chrome", lambda *a, **k: "InstagramLog inerrorPost isn't availableThe link may be broken, or the profile may have been removed.Sign up for Instagram")
     monkeypatch.setattr(extract_mod, "_fetch_browser_harness", lambda *a, **k: "This page isn’t working HTTP ERROR 429")
+    # Keep the test hermetic: disable the embed tier (first live attempt since
+    # 2026-10-14) so this still exercises the blocked-fallback behavior.
+    monkeypatch.setattr(
+        extract_mod,
+        "_fetch_instagram_embed",
+        lambda url, timeout=20: (_ for _ in ()).throw(RuntimeError("embed disabled in test")),
+    )
 
     result = extract_mod.extract_one("https://www.instagram.com/reel/DQj40znkasX/", timeout=1)
 
