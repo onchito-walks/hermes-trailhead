@@ -18,7 +18,7 @@ from urllib.parse import parse_qs, quote, urlparse
 from typing import Callable, Literal
 
 from .search import SearchHit
-from .paths import hermes_secrets_dir, hermes_state_dir
+from .paths import hermes_secrets_dir, hermes_state_dir, resolve_hermes_home
 from .backends import REDLIB_LOCAL_URL, _github_request_headers
 
 ExtractionStatus = Literal["ok", "blocked", "error", "not_attempted"]
@@ -245,6 +245,159 @@ def _fetch_youtube_transcript(url: str, timeout: int = 20) -> str:
     if not content:
         raise RuntimeError("YouTube transcript was empty")
     return f"YouTube transcript for {video_id}\n\n{content}"
+
+
+def _get_groq_key() -> str:
+    """GROQ_API_KEY from the process env or $HERMES_HOME/.env (runtime only).
+
+    Used for the free-tier Whisper ASR tier; the value is never logged or
+    returned by any lane tool.
+    """
+    import os as _os
+
+    key = _os.environ.get("GROQ_API_KEY", "")
+    if key:
+        return key
+    env_path = resolve_hermes_home() / ".env"
+    if env_path.exists():
+        try:
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                if line.startswith("GROQ_API_KEY="):
+                    return line.split("=", 1)[1].strip("\"' \t")
+        except OSError:
+            pass
+    return ""
+
+
+def _groq_multipart(filename: str, file_bytes: bytes) -> tuple[bytes, str]:
+    """Minimal multipart/form-data body for the Groq audio upload (no deps).
+
+    Returns (body, content_type).
+    """
+    import os as _os
+
+    boundary = "----trailhead" + _os.urandom(8).hex()
+    b = boundary.encode()
+    body = b""
+    for name, value in (("model", "whisper-large-v3-turbo"), ("response_format", "json")):
+        body += b"--" + b + b"\r\n"
+        body += f'Content-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode()
+    body += b"--" + b + b"\r\n"
+    body += (
+        f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
+        "Content-Type: audio/mp4\r\n\r\n"
+    ).encode()
+    body += file_bytes + b"\r\n--" + b + b"--\r\n"
+    return body, f"multipart/form-data; boundary={boundary}"
+
+
+def _transcribe_audio_groq(audio_path: str, api_key: str, timeout: int = 150) -> str:
+    """Transcribe an audio file with Groq's Whisper endpoint (free tier).
+
+    NOTE: api.groq.com is behind Cloudflare — the default urllib UA gets a
+    403 (error code 1010).  A browser UA + Origin/Referer passes (same
+    signature as the opencode.ai GO tier); keep them on every request.
+    """
+    with open(audio_path, "rb") as f:
+        audio = f.read()
+    body, content_type = _groq_multipart("audio.m4a", audio)
+    req = urllib.request.Request(
+        "https://api.groq.com/openai/v1/audio/transcriptions",
+        data=body,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": content_type,
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+            ),
+            "Origin": "https://console.groq.com",
+            "Referer": "https://console.groq.com/",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        data = json.loads(resp.read().decode("utf-8", errors="replace"))
+    return (data.get("text") or "").strip()
+
+
+def _fetch_youtube_asr(url: str, timeout: int = 30) -> str:
+    """ASR fallback for videos without captions (Groq Whisper, free tier).
+
+    Downloads bestaudio (m4a) through the proxy pool and transcribes it.
+    Cached with a separate ``.asr.txt`` key so repeats are instant.
+    """
+    import glob as _glob
+    import os as _os
+
+    video_id = _youtube_video_id(url)
+    if not video_id:
+        raise RuntimeError("Could not parse YouTube video id")
+
+    cache_dir = hermes_state_dir() / "trailhead-transcripts"
+    cache_file = cache_dir / f"{video_id}.asr.txt"
+    try:
+        if cache_file.exists():
+            cached = cache_file.read_text(encoding="utf-8")
+            if len(cached) > 50:
+                return cached
+    except Exception:
+        pass
+
+    api_key = _get_groq_key()
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY not configured — ASR tier unavailable")
+
+    out_base = f"/tmp/yt-audio-{video_id}"
+    audio_path: str | None = None
+    last_error = ""
+    for proxy in _proxy_failover_plan():
+        cmd = [
+            "yt-dlp",
+            "-f", "bestaudio[ext=m4a]/bestaudio",
+            "--no-playlist",
+            "-o", out_base + ".%(ext)s",
+        ]
+        if proxy:
+            cmd.extend(["--proxy", proxy])
+        cmd.append(url)
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=max(timeout, 60))
+        except subprocess.TimeoutExpired:
+            last_error = "audio download timed out"
+            continue
+        if proc.returncode != 0:
+            last_error = f"audio download failed: {proc.stderr.strip()[:160]}"
+            continue
+        hits = sorted(_glob.glob(out_base + ".*"))
+        if hits:
+            audio_path = hits[0]
+            break
+        last_error = "no audio file produced"
+
+    if not audio_path:
+        raise RuntimeError(f"ASR: {last_error or 'audio download failed on every route'}")
+
+    try:
+        size = _os.path.getsize(audio_path)
+        if size > 24 * 1024 * 1024:
+            raise RuntimeError(f"ASR: audio too large ({size // (1024 * 1024)}MB > 24MB cap)")
+        text = _transcribe_audio_groq(audio_path, api_key)
+    finally:
+        try:
+            _os.remove(audio_path)
+        except Exception:
+            pass
+    if not text or len(text) < 40:
+        raise RuntimeError("ASR: transcript too short or empty")
+
+    result = f"YouTube ASR transcript for {video_id}\n\n{text}"
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_file.write_text(result, encoding="utf-8")
+    except Exception:
+        pass
+    return result
 
 
 def _reddit_frontend_url(url: str) -> str:
@@ -490,6 +643,31 @@ def _fetch_tikwm(url: str, timeout: int = 25) -> str:
         parts.append(f"Music: {music}")
     if d.get("duration"):
         parts.append(f"Duration: {d['duration']}s")
+    # Top comments — rich conversation context via TikWM's comment endpoint
+    # (verified 2026-10-14). Best-effort: never fatal to the metadata result.
+    try:
+        c = _http_json(
+            f"https://www.tikwm.com/api/comment/list?url={quote(url, safe='')}&count=20", timeout
+        )
+        comments = (c.get("data") or {}).get("comments") or []
+        ranked = sorted(
+            (cm for cm in comments if isinstance(cm, dict)),
+            key=lambda cm: cm.get("digg_count") or 0,
+            reverse=True,
+        )
+        lines: list[str] = []
+        for cm in ranked:
+            body = (cm.get("text") or "").strip().replace("\n", " ")
+            if not body:
+                continue
+            lines.append(f"[{cm.get('digg_count', 0)}↑] {body[:300]}")
+            if len(lines) >= 10:
+                break
+        if lines:
+            parts.append(f"Top comments ({len(lines)}):")
+            parts.extend(lines)
+    except Exception:
+        pass
     return "\n\n".join(parts)
 
 
@@ -2102,6 +2280,31 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                     )
             except Exception as exc2:
                 transcript_error = f"All transcript methods failed: yt-dlp: {_exception_summary(ytdlp_exc or exc2)}, api: {_exception_summary(exc2)}"
+
+        # Fallback 1.5: ASR (Groq Whisper) — covers videos with no captions at
+        # all and caption-endpoint windows.  Cached separately (.asr.txt).
+        if transcript_error:
+            try:
+                content = _fetch_youtube_asr(url, timeout=max(timeout, 60))
+                if content and len(content) > 50:
+                    return ExtractionResult(
+                        status="ok",
+                        content=content,
+                        content_length=len(content),
+                        source_type=source_type,
+                        transcript_attempted=True,
+                        video_evidence=VideoEvidence(
+                            caption_transcript_status="ok",
+                            caption_transcript=content,
+                            caption_transcript_length=len(content),
+                            visual_analysis_status="available",
+                            audio_transcript_status="ok",
+                            metadata_url=url,
+                            metadata_title=title,
+                        ),
+                    )
+            except Exception as exc_asr:
+                transcript_error += f"; asr: {_exception_summary(exc_asr)}"
 
         # Fallback 2: stealth Chrome for page content + captions
         if transcript_error:

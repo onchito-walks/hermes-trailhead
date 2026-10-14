@@ -78,9 +78,9 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
   - web — full page content ✔
   - **x — clean tweet text + engagement (FxTwitter API), local Nitter fallback (tweet + replies)** ✔
   - **reddit — always-on threads (PullPush / Arctic Shift → Redlib live → route pool)** ✔
-  - **tiktok — full metadata via TikWM (description, plays/likes/comments, music)** ✔
+  - **tiktok — full metadata via TikWM (description, plays/likes/comments, music) + top comment texts** ✔
   - **instagram — full captions + social proof via the loginless embed (2.3–2.7k chars per item)** ✔
-  - **youtube — transcripts (disk cache + JS-runtime + impersonation + timeout headroom)** ✔
+  - **youtube — transcripts (disk cache + JS-runtime + impersonation + timeout headroom) with a Groq-Whisper ASR tier that covers captionless videos** ✔
   - **github — repo metadata + README excerpt (≈1.3k chars/repo)** ✔
 
 **Reddit threads no longer depend on Redlib's windows.** PullPush + Arctic Shift extraction tiers were added 2026-10-14 — verified 3/3 threads with real content while Redlib was throttled.

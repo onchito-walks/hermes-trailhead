@@ -26,9 +26,9 @@ Where the lanes are still exposed — watched, logged, never hidden:
 | Area | Fragility | Status |
 |------|-----------|--------|
 | Residential proxy pool | **One live route** serves YouTube transcripts + Reddit fallbacks; the second route's credentials died (disabled; restore-candidate also failed the neutral test) | Open — re-add from the provider dashboard. Transcript cache softens repeats. |
-| YouTube no-caption videos | Videos without auto-captions are a hard gap — no ASR fallback in-lane (whisper lives on r-hp, which is decoupled) | Open — an audio→ASR tier would close it. |
-| Instagram profiles | Embed tier covers posts/reels; profile URLs extract weakly (verified `blocked` 2026-10-14) | Open — the embed page has no profile form. |
-| TikTok depth | Metadata only (description/stats/music); no transcript, no comment texts | Open — TikWM's comment endpoint could be tried. |
+| YouTube no-caption videos | **FIXED 2026-10-14**: `_fetch_youtube_asr` downloads bestaudio via the proxy pool and transcribes with Groq's free-tier whisper-large-v3-turbo (verified: 6,874 chars on a captioned video, matching its captions; speechless clips report honestly). Groq API is behind Cloudflare — browser UA + Origin required (error 1010 without). | Closed. |
+| Instagram profiles | Embed tier covers posts/reels; profile URLs extract weakly. `web_profile_info` also tested — **429 from datacenter IP AND residential route, both hosts** (2026-10-14); bot-UA profile pages are generic shells | Open — no loginless profile method found; posts/reels remain strong. |
+| TikTok depth | Metadata + **top-10 score-ranked comment texts** now included (2026-10-14); video audio transcripts not exposed by TikTok's public APIs | Partial — transcript would need an audio→ASR path (possible via the Groq tier if ever needed). |
 | X external dependency | FxTwitter is a single external dep for clean tweets (fallback: local Nitter → weak Jina page text) | Monitored — guardian Pattern 5. |
 | PullPush burst throttling | 429s under rapid probe bursts (observed, then cooled to OK) | Covered by Arctic Shift fallback; both monitored. |
 | GitHub API limits | Anonymous cap was 60 req/hr — the lane could degrade under sustained sweeps | **FIXED 2026-10-14**: `GITHUB_TOKEN` from `.env` now attached (verified 5,000/hr core + 30/min search). |

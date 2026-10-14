@@ -374,6 +374,16 @@ def test_fetch_tikwm_composes_metadata(monkeypatch):
     import hermes_trailhead.extract as extract_mod
 
     def fake_http_json(url, timeout=15):
+        if "comment/list" in url:
+            return {
+                "code": 0,
+                "data": {
+                    "comments": [
+                        {"text": "what are the benefits vs normal printing?", "digg_count": 14},
+                        {"text": "minor question about tolerances", "digg_count": 2},
+                    ]
+                },
+            }
         assert url.startswith("https://www.tikwm.com/api/?url=")
         return {
             "code": 0,
@@ -398,6 +408,9 @@ def test_fetch_tikwm_composes_metadata(monkeypatch):
     assert "plays: 118810" in out
     assert "likes: 3258" in out
     assert "Duration: 37s" in out
+    assert "Top comments (2):" in out
+    assert "benefits vs normal printing" in out
+    assert out.index("benefits vs normal printing") < out.index("minor question")  # score-ranked
 
 
 def test_fetch_instagram_embed_maps_url_and_parses(monkeypatch):
@@ -471,6 +484,91 @@ def test_github_repo_metadata_includes_readme_excerpt(monkeypatch):
     out = extract_mod._github_repo_metadata("FreddieHong19", "Open5x", ["FreddieHong19", "Open5x"], 10)
     assert "README excerpt" in out
     assert "5-axis 3D printing" in out
+
+
+def test_groq_multipart_structure():
+    from hermes_trailhead.extract import _groq_multipart
+
+    body, content_type = _groq_multipart("a.m4a", b"AUDIOBYTES")
+    assert content_type.startswith("multipart/form-data; boundary=")
+    boundary = content_type.split("boundary=", 1)[1].encode()
+    assert b"--" + boundary in body
+    assert b'name="model"' in body and b"whisper-large-v3-turbo" in body
+    assert b"AUDIOBYTES" in body
+    assert body.rstrip().endswith(b"--")
+
+
+def test_fetch_youtube_asr_requires_groq_key(tmp_path, monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    _canonical_env(tmp_path, monkeypatch)
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.setattr(extract_mod, "resolve_hermes_home", lambda home=None: tmp_path)
+
+    try:
+        extract_mod._fetch_youtube_asr("https://www.youtube.com/watch?v=abc123XYZ")
+        raise AssertionError("expected RuntimeError for missing key")
+    except RuntimeError as exc:
+        assert "GROQ_API_KEY" in str(exc)
+
+
+def test_fetch_youtube_asr_downloads_transcribes_and_caches(tmp_path, monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    _canonical_env(tmp_path, monkeypatch)
+    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    monkeypatch.setattr(extract_mod, "_proxy_failover_plan", lambda: [None])
+
+    calls = {}
+
+    class FakeProc:
+        returncode = 0
+        stderr = ""
+
+    def fake_run(cmd, **kwargs):
+        out = cmd[cmd.index("-o") + 1].replace("%(ext)s", "m4a")
+        with open(out, "wb") as f:
+            f.write(b"fake-audio-bytes")
+        calls["cmd"] = cmd
+        return FakeProc()
+
+    def fake_transcribe(path, key, timeout=150):
+        calls["key"] = key
+        return "This is the ASR transcript of the video with plenty of words. " * 3
+
+    monkeypatch.setattr(extract_mod.subprocess, "run", fake_run)
+    monkeypatch.setattr(extract_mod, "_transcribe_audio_groq", fake_transcribe)
+
+    out = extract_mod._fetch_youtube_asr("https://www.youtube.com/watch?v=abc123XYZ")
+    assert "YouTube ASR transcript for abc123XYZ" in out
+    assert calls["key"] == "test-key"
+    cache = tmp_path / "hermes" / "state" / "trailhead-transcripts" / "abc123XYZ.asr.txt"
+    assert cache.exists()
+
+    def explode(*a, **k):
+        raise AssertionError("no download on cache hit")
+
+    monkeypatch.setattr(extract_mod.subprocess, "run", explode)
+    out2 = extract_mod._fetch_youtube_asr("https://www.youtube.com/watch?v=abc123XYZ")
+    assert out2 == out
+
+
+def test_youtube_extraction_falls_back_to_asr(monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    def dead(*a, **k):
+        raise RuntimeError("no captions")
+
+    monkeypatch.setattr(extract_mod, "_fetch_ytdlp_transcript", dead)
+    monkeypatch.setattr(extract_mod, "_fetch_youtube_transcript", dead)
+    monkeypatch.setattr(
+        extract_mod,
+        "_fetch_youtube_asr",
+        lambda url, timeout=30: "YouTube ASR transcript for X\n\n" + "asr words " * 30,
+    )
+    result = extract_mod.extract_one("https://www.youtube.com/watch?v=abc123XYZ")
+    assert result.status == "ok"
+    assert "ASR" in result.content
 
 
 def test_reddit_frontend_url_preserves_path():
