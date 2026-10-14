@@ -87,6 +87,7 @@ Scoring is default on every `search all --execute`.
 | X/Twitter deep content | Free-tier rate limits | Discovery snippets provide usable summaries |
 | TikTok spoken transcripts | No ASR configured | Captions and descriptions are extracted |
 | Instagram reel JS shells | Some reels serve no OG metadata | Stealth Chrome fallback renders the page |
+| Reddit thread content | Reddit intermittently serves anti-bot shells to datacenter and residential fetches | Local Redlib window + old.reddit.com through the residential route pool, taking the first route with usable content; reported `blocked` when no route cooperates |
 
 ## What Trailhead is not
 
