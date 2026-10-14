@@ -673,7 +673,7 @@ def check_frontends(live: bool = False) -> CheckResult:
         ("nitter", "http://127.0.0.1:8788/", "x lane"),
         ("redlib", f"{REDLIB_LOCAL_URL}/", "reddit lane"),
         ("searxng", "http://127.0.0.1:8099/search?q=test&format=json", "web/github lanes"),
-        ("proxitok", "http://127.0.0.1:8791/search?query=test", "tiktok lane (optional, parked)"),
+        ("proxitok", "http://127.0.0.1:8791/following", "tiktok lane (optional; /following is its live route in v2.5)"),
         ("proxigram", "http://127.0.0.1:8790/", "instagram lane (optional, parked)"),
     )
     if not live:
