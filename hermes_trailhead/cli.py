@@ -265,6 +265,17 @@ def cmd_search(args: argparse.Namespace) -> int:
                             for hit in extracted_dicts:
                                 hit["scoring"] = None
                         result["executions"][i]["extracted"] = extracted_dicts
+                        if do_score:
+                            # Rank the top-level hits[] to follow the scored
+                            # evidence order (README: 'ranks results by
+                            # quality'). Unranked hits (beyond --extract-limit)
+                            # keep discovery order after the ranked ones.
+                            ranked_pos = {d.get("url"): idx for idx, d in enumerate(extracted_dicts)}
+                            hits_now = result["executions"][i].get("hits") or []
+                            result["executions"][i]["hits"] = sorted(
+                                hits_now,
+                                key=lambda h: ranked_pos.get(h.get("url"), len(ranked_pos)),
+                            )
             print(json.dumps(result, indent=2))
             return 0
         print(f"# Hermes Trailhead executed search: {args.platform}\n")

@@ -9,7 +9,7 @@ def test_channels_have_unique_keys():
 
 
 def test_core_channels_present():
-    for key in ["web-search", "x-search", "hermes-upstream", "newsletter", "docs-watcher", "agent-reach"]:
+    for key in ["web-search", "x-search", "hermes-upstream", "newsletter", "docs-watcher", "agent-reach", "frontends"]:
         assert get_channel(key).key == key
 
 
@@ -139,3 +139,37 @@ def test_browserbase_env_file_fallback(monkeypatch, tmp_path):
     res = channels_mod.check_browserbase()
 
     assert res.status == "ok"
+
+
+# ── Frontends channel ────────────────────────────────────────────────────
+
+
+def test_check_frontends_live_ok_when_core_serves(monkeypatch):
+    def http_get(url, timeout=6):
+        if "8791" in url or "8790" in url:
+            raise RuntimeError("connection refused")  # parked containers down
+        return (200, "")
+
+    fake = channels_mod.IO.fake(http_get=http_get)
+    monkeypatch.setattr(channels_mod, "_io", fake)
+
+    res = channels_mod.check_frontends(live=True)
+
+    assert res.status == "ok"
+    assert "nitter ok" in res.detail
+    assert "proxitok down" in res.detail
+
+
+def test_check_frontends_live_warns_on_core_degrade(monkeypatch):
+    def http_get(url, timeout=6):
+        if "8789" in url:
+            return (404, "")  # redlib throttled window
+        return (200, "")
+
+    fake = channels_mod.IO.fake(http_get=http_get)
+    monkeypatch.setattr(channels_mod, "_io", fake)
+
+    res = channels_mod.check_frontends(live=True)
+
+    assert res.status == "warn"
+    assert "redlib throttled(404)" in res.detail

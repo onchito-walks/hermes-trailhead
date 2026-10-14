@@ -439,6 +439,25 @@ def test_github_query_terms_keep_numeric_axis_compounds():
     assert "q=5-axis" in url
 
 
+def test_tiktok_result_url_rejects_shop_listings():
+    from hermes_trailhead.backends import _tiktok_result_url
+
+    assert _tiktok_result_url("https://shop.tiktok.com/us/k/5-axsis-3d-printer") is False
+    assert _tiktok_result_url("https://www.tiktok.com/@3dprintingdoctor/video/7665567402905685261") is True
+
+
+def test_open_web_result_url_excludes_dedicated_lane_hosts():
+    from hermes_trailhead.backends import _open_web_result_url
+
+    assert _open_web_result_url("https://hackaday.com/2022/03/13/5-axis-3d-printing/") is True
+    assert _open_web_result_url("https://www.reddit.com/r/3Dprinting/comments/16eakw2/x/") is True
+    assert _open_web_result_url("https://www.youtube.com/watch?v=hIQLzIJiO9g") is False
+    assert _open_web_result_url("https://youtu.be/abc") is False
+    assert _open_web_result_url("https://www.tiktok.com/@x/video/1") is False
+    assert _open_web_result_url("https://www.instagram.com/reel/x/") is False
+    assert _open_web_result_url("https://www.facebook.com/watch/1") is False
+
+
 def test_instagram_result_url_rejects_popular_aggregation_pages():
     # Deep post/reel and profile routes are kept for discovery.
     assert _instagram_result_url("https://www.instagram.com/reel/DYHibt4PCLB/") is True

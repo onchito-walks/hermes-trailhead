@@ -32,4 +32,4 @@ When the task is social/practitioner/hard-source research, `search-routing` shou
 - The `hermes-trailhead` executable should exist on PATH and point at the active repo unless the package is installed into a managed venv.
 - `python3 -m hermes_trailhead doctor` is the local truth for lane availability.
 - Live search proof is required after meaningful backend/search changes; tests alone are not enough.
-- Consumers must join `hits[]` to `extracted[]` by URL — the arrays are not guaranteed to be in the same order, and the active engine can differ between identical runs (e.g. `ddg_lite` vs `jina_duckduckgo`).
+- With scoring on, `hits[]` follows the ranked evidence order and `extracted[]` is sorted by score, so the JSON presents quality-ranked results end to end. They match when extraction covers every hit; still join by URL for safety (`--no-score` runs, or hits beyond `--extract-limit`). The active engine can differ between identical runs (e.g. `ddg_lite` vs `jina_duckduckgo`).

@@ -661,6 +661,58 @@ def check_stagehand() -> CheckResult:
     return _result("off", "Stagehand not installed. Hermes browser tools cover most interactive needs.", action="Install stagehand (`npm install -g @browserbasehq/stagehand`) only for sites needing programmatic observe/extract primitives.", evidence=(CommandEvidence("command", "stagehand not found", command="npx stagehand --version", return_code=127),), error_kind="unknown_tool", category="external_tooling")
 
 
+def check_frontends(live: bool = False) -> CheckResult:
+    """Local frontend service map — the containers that back lane-native routes.
+
+    Nitter (x lane), Redlib (reddit lane), and SearXNG (web/github lanes) are
+    the always-expected frontends; ProxiTok/Proxigram are optional tiers that
+    are parked while not serving (see docs/KNOWN-ISSUES.md).  Probe the real
+    endpoints with --live.
+    """
+    services = (
+        ("nitter", "http://127.0.0.1:8788", "x lane"),
+        ("redlib", REDLIB_LOCAL_URL, "reddit lane"),
+        ("searxng", "http://127.0.0.1:8099", "web/github lanes"),
+        ("proxitok", "http://127.0.0.1:8791", "tiktok lane (optional, parked)"),
+        ("proxigram", "http://127.0.0.1:8790", "instagram lane (optional, parked)"),
+    )
+    if not live:
+        return _result(
+            "ok",
+            "Local frontends: nitter / redlib / searxng (+ optional proxitok / proxigram). Run `doctor --live` to probe them.",
+            evidence=(PolicyEvidence("policy", "Frontend probes run under --live"),),
+        )
+    states: list[str] = []
+    evidence: list[Evidence] = []
+    core_bad = False
+    for name, url, backs in services:
+        try:
+            status_code, _body = _io.http_get(url, timeout=6)
+        except Exception:
+            status_code = 0
+        if status_code == 0:
+            state = "down"
+        elif 200 <= status_code < 400:
+            state = "ok"
+        elif name == "redlib" and status_code in (403, 404):
+            state = f"throttled({status_code})"
+        else:
+            state = f"HTTP {status_code}"
+        states.append(f"{name} {state}")
+        evidence.append(HttpEvidence("http", f"{name}: {state} ({backs})", url=url, status_code=status_code or None))
+        if name in ("nitter", "searxng", "redlib") and state != "ok":
+            core_bad = True
+    detail = " · ".join(states)
+    if core_bad:
+        return _result(
+            "warn",
+            f"Frontend map: {detail}",
+            action="Investigate non-ok core frontends; parked items are tracked in docs/KNOWN-ISSUES.md.",
+            evidence=tuple(evidence),
+        )
+    return _result("ok", f"Frontend map: {detail}", evidence=tuple(evidence))
+
+
 # ── Channel registry ──────────────────────────────────────────────────────
 
 CHANNELS: tuple[Channel, ...] = (
@@ -672,6 +724,7 @@ CHANNELS: tuple[Channel, ...] = (
     Channel("tiktok", "TikTok", "Short-form creator/current signal", "site:tiktok.com search / supervised browser / TikTok frontend", "high", check_tiktok, ("Start with loginless site:tiktok.com discovery.", "Use a TikTok privacy frontend or media helper only when configured.", "Account/session/browser work requires explicit approval."), approval_required=True, tags=("social", "current", "video")),
     Channel("instagram", "Instagram", "Creator/profile/current signal", "site:instagram.com search / supervised browser / Instagram frontend", "high", check_instagram, ("Start with loginless site:instagram.com discovery.", "Use a privacy frontend or media helper only when configured.", "Account/session/browser work requires explicit approval."), approval_required=True, tags=("social", "current", "image")),
     Channel("youtube", "YouTube", "Video metadata/transcripts", "yt-dlp / media tools", "medium", check_youtube, ("Install yt-dlp only in a project venv when needed.", "Prefer transcript APIs/tools when already available."), tags=("media",)),
+    Channel("frontends", "Local frontends", "Lane-native service map (docker containers)", "nitter / redlib / searxng", "low", check_frontends, ("Nitter, Redlib and SearXNG are the lane-native frontends; probe with --live.", "ProxiTok/Proxigram are parked until serving — see docs/KNOWN-ISSUES.md."), tags=("infra", "docker"), timeout=6),
     Channel("firecrawl", "Firecrawl", "Crawl/search/extract API", "FIRECRAWL_API_KEY", "medium", check_firecrawl, ("Set FIRECRAWL_API_KEY only when crawl budget is justified.", "Prefer Crawl4AI for deterministic extraction."), approval_required=True, hermes_native=False, tags=("crawl", "api", "external"), timeout=5),
     Channel("crawl4ai", "Crawl4AI", "Open deterministic crawl/extract", "python3 -c 'import crawl4ai'", "low", check_crawl4ai, ("Install in a project venv: uv pip install crawl4ai.", "Use for CSS/XPath/Regex deterministic extraction."), hermes_native=False, tags=("crawl", "external"), timeout=5),
     Channel("browserbase", "Browserbase", "Hosted browser infrastructure", "BROWSERBASE_API_KEY", "high", check_browserbase, ("Set BROWSERBASE_API_KEY and BROWSERBASE_PROJECT_ID.", "Use managed persistent contexts for sites needing session state."), approval_required=True, hermes_native=False, tags=("browser", "api", "external"), timeout=5),
@@ -722,6 +775,8 @@ def check_all_live() -> list[tuple[Channel, CheckResult]]:
             results.append((channel, check_x_search(live=True)))
         elif channel.key == "reddit":
             results.append((channel, check_reddit(live=True)))
+        elif channel.key == "frontends":
+            results.append((channel, check_frontends(live=True)))
         else:
             results.append((channel, channel.check()))
     return results
