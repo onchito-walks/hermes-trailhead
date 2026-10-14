@@ -278,6 +278,115 @@ def _fetch_redlib(url: str, timeout: int = 15) -> str:
     return _fetch_text(url, timeout=timeout)
 
 
+_REDDIT_THREAD_ID_RE = re.compile(r"/comments/([a-z0-9]{4,10})", re.IGNORECASE)
+
+
+def _reddit_thread_id(url: str) -> str:
+    """Extract the base36 thread id from a reddit permalink ('' if absent)."""
+    m = _REDDIT_THREAD_ID_RE.search(urlparse(url).path or url)
+    return m.group(1) if m else ""
+
+
+def _http_json(url: str, timeout: int = 15):
+    """GET a JSON endpoint and decode it (raises on failure)."""
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "Hermes-Trailhead/1.0 (evidence-first research)"},
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8", errors="replace"))
+
+
+# Pushshift successors — both ingest Reddit's public data and serve it to any
+# IP (no Reddit-IP dependency, no auth).  Verified reachable from this host
+# 2026-10-14 with real post+comment JSON; the web-research consensus names
+# exactly these two as the surviving Pushshift replacements in 2026.
+_PUSHSHIFT_SUBMISSION_URLS = {
+    "pullpush": "https://api.pullpush.io/reddit/search/submission/?ids={tid}",
+    "arctic-shift": "https://arctic-shift.photon-reddit.com/api/posts/ids?ids={tid}",
+}
+_PUSHSHIFT_COMMENT_URLS = {
+    "pullpush": "https://api.pullpush.io/reddit/search/comment/?link_id={tid}&size=50",
+    "arctic-shift": "https://arctic-shift.photon-reddit.com/api/comments/search?link_id={tid}&limit=50",
+}
+
+
+def _compose_pushshift_thread(tid: str, post: dict, comments: list[dict]) -> str:
+    """Compose readable thread text from Pushshift-successor JSON.
+
+    Both services return Reddit's own JSON shape ({'data': [...]}); comments
+    are ranked by score locally (the APIs return ingest order).
+    """
+    title = (post.get("title") or "").strip()
+    sub = post.get("subreddit_name_prefixed") or (
+        f"r/{post.get('subreddit')}" if post.get("subreddit") else ""
+    )
+    author = post.get("author") or "?"
+    score = post.get("score")
+    parts = [f"Reddit thread {tid} — {title}"]
+    header = " · ".join(
+        x
+        for x in (
+            sub,
+            f"u/{author}",
+            f"score {score}" if score is not None else "",
+            f"{post.get('num_comments')} comments" if post.get("num_comments") else "",
+        )
+        if x
+    )
+    if header:
+        parts.append(header)
+    selftext = (post.get("selftext") or "").strip()
+    if selftext and selftext not in ("[removed]", "[deleted]"):
+        parts.append(selftext[:4000])
+    ranked = sorted(
+        (c for c in comments if isinstance(c, dict)),
+        key=lambda c: c.get("score") or 0,
+        reverse=True,
+    )
+    lines: list[str] = []
+    for c in ranked:
+        body = (c.get("body") or "").strip().replace("\n", " ")
+        if not body or body in ("[removed]", "[deleted]"):
+            continue
+        lines.append(f"[{c.get('score', 0)}↑] u/{c.get('author', '?')}: {body[:400]}")
+        if len(lines) >= 20:
+            break
+    if lines:
+        parts.append(f"Top comments ({len(lines)}):")
+        parts.extend(lines)
+    return "\n\n".join(parts)[:15000]
+
+
+def _fetch_pushshift_thread(url: str, timeout: int = 20, *, service: str = "pullpush") -> str:
+    """Fetch a Reddit thread (post + top comments) via a Pushshift successor.
+
+    The always-on content backbone for the reddit lane when Redlib's upstream
+    window is shut and old.reddit serves anti-bot shells.
+    """
+    tid = _reddit_thread_id(url)
+    if not tid:
+        raise ValueError(f"no reddit thread id in {url}")
+    post_json = _http_json(_PUSHSHIFT_SUBMISSION_URLS[service].format(tid=tid), timeout)
+    comment_json = _http_json(_PUSHSHIFT_COMMENT_URLS[service].format(tid=tid), timeout)
+    posts = post_json.get("data") or []
+    comments = comment_json.get("data") or []
+    if not posts:
+        raise RuntimeError(f"{service} has no submission data for {tid}")
+    text = _compose_pushshift_thread(tid, posts[0], comments)
+    if len(text) < 120:
+        raise RuntimeError(f"{service} produced too little content for {tid}")
+    return text
+
+
+def _fetch_pullpush(url: str, timeout: int = 20) -> str:
+    return _fetch_pushshift_thread(url, timeout, service="pullpush")
+
+
+def _fetch_arctic_shift(url: str, timeout: int = 20) -> str:
+    return _fetch_pushshift_thread(url, timeout, service="arctic-shift")
+
+
 def _github_api_json(api: str, timeout: int = 15):
     """GET a GitHub JSON API URL and decode it (raises on failure)."""
     req = urllib.request.Request(
@@ -1813,7 +1922,22 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                         source_type=source_type,
                     )
             except Exception:
-                pass  # Local Redlib not running — fall through to old.reddit
+                pass  # Local Redlib not running — fall through to Pushshift successors
+            # Pushshift successors (PullPush, Arctic Shift) serve post+comment
+            # data to ANY IP — no Reddit-IP dependency, no auth.  The always-on
+            # backbone when Redlib's upstream window is shut.
+            for _ps_fetch in (_fetch_pullpush, _fetch_arctic_shift):
+                try:
+                    ps_content = _ps_fetch(url, timeout=max(timeout, 15))
+                    if ps_content and len(ps_content) > 200:
+                        return ExtractionResult(
+                            status="ok",
+                            content=ps_content,
+                            content_length=len(ps_content),
+                            source_type=source_type,
+                        )
+                except Exception:
+                    pass
             # old.reddit: direct first, then every residential route in the
             # pool, taking the first route that returns USABLE content — some
             # routes serve a logged-out shell, which is skipped, not "won".

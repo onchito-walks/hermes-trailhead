@@ -46,6 +46,11 @@ Versions follow [Semantic Versioning](https://semver.org/).
   resolves its IPv6/IPv4 loopback mismatch — structural routes render again
   (was all-500). App-level IG data paths remain degraded pending browser
   binaries (see `docs/KNOWN-ISSUES.md`).
+- Reddit content extraction is now **always-on**: PullPush + Arctic Shift
+  (Pushshift successors) wired as extraction tiers after Redlib — post + top-20
+  comments via public JSON APIs reachable from any IP. Verified 3/3 threads
+  with real content while Redlib was throttled (full sweep: 21 hits, 19/21
+  extracted).
 - Doctor: new `frontends` channel — a live map of nitter / redlib / searxng
   (plus parked proxitok / proxigram) so the container layer is visible in the
   health surface.

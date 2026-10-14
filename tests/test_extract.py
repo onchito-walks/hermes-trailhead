@@ -214,6 +214,10 @@ def test_reddit_extraction_skips_shell_routes_and_uses_usable_route(monkeypatch)
 
     monkeypatch.setattr(extract_mod, "_fetch_redlib", dead_redlib)
     monkeypatch.setattr(extract_mod, "_fetch_text", dead_direct)
+    # Pushshift-successor tiers sit between redlib and the route pool in the
+    # live chain; disable them here so this test exercises the route-pool path.
+    monkeypatch.setattr(extract_mod, "_fetch_pullpush", dead_redlib)
+    monkeypatch.setattr(extract_mod, "_fetch_arctic_shift", dead_redlib)
     monkeypatch.setattr(extract_mod, "_proxy_failover_plan", lambda: ["http://shell.example:1", "http://good.example:1"])
     monkeypatch.setattr(extract_mod, "_fetch_via_route", fake_route)
 
@@ -221,6 +225,94 @@ def test_reddit_extraction_skips_shell_routes_and_uses_usable_route(monkeypatch)
 
     assert result.status == "ok"
     assert "word59 content59 detail59" in result.content
+
+
+def test_reddit_thread_id_parsing():
+    from hermes_trailhead.extract import _reddit_thread_id
+
+    assert (
+        _reddit_thread_id(
+            "https://www.reddit.com/r/3Dprinting/comments/16eakw2/affordable_and_simple_5axis_mod_my_master_thesis/"
+        )
+        == "16eakw2"
+    )
+    assert _reddit_thread_id("https://old.reddit.com/r/x/comments/z1qsnz/slug/") == "z1qsnz"
+    assert _reddit_thread_id("https://example.com/x") == ""
+
+
+def test_reddit_extraction_falls_back_to_pullpush_when_redlib_down(monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    def dead_redlib(url, timeout=15):
+        raise RuntimeError("redlib throttled")
+
+    monkeypatch.setattr(extract_mod, "_fetch_redlib", dead_redlib)
+    monkeypatch.setattr(
+        extract_mod, "_fetch_pullpush", lambda url, timeout=20: "PullPush thread body. " * 20
+    )
+
+    result = extract_mod.extract_one(
+        "https://www.reddit.com/r/3Dprinting/comments/16eakw2/affordable_simple_5axis_mod/"
+    )
+    assert result.status == "ok"
+    assert "PullPush thread body" in result.content
+
+
+def test_reddit_extraction_falls_back_to_arctic_when_pullpush_fails(monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    def dead_redlib(url, timeout=15):
+        raise RuntimeError("redlib throttled")
+
+    def dead_pullpush(url, timeout=20):
+        raise RuntimeError("pullpush down")
+
+    monkeypatch.setattr(extract_mod, "_fetch_redlib", dead_redlib)
+    monkeypatch.setattr(extract_mod, "_fetch_pullpush", dead_pullpush)
+    monkeypatch.setattr(
+        extract_mod, "_fetch_arctic_shift", lambda url, timeout=20: "Arctic Shift thread body. " * 20
+    )
+
+    result = extract_mod.extract_one(
+        "https://www.reddit.com/r/3Dprinting/comments/16eakw2/affordable_simple_5axis_mod/"
+    )
+    assert result.status == "ok"
+    assert "Arctic Shift thread body" in result.content
+
+
+def test_fetch_pullpush_composes_ranked_thread_text(monkeypatch):
+    import hermes_trailhead.extract as extract_mod
+
+    def fake_http_json(url, timeout=15):
+        if "submission" in url:
+            return {
+                "data": [
+                    {
+                        "title": "Affordable and simple 5-axis mod",
+                        "subreddit_name_prefixed": "r/3Dprinting",
+                        "author": "andersonsjanis",
+                        "score": 412,
+                        "num_comments": 2,
+                        "selftext": "My master thesis about a 5-axis mod.",
+                    }
+                ]
+            }
+        return {
+            "data": [
+                {"body": "low score comment", "score": 3, "author": "a"},
+                {"body": "top comment about kinematics", "score": 99, "author": "b"},
+                {"body": "[deleted]", "score": 50, "author": "c"},
+            ]
+        }
+
+    monkeypatch.setattr(extract_mod, "_http_json", fake_http_json)
+    text = extract_mod._fetch_pullpush(
+        "https://www.reddit.com/r/3Dprinting/comments/16eakw2/affordable_simple_5axis_mod/"
+    )
+    assert "Affordable and simple 5-axis mod" in text
+    assert "top comment about kinematics" in text
+    assert "[deleted]" not in text
+    assert text.index("top comment about kinematics") < text.index("low score comment")
 
 
 def test_reddit_frontend_url_preserves_path():

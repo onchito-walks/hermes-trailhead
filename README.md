@@ -73,14 +73,16 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 
 `hermes-trailhead doctor --live --record` on Oracle: **10 ok / 5 warn / 4 off, 0 fail** across 18 channels. Warnings are watched conditions, not failures — Reddit + frontends flip with the local Redlib upstream windows, and the `hermes-upstream` / `agent-reach` warns are by-design review gates. Scores rank leads; they do not verify claims or authorize automatic GBrain ingestion.
 
-- **Tests:** 230 passing (from 218 this morning) · **PhD gauntlet:** 100/100 — 4 cases, 10 hard-source lanes.
-- **Live sweep** (`search all --execute --extract --score`): 7/7 lanes execute; 21 hits discovered, 16/21 with readable content:
+- **Tests:** 241 passing (from 218 this morning) · **PhD gauntlet:** 100/100 — 4 cases, 10 hard-source lanes.
+- **Live sweep** (`search all --execute --extract --score`): 7/7 lanes execute; 21 hits discovered, **19/21 with readable content**:
   - web, github, x — full content extraction ✔
   - tiktok, instagram — captions + engagement metadata ✔
-  - youtube — transcripts via residential proxy when YouTube serves them (2/3 on the last sweep)
-  - reddit — discovery always; thread content is best-effort (local Redlib window or old.reddit through the residential route pool, shell-skipping and failover — see "Honest limits" in `docs/boss-architecture.md`)
+  - **reddit — discovery always, thread content now ALWAYS-ON**: local Redlib when its upstream window is open, otherwise **PullPush / Arctic Shift** (Pushshift successors) serve post + top-20 comments via public JSON APIs that answer any IP; old.reddit through the residential pool as last resort
+  - youtube — transcripts (2/3 typical; per-video caption windows), with JS-runtime + impersonation + timeout headroom wired
 
-**YouTube transcripts are live.** Residential proxy rotation (<proxy-provider> + <proxy-provider>, with pool failover) bypasses YouTube's VPS IP block — 3,000+ characters of clean, deduplicated auto-captions per video when it serves.
+**Reddit threads no longer depend on Redlib's windows.** PullPush + Arctic Shift extraction tiers were added 2026-10-14 — verified 3/3 threads with real content while Redlib was throttled.
+
+**YouTube transcripts are live.** Residential proxy (<proxy-provider>, with pool failover) bypasses YouTube's VPS IP block — thousands of characters of clean, deduplicated auto-captions per video when it serves.
 
 **Instagram public posts and reels extract.** Proxy-backed HTTP fetching and stealth Chrome with browser fingerprinting bypass login walls. Full captions, hashtags, and engagement data at discovery grade.
 
