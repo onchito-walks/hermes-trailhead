@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -710,6 +711,92 @@ def _fetch_instagram_embed(url: str, timeout: int = 20) -> str:
     if len(text) < 60:
         raise RuntimeError("instagram embed: caption too short")
     return text
+
+
+# ── Camofox authenticated session tier (Instagram profiles, Facebook) ──
+# Fetches through the local Camofox browser server's persistent profile,
+# whose logged-in session cookies carry onto every tab it opens. Verified
+# live 2026-10-14: Instagram profile metadata (e.g. @nasa) and Facebook
+# pages return authenticated content. Disable by pointing
+# TRAILHEAD_CAMOFOX_API at an unreachable port.
+
+_CAMOFOX_API = os.environ.get("TRAILHEAD_CAMOFOX_API", "http://127.0.0.1:9377")
+_CAMOFOX_USER = os.environ.get("TRAILHEAD_CAMOFOX_USER", "<profile-id>")
+_CAMOFOX_TAB_GROUP = "trailhead"
+
+_CAMOFOX_EXTRACT_JS = (
+    "(function(){try{"
+    "var d=document.querySelector('meta[property=\"og:description\"]')||document.querySelector('meta[name=\"description\"]');"
+    "var t=document.querySelector('meta[property=\"og:title\"]');"
+    "return JSON.stringify({title:document.title||'',og:(t&&t.content)||'',desc:(d&&d.content)||'',"
+    "text:((document.body&&document.body.innerText)||'').slice(0,9000)});"
+    "}catch(e){return JSON.stringify({error:String(e)});}})()"
+)
+
+
+def _camofox_req(path: str, payload: dict | None = None, method: str = "GET", timeout: int = 20) -> dict:
+    """Minimal JSON client for the Camofox control API on localhost."""
+    import urllib.request as _urllib_request
+
+    data = json.dumps(payload).encode() if payload is not None else None
+    req = _urllib_request.Request(
+        _CAMOFOX_API + path,
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method=method,
+    )
+    with _urllib_request.urlopen(req, timeout=timeout) as resp:
+        body = resp.read().decode()
+    return json.loads(body) if body.strip().startswith(("{", "[")) else {"raw": body}
+
+
+def _camofox_session_fetch(url: str, timeout: int = 30) -> str:
+    """Fetch page content through the Camofox persistent profile (authenticated session).
+
+    Opens a short-lived tab in the dedicated ``trailhead`` tab group, extracts
+    title / meta description / body text, then closes the tab again."""
+    created = _camofox_req(
+        "/tabs",
+        {"userId": _CAMOFOX_USER, "sessionKey": _CAMOFOX_TAB_GROUP, "url": url},
+        method="POST",
+        timeout=min(max(timeout, 10), 25),
+    )
+    tab = str(created.get("tabId") or "")
+    if not tab:
+        raise RuntimeError(f"camofox: could not open tab ({str(created)[:120]})")
+    try:
+        data = None
+        for _attempt in range(2):
+            time.sleep(3)
+            try:
+                ev = _camofox_req(
+                    f"/tabs/{tab}/evaluate",
+                    {"userId": _CAMOFOX_USER, "expression": _CAMOFOX_EXTRACT_JS},
+                    method="POST",
+                    timeout=20,
+                )
+            except Exception:
+                continue
+            res = ev.get("result")
+            if isinstance(res, str) and res.startswith("{"):
+                data = json.loads(res)
+                break
+        if not data:
+            raise RuntimeError("camofox: no page data returned")
+        text = str(data.get("text") or "")
+        if "Log into Instagram" in text[:2000] and "Mobile number" in text[:2600]:
+            raise RuntimeError("camofox: session is not logged in")
+        head = str(data.get("title") or "") or str(data.get("og") or "")
+        parts = [p for p in (head, str(data.get("desc") or ""), text) if p]
+        content = "\n\n".join(parts).strip()
+        if len(content) < 120:
+            raise RuntimeError("camofox: content too short")
+        return content
+    finally:
+        try:
+            _camofox_req(f"/tabs/{tab}?userId={_CAMOFOX_USER}", method="DELETE", timeout=10)
+        except Exception:
+            pass
 
 
 def _github_api_json(api: str, timeout: int = 15):
@@ -2028,6 +2115,31 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                 pass
         # Fall through to generic tiers (Jina etc.)
 
+    # ── Facebook: authenticated fetch through the Camofox persistent profile
+    # (logged-in session). Facebook has no loginless extraction surface from
+    # datacenter IPs — this tier is the lane's content path. ──
+    if fetch is None and ("facebook.com" in url.lower() or "fb.watch" in url.lower()):
+        try:
+            content = _camofox_session_fetch(url, timeout=max(timeout, 30))
+            if content and len(content) > 120:
+                return ExtractionResult(
+                    status="ok",
+                    content=content[:8000],
+                    content_length=len(content),
+                    source_type=source_type,
+                    video_evidence=VideoEvidence(
+                        caption_status="ok",
+                        caption_text=content[:2000],
+                        caption_transcript_status="not_attempted",
+                        visual_analysis_status="available",
+                        visual_analysis_summary=content[:2000],
+                        metadata_url=url,
+                        metadata_title=title,
+                    ),
+                )
+        except Exception:
+            pass  # No session / camofox unreachable → generic tiers below
+
     if source_type in ("tiktok", "instagram"):
 
         # ── TikTok: TikWM public API — full metadata + engagement (free, no
@@ -2134,6 +2246,31 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                     )
             except Exception:
                 pass  # Embed unavailable → self-hosted / browser tiers
+
+        # ── Instagram catch-all: authenticated fetch through the Camofox
+        # persistent profile. Profiles have no /embed/ surface, and posts
+        # whose static embed is blocked land here too (verified 2026-10-14). ──
+        if source_type == "instagram" and fetch is None:
+            try:
+                content = _camofox_session_fetch(url, timeout=max(timeout, 30))
+                if content and len(content) > 120:
+                    return ExtractionResult(
+                        status="ok",
+                        content=content[:8000],
+                        content_length=len(content),
+                        source_type=source_type,
+                        video_evidence=VideoEvidence(
+                            caption_status="ok",
+                            caption_text=content[:2000],
+                            caption_transcript_status="not_attempted",
+                            visual_analysis_status="available",
+                            visual_analysis_summary=content[:2000],
+                            metadata_url=url,
+                            metadata_title=title,
+                        ),
+                    )
+            except Exception:
+                pass  # camofox unavailable / not logged in → legacy tiers below
 
         # Primary: self-hosted scrapers (internal API for IG, tiktok-scraper for TT)
         try:

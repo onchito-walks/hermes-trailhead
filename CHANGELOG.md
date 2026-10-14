@@ -6,6 +6,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+**Added** — authenticated session tier (Camofox) for Instagram profiles & Facebook pages
+
+- New `_camofox_session_fetch` / `_camofox_req` in `extract.py`: fetch page content
+  through the local Camofox browser server's persistent, logged-in profile
+  (short-lived tab in the `trailhead` group, auto-closed afterwards).
+- Instagram: profile URLs (no `/embed/` surface) and blocked posts fall through
+  to the authenticated tier after the static embed attempt.
+- Facebook: dedicated extraction path — no loginless surface exists from
+  datacenter IPs; the session carries the content.
+- Verified live 2026-10-14: `instagram.com/nasa` → 104M followers + full authed
+  page; Facebook page fetch 200. Hermetic unit tests in `tests/test_camofox_tier.py`.
+
 **Added** — local Redlib integration for the Reddit lane
 
 - Reddit discovery now starts with the local Redlib instance

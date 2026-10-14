@@ -645,6 +645,12 @@ def test_instagram_login_shell_is_blocked_not_summary(monkeypatch):
         "_fetch_instagram_embed",
         lambda url, timeout=20: (_ for _ in ()).throw(RuntimeError("embed disabled in test")),
     )
+    # Same for the Camofox authenticated-session tier (live browser on this host).
+    monkeypatch.setattr(
+        extract_mod,
+        "_camofox_session_fetch",
+        lambda url, timeout=30: (_ for _ in ()).throw(RuntimeError("camofox disabled in test")),
+    )
 
     result = extract_mod.extract_one("https://www.instagram.com/reel/DQj40znkasX/", timeout=1)
 
