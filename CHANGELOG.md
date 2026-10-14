@@ -27,6 +27,12 @@ Versions follow [Semantic Versioning](https://semver.org/).
   shells). Only key names are checked — values are never read.
 - Restored `yt-dlp` in the project venv (YouTube discovery/transcripts had
   silently degraded to fallbacks).
+- GitHub discovery keeps numeric-axis compounds (`5 axis` → `5-axis`) in its
+  search-API query: "DIY 5 axis 3D printer" now finds Open5x, Fractal-5-Pro and
+  Gen5X instead of repos that merely contain `axis`.
+- Added `docs/KNOWN-ISSUES.md` — the parked/dead-component ledger (evidence +
+  fix scope per item) so degradations are logged when discovered, never rusting
+  silently.
 
 Adds coverage for the new Redlib parser/chain, redlib-first extraction,
 usable-route selection, proxy-pool failover, and the Hermes-env fallbacks

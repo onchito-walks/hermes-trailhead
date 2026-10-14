@@ -426,6 +426,19 @@ def test_github_api_search_url_reduces_verbose_exact_match_query():
     assert "q=voron+stealthchanger+in:title" in issues
 
 
+def test_github_query_terms_keep_numeric_axis_compounds():
+    # Regression: "DIY 5 axis 3D printer" used to reduce to the single generic
+    # term "axis" (5 and printer were dropped), returning unrelated repos
+    # (agent frameworks, AXI controllers). The compound must survive.
+    from hermes_trailhead.backends import _github_query_terms, _github_api_search_url
+
+    assert _github_query_terms("DIY 5 axis 3D printer") == ("5-axis",)
+    assert _github_query_terms("5 axis cnc router") == ("5-axis", "router")
+
+    url = _github_api_search_url("DIY 5 axis 3D printer", "repositories")
+    assert "q=5-axis" in url
+
+
 def test_instagram_result_url_rejects_popular_aggregation_pages():
     # Deep post/reel and profile routes are kept for discovery.
     assert _instagram_result_url("https://www.instagram.com/reel/DYHibt4PCLB/") is True
