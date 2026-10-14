@@ -42,6 +42,10 @@ Versions follow [Semantic Versioning](https://semver.org/).
   `--js-runtimes node` wired for YouTube challenge solving, and `curl_cffi`
   installed in the venv for extraction impersonation. The dead 407 residential
   route was pruned from the proxy failover plan.
+- Proxigram container: compose-level `NODE_OPTIONS=--dns-result-order=ipv4first`
+  resolves its IPv6/IPv4 loopback mismatch — structural routes render again
+  (was all-500). App-level IG data paths remain degraded pending browser
+  binaries (see `docs/KNOWN-ISSUES.md`).
 - Doctor: new `frontends` channel — a live map of nitter / redlib / searxng
   (plus parked proxitok / proxigram) so the container layer is visible in the
   health surface.
