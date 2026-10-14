@@ -71,7 +71,7 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 
 ## Current product state (October 14, 2026 — verified live)
 
-`hermes-trailhead doctor --live --record` on Oracle: **10 ok / 5 warn / 4 off, 0 fail** across 18 channels. Warnings are watched conditions, not failures — Reddit + frontends flip with the local Redlib upstream windows, and the `hermes-upstream` / `agent-reach` warns are by-design review gates. Scores rank leads; they do not verify claims or authorize automatic GBrain ingestion.
+`hermes-trailhead doctor --live --record` on a live deployment host: **10 ok / 5 warn / 4 off, 0 fail** across 18 channels. Warnings are watched conditions, not failures — Reddit + frontends flip with the local Redlib upstream windows, and the `hermes-upstream` / `agent-reach` warns are by-design review gates. Scores rank leads; they do not verify claims or authorize automatic GBrain ingestion.
 
 - **Tests:** 268 passing · **PhD gauntlet:** 100/100 — 4 cases, 10 hard-source lanes.
 - **Live sweep** (`search all --execute --extract --score`): 7/7 lanes execute; 28 hits discovered, **27/28 with readable content** (the 1 miss = a 17-second speechless clip, reported honestly):
@@ -98,6 +98,8 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 ## The Score
 
 **Ask anything; get what the internet actually says — with receipts, and with an honest list of what couldn't be reached.**
+
+*Machine-readable and live: `hermes-trailhead score --live` prints this scorecard with every lane probed against your own host, right now.*
 
 ### Product dimensions
 
@@ -136,6 +138,27 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 
 *The story: a research surface that makes the invisible internet visible — so that no question is answered with "I couldn't find it" when the answer was there the whole time.*
 
+## Bring your own accounts (bot-ready logins)
+
+Some of the best terrain sits behind a login: profile pages, membership forums, inboxes that receive verification codes. Trailhead covers that **without ever touching your passwords**:
+
+1. **Run a persistent browser profile** the tool can drive locally (any browser server with a saved profile and a remote screen you can open in a tab).
+2. **Sign in once, yourself.** Open the browser's remote screen and log into the accounts you want covered — your fingers, your credentials. Nothing is shared with the agent.
+3. **The session persists.** The profile saves its cookies on a clean shutdown; the tool then reads pages through that profile as you. Sign out any time to revoke everything instantly.
+
+Point the authenticated extraction tier at your profile with two environment variables (`TRAILHEAD_CAMOFOX_API`, `TRAILHEAD_CAMOFOX_USER`). With none set, the tool simply skips that tier and continues on its public routes.
+
+Recovery and verification codes land in your email — connect a mailbox (e.g. via OAuth) and the agent can read those too, with your consent and without codes ever entering a conversation.
+
+**This is how the project runs in production.** The reference sessions were captured exactly this way: one manual sign-in in a persistent browser, verified to survive restarts, then reused by every extraction — no password sharing, no cookie handling by the agent.
+
+## Privacy — what never leaves your machine
+
+- **No credentials in this repo.** No passwords, cookies, tokens, or personal emails — verified by a sweep that is part of the release checklist.
+- **Sessions live outside the code**, in the browser profile's local files on your machine.
+- **Instance specifics are environment configuration** (`HERMES_HOME`, `TRAILHEAD_CAMOFOX_*`), never source code.
+- **You are the operator.** The tool only reads pages you've already made accessible to it; logging out of the profile revokes everything.
+
 ## Quick start
 
 ```bash
@@ -144,6 +167,9 @@ python3 -m hermes_trailhead search all "your research question" --execute --limi
 
 # Check what's available on this install
 python3 -m hermes_trailhead doctor
+
+# Per-lane scorecard, with every lane probed live on your host
+python3 -m hermes_trailhead score --live
 
 # Run the deterministic product contract (no network dependency)
 python3 -m hermes_trailhead gauntlet

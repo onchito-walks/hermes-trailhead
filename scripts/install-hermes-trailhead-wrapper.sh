@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="${TRAILHEAD_REPO:-<repo-root>}"
+SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="${TRAILHEAD_REPO:-$(cd "$SELF_DIR/.." && pwd)}"
 TARGET="${TRAILHEAD_BIN:-/usr/local/bin/hermes-trailhead}"
 
 if [[ ! -d "$REPO/hermes_trailhead" ]]; then

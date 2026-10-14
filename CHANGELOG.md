@@ -6,6 +6,23 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+**Added** — `score` command: the per-lane product scorecard, live-probed
+
+- `hermes-trailhead score --live` prints each lane's grade (what a researcher
+  gets today, verified against live runs) plus a real reachability probe from
+  the local host — API routes, token status, session tier, transcript cache.
+- `--format json` for machine consumption; grades and dimensions live in
+  `hermes_trailhead/scores.py` and are re-verified when lanes change.
+
+**Security** — privacy pass for public distribution
+
+- Authenticated-tier config moved fully to environment variables
+  (`TRAILHEAD_CAMOFOX_API` / `TRAILHEAD_CAMOFOX_USER`); no instance
+  identifiers in source. Tier auto-disables when unset.
+- Instance-specific paths and host references genericized across docs and
+  scripts; `.gitignore` hardened against credential/session files.
+- Sweep verified: no passwords, cookies, tokens, or personal emails tracked.
+
 **Changed** — TikTok transcripts now prefer TikTok's native caption track (no media download)
 
 - `_fetch_tiktok_captions`: parse the page's `captionInfos` VTT URL (the same

@@ -241,6 +241,19 @@ def cmd_gauntlet(args: argparse.Namespace) -> int:
     return 0 if agg["fails"] == 0 else 1
 
 
+def cmd_score(args: argparse.Namespace) -> int:
+    import json as _json
+
+    from .scores import format_scores_text, lane_scores
+
+    payload = lane_scores(live=args.live)
+    if args.format == "json":
+        print(_json.dumps(payload, indent=2))
+    else:
+        print(format_scores_text(payload))
+    return 0
+
+
 def cmd_search(args: argparse.Namespace) -> int:
     if args.execute:
         executed = search_execute_data(args.platform, args.query, live=args.live, limit=args.limit)
@@ -447,6 +460,11 @@ def build_parser() -> argparse.ArgumentParser:
     gauntlet = sub.add_parser("gauntlet", help="Run deterministic PhD-level hard-source product contract")
     gauntlet.add_argument("--format", choices=["text", "json"], default="text")
     gauntlet.set_defaults(func=cmd_gauntlet)
+
+    score = sub.add_parser("score", help="Per-lane product scorecard (grades + live route probes with --live)")
+    score.add_argument("--format", choices=["text", "json"], default="text")
+    score.add_argument("--live", action="store_true", help="Probe each lane's key route from this host")
+    score.set_defaults(func=cmd_score)
 
     search = sub.add_parser(
         "search",
