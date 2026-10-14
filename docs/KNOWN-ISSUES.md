@@ -18,3 +18,20 @@ briefly for the record).
 | 5 | Remote public Redlib instances / Reddit OAuth | RETIRED | Blocks confirmed July 2026, re-confirmed 2026-10-14 | Do not point config at remote Redlib instances; the local instance is the route. |
 | 6 | GitHub lane relevance on numeric queries ("5 axis …") | FIXED 2026-10-14 | Before: query reduced to `axis` → unrelated repos (agent frameworks, AXI controllers). After: `5-axis` → Open5x, Fractal-5-Pro, Gen5X, CARVER_X5 | — |
 | 7 | yt-dlp missing from project venv | FIXED 2026-10-14 | Dangling `~/.local/bin/yt-dlp` symlink; YouTube lane degraded to fallbacks | — |
+
+## Fragility register (critical pass — 2026-10-14)
+
+Where the lanes are still exposed — watched, logged, never hidden:
+
+| Area | Fragility | Status |
+|------|-----------|--------|
+| Residential proxy pool | **One live route** serves YouTube transcripts + Reddit fallbacks; the second route's credentials died (disabled; restore-candidate also failed the neutral test) | Open — re-add from the provider dashboard. Transcript cache softens repeats. |
+| YouTube no-caption videos | Videos without auto-captions are a hard gap — no ASR fallback in-lane (whisper lives on r-hp, which is decoupled) | Open — an audio→ASR tier would close it. |
+| Instagram profiles | Embed tier covers posts/reels; profile URLs extract weakly (verified `blocked` 2026-10-14) | Open — the embed page has no profile form. |
+| TikTok depth | Metadata only (description/stats/music); no transcript, no comment texts | Open — TikWM's comment endpoint could be tried. |
+| X external dependency | FxTwitter is a single external dep for clean tweets (fallback: local Nitter → weak Jina page text) | Monitored — guardian Pattern 5. |
+| PullPush burst throttling | 429s under rapid probe bursts (observed, then cooled to OK) | Covered by Arctic Shift fallback; both monitored. |
+| GitHub API limits | Anonymous cap was 60 req/hr — the lane could degrade under sustained sweeps | **FIXED 2026-10-14**: `GITHUB_TOKEN` from `.env` now attached (verified 5,000/hr core + 30/min search). |
+| Reddit freshness | Very fresh threads can lag pushshift ingests | Mitigated by the Redlib live tier when its window is open. |
+| Latency | A fully blocked video can take 60–90s through the sequential tiers | Accepted; the transcript cache removes repeats. |
+| Third-party API observability | fxtwitter/tikwm/pullpush/arctic had no monitoring | **FIXED 2026-10-14**: guardian Pattern 5 checks all four every 30 min. |

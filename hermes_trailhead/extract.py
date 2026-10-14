@@ -19,7 +19,7 @@ from typing import Callable, Literal
 
 from .search import SearchHit
 from .paths import hermes_secrets_dir, hermes_state_dir
-from .backends import REDLIB_LOCAL_URL
+from .backends import REDLIB_LOCAL_URL, _github_request_headers
 
 ExtractionStatus = Literal["ok", "blocked", "error", "not_attempted"]
 TranscriptAttemptStatus = Literal["ok", "blocked", "not_available", "not_attempted"]
@@ -535,11 +535,11 @@ def _fetch_instagram_embed(url: str, timeout: int = 20) -> str:
 
 
 def _github_api_json(api: str, timeout: int = 15):
-    """GET a GitHub JSON API URL and decode it (raises on failure)."""
-    req = urllib.request.Request(
-        api,
-        headers={"Accept": "application/vnd.github+json", "User-Agent": "Hermes-Trailhead"},
-    )
+    """GET a GitHub JSON API URL and decode it (raises on failure).
+
+    Uses GITHUB_TOKEN when present (5,000 req/hr vs 60 anonymous).
+    """
+    req = urllib.request.Request(api, headers=_github_request_headers())
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8", errors="replace"))
 
