@@ -54,7 +54,7 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 | **YouTube** | Video descriptions + full spoken transcripts | ✅ via proxy |
 | **Reddit** | Thread titles, dates, excerpts, subreddit context | N/A |
 | **X/Twitter** | Post text, author, from practitioner discussions | N/A |
-| **TikTok** | Captions, hashtags, engagement stats; top comments; video audio transcripts (ASR) | Photo posts: metadata only |
+| **TikTok** | Captions, hashtags, engagement stats; top comments; transcripts (native captions → ASR fallback) | Photo posts: metadata only |
 | **Instagram** | Post/reel captions, author, hashtags; full profile pages via authenticated session | Posts: captions; profiles: session-dependent |
 | **GitHub** | Repo description, stars, forks, open issues, language, homepage | N/A |
 | **Web** | Cleaned page content, canonical docs, forums, PDFs | N/A |
