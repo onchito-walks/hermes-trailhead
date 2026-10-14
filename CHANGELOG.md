@@ -37,6 +37,11 @@ Versions follow [Semantic Versioning](https://semver.org/).
   creator content).
 - JSON output: `hits[]` follows the ranked evidence order when scoring is on
   ("ranks results by quality"); `extracted[]` stays score-sorted.
+- YouTube transcripts: per-attempt yt-dlp timeout floored at 30s (CLI extract
+  budgets passed ~10s and starved every download -> false `blocked`),
+  `--js-runtimes node` wired for YouTube challenge solving, and `curl_cffi`
+  installed in the venv for extraction impersonation. The dead 407 residential
+  route was pruned from the proxy failover plan.
 - Doctor: new `frontends` channel — a live map of nitter / redlib / searxng
   (plus parked proxitok / proxigram) so the container layer is visible in the
   health surface.
