@@ -670,11 +670,11 @@ def check_frontends(live: bool = False) -> CheckResult:
     endpoints with --live.
     """
     services = (
-        ("nitter", "http://127.0.0.1:8788", "x lane"),
-        ("redlib", REDLIB_LOCAL_URL, "reddit lane"),
-        ("searxng", "http://127.0.0.1:8099", "web/github lanes"),
-        ("proxitok", "http://127.0.0.1:8791", "tiktok lane (optional, parked)"),
-        ("proxigram", "http://127.0.0.1:8790", "instagram lane (optional, parked)"),
+        ("nitter", "http://127.0.0.1:8788/", "x lane"),
+        ("redlib", f"{REDLIB_LOCAL_URL}/", "reddit lane"),
+        ("searxng", "http://127.0.0.1:8099/search?q=test&format=json", "web/github lanes"),
+        ("proxitok", "http://127.0.0.1:8791/search?query=test", "tiktok lane (optional, parked)"),
+        ("proxigram", "http://127.0.0.1:8790/", "instagram lane (optional, parked)"),
     )
     if not live:
         return _result(
@@ -697,7 +697,7 @@ def check_frontends(live: bool = False) -> CheckResult:
         elif name == "redlib" and status_code in (403, 404):
             state = f"throttled({status_code})"
         else:
-            state = f"HTTP {status_code}"
+            state = f"not serving (HTTP {status_code})"
         states.append(f"{name} {state}")
         evidence.append(HttpEvidence("http", f"{name}: {state} ({backs})", url=url, status_code=status_code or None))
         if name in ("nitter", "searxng", "redlib") and state != "ok":
