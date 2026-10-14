@@ -779,6 +779,84 @@ def _fetch_tiktok_transcript(url: str, timeout: int = 60) -> str:
     return result
 
 
+def _tiktok_caption_url(html: str) -> str:
+    """First caption-track URL from a TikTok page (captionInfos / subtitleInfos)."""
+    for marker in ('"captionInfos":', '"subtitleInfos":'):
+        i = html.find(marker)
+        if i < 0:
+            continue
+        j = html.find('"url":"', i)
+        if j < 0:
+            continue
+        start = j + len('"url":"')
+        end = html.find('"', start)
+        if end < 0:
+            continue
+        raw = html[start:end]
+        try:
+            url = json.loads(f'"{raw}"')
+        except Exception:
+            url = raw.replace("\\u002F", "/").replace("\\/", "/")
+        if isinstance(url, str) and url.startswith("http"):
+            return url
+    return ""
+
+
+def _vtt_to_text(vtt: str) -> str:
+    """WebVTT → plain text: strip cues/timestamps/tags, collapse rolling duplicates."""
+    lines: list[str] = []
+    for ln in vtt.splitlines():
+        s = ln.strip()
+        if not s or s == "WEBVTT" or "-->" in s or s.isdigit():
+            continue
+        if s.startswith(("NOTE", "Kind:", "Language:", "STYLE", "REGION")):
+            continue
+        s = re.sub(r"<[^>]+>", "", s).strip()
+        if not s or (lines and lines[-1] == s):
+            continue
+        lines.append(s)
+    return "\n".join(lines)
+
+
+def _fetch_tiktok_captions(url: str, timeout: int = 30) -> str:
+    """TikTok's OWN caption track (WebVTT, ~1KB) parsed to text — no media download.
+
+    The video page server-renders ``captionInfos`` with a direct VTT URL (same
+    data yt-dlp lists as `eng-US vtt`). Falls back cleanly (raises) when the
+    video has no caption track — the ASR tier covers those."""
+    vid = _tiktok_video_id(url)
+    if not vid:
+        raise RuntimeError("Could not parse TikTok video id")
+    cache_dir = hermes_state_dir() / "trailhead-transcripts"
+    cache_file = cache_dir / f"tt-{vid}.captions.txt"
+    try:
+        if cache_file.exists():
+            cached = cache_file.read_text(encoding="utf-8")
+            if len(cached) > 40:
+                return cached
+    except Exception:
+        pass
+    ua = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    )
+    html = _http_text(url, timeout=timeout, headers={"User-Agent": ua, "Accept-Language": "en-US,en;q=0.9"})
+    caption_url = _tiktok_caption_url(html)
+    if not caption_url:
+        raise RuntimeError("no caption track on this video")
+    vtt = _http_text(caption_url, timeout=timeout, headers={"User-Agent": ua})
+    text = _vtt_to_text(vtt)
+    if len(text) < 40:
+        raise RuntimeError("caption track too short")
+    result = f"TikTok captions for {vid}\n\n{text}"
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_file.write_text(result, encoding="utf-8")
+    except Exception:
+        pass
+    return result
+
+
 def _fetch_instagram_embed(url: str, timeout: int = 20) -> str:
     """Public Instagram content via the loginless /embed/captioned/ page.
 
@@ -2255,14 +2333,18 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
             try:
                 content = _fetch_tikwm(url, timeout=max(timeout, 20))
                 if content and len(content) > 200:
-                    # Video audio transcript (Groq Whisper via TikWM's play URL).
-                    # Best-effort: metadata/comments never fail because of it.
+                    # Transcript tiers: TikTok's own caption track first (tiny
+                    # VTT, no media download), then ASR (Groq Whisper) for
+                    # captionless videos. Best-effort — metadata/comments never
+                    # fail because of it.
                     transcript, tr_status, tr_error = "", "not_available", ""
-                    try:
-                        transcript = _fetch_tiktok_transcript(url, timeout=max(timeout, 60))
-                        tr_status = "ok"
-                    except Exception as exc:
-                        tr_error = str(exc)[:140]
+                    for _tier, _fn in (("captions", _fetch_tiktok_captions), ("asr", _fetch_tiktok_transcript)):
+                        try:
+                            transcript = _fn(url, timeout=max(timeout, 60))
+                            tr_status = "ok"
+                            break
+                        except Exception as exc:
+                            tr_error = f"{_tier}: {str(exc)[:120]}"
                     full = content + (f"\n\n{transcript}" if transcript else "")
                     return ExtractionResult(
                         status="ok",
