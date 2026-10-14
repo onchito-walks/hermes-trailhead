@@ -906,7 +906,7 @@ def _fetch_instagram_embed(url: str, timeout: int = 20) -> str:
 # TRAILHEAD_CAMOFOX_API at an unreachable port.
 
 _CAMOFOX_API = os.environ.get("TRAILHEAD_CAMOFOX_API", "http://127.0.0.1:9377")
-_CAMOFOX_USER = os.environ.get("TRAILHEAD_CAMOFOX_USER", "<profile-id>")
+_CAMOFOX_USER = os.environ.get("TRAILHEAD_CAMOFOX_USER", "").strip()
 _CAMOFOX_TAB_GROUP = "trailhead"
 
 _CAMOFOX_EXTRACT_JS = (
@@ -939,7 +939,13 @@ def _camofox_session_fetch(url: str, timeout: int = 30) -> str:
     """Fetch page content through the Camofox persistent profile (authenticated session).
 
     Opens a short-lived tab in the dedicated ``trailhead`` tab group, extracts
-    title / meta description / body text, then closes the tab again."""
+    title / meta description / body text, then closes the tab again.
+
+    Requires ``TRAILHEAD_CAMOFOX_USER`` (the browser profile that holds YOUR
+    logged-in session) — without it the tier stays disabled and the caller
+    falls through to the next extraction tier."""
+    if not _CAMOFOX_USER:
+        raise RuntimeError("camofox: TRAILHEAD_CAMOFOX_USER is not configured")
     created = _camofox_req(
         "/tabs",
         {"userId": _CAMOFOX_USER, "sessionKey": _CAMOFOX_TAB_GROUP, "url": url},

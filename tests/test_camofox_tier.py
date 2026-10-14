@@ -15,6 +15,7 @@ import hermes_trailhead.extract as ex
 
 def test_camofox_session_fetch_formats_and_closes_tab(monkeypatch):
     calls = []
+    monkeypatch.setattr(ex, "_CAMOFOX_USER", "test-user")
 
     def fake_req(path, payload=None, method="GET", timeout=20):
         calls.append((path, method))
@@ -44,6 +45,8 @@ def test_camofox_session_fetch_formats_and_closes_tab(monkeypatch):
 
 
 def test_camofox_session_fetch_rejects_logged_out_shell(monkeypatch):
+    monkeypatch.setattr(ex, "_CAMOFOX_USER", "test-user")
+
     def fake_req(path, payload=None, method="GET", timeout=20):
         if path == "/tabs":
             return {"tabId": "tab-2"}
@@ -64,10 +67,17 @@ def test_camofox_session_fetch_rejects_logged_out_shell(monkeypatch):
 
 
 def test_camofox_session_fetch_raises_when_no_tab(monkeypatch):
+    monkeypatch.setattr(ex, "_CAMOFOX_USER", "test-user")
     monkeypatch.setattr(ex, "_camofox_req", lambda path, payload=None, method="GET", timeout=20: {"error": "browser down"})
     monkeypatch.setattr(ex.time, "sleep", lambda _s: None)
 
     with pytest.raises(RuntimeError, match="could not open tab"):
+        ex._camofox_session_fetch("https://www.instagram.com/x/")
+
+
+def test_camofox_session_fetch_requires_configured_profile(monkeypatch):
+    monkeypatch.setattr(ex, "_CAMOFOX_USER", "")
+    with pytest.raises(RuntimeError, match="TRAILHEAD_CAMOFOX_USER"):
         ex._camofox_session_fetch("https://www.instagram.com/x/")
 
 

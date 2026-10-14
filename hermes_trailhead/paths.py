@@ -5,14 +5,13 @@ same way, so doctor, reliability tracker, circuit breaker, the Guardian cron,
 and the proxy-backed extractors all agree on where secrets and state live.
 Centralizing here prevents duplicate live-vs-canonical paths.
 
-The canonical Hermes home is NOT always derived from ``$HOME``: the operator's
-login shell has ``HOME=<user-home>`` (an empty dev ``~/.hermes`` without
-config or secrets) while the real Hermes home is
-``<HERMES_ROOT>/.hermes``.  That home is exported as ``HERMES_HOME``
-by ``~/.profile`` for login shells and by the Hermes runtime for
-agent/cron sessions — so ``HERMES_HOME`` is the durable, explicit source of
-truth, with ``$HOME``-derived heuristics as fallback for chroot/container
-deployments.
+The canonical Hermes home is NOT always derived from ``$HOME``: a login shell
+may carry a plain home with an empty ``~/.hermes`` (no config, no secrets)
+while the real Hermes home lives elsewhere on the host. That location is
+exported as ``HERMES_HOME`` by the operator's profile for login shells and by
+the Hermes runtime for agent/cron sessions — so ``HERMES_HOME`` is the
+durable, explicit source of truth, with ``$HOME``-derived heuristics as
+fallback for chroot/container deployments.
 """
 from __future__ import annotations
 
@@ -61,9 +60,8 @@ def hermes_state_dir(home: Path | None = None) -> Path:
 def resolve_hermes_agent_repo(home: Path | None = None) -> Path:
     """Resolve the canonical live Hermes agent checkout.
 
-    The operator keeps the Hermes source checkout *beside* the ``.hermes``
-    home rather than inside it: ``HERMES_HOME=<HERMES_ROOT>/.hermes``
-    and the checkout is ``<HERMES_ROOT>/hermes-agent``. Resolution
+    Deployments commonly keep the Hermes source checkout *beside* the
+    ``.hermes`` home rather than inside it (siblings on disk). Resolution
     order:
 
     1. ``HERMES_AGENT_REPO`` env var (explicit override, wins).

@@ -4,3 +4,12 @@ __pycache__/
 *.pyc
 .cache/
 .venv/
+
+# Secret hygiene — never commit credentials, sessions, or tokens
+.env
+.env.*
+secrets/
+*.secret
+*secret*.json
+*cookies*.json
+*token*.json
