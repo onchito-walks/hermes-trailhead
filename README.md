@@ -1,6 +1,6 @@
 # Hermes Trailhead
 
-The internet is full of answers that search engines can''t reach. Practitioner
+The internet is full of answers that search engines can't reach. Practitioner
 discussions on X that never make it to Google. Reddit threads with the exact
 workaround you need. YouTube videos where someone explains the bug and the fix
 but the transcript lives behind a proxy wall. GitHub issues where maintainers
@@ -16,7 +16,7 @@ exactly what it could not reach.
 
 Trailhead exists because the best answer to a technical question is often on a
 platform that search engines treat as invisible. It lives to make that invisible
-terrain part of every agent''s normal research surface.
+terrain part of every agent's normal research surface.
 
 ## Mission
 
@@ -40,7 +40,7 @@ For any research question, you get:
 
 - **Links** to actual content across all seven source families
 - **Summaries** — readable captions, descriptions, and extracted text from every hit
-- **Transcripts** — spoken-word transcripts from YouTube videos (via residential proxy)
+- **Transcripts** — spoken content from YouTube and TikTok (each platform's own caption track first, full audio transcription when there are none)
 - **Quality scores** — 0-100 ranking by source authority: canonical > practitioner > current > community > generic > SEO
 - **Honest caveats** — platforms that were probed but blocked, content that is login-walled, transcripts that are unavailable
 - **Searchable metadata** — author, date, engagement stats (likes/views/shares), repository stars/forks/issues
@@ -73,13 +73,13 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 
 `hermes-trailhead doctor --live --record` on Oracle: **10 ok / 5 warn / 4 off, 0 fail** across 18 channels. Warnings are watched conditions, not failures — Reddit + frontends flip with the local Redlib upstream windows, and the `hermes-upstream` / `agent-reach` warns are by-design review gates. Scores rank leads; they do not verify claims or authorize automatic GBrain ingestion.
 
-- **Tests:** 247 passing (from 218 this morning) · **PhD gauntlet:** 100/100 — 4 cases, 10 hard-source lanes.
-- **Live sweep** (`search all --execute --extract --score`): 7/7 lanes execute; 21 hits discovered, **20/21 with readable content** (the 1 miss = a YouTube caption window; an immediate retry recovers it, and transcripts are disk-cached):
+- **Tests:** 268 passing · **PhD gauntlet:** 100/100 — 4 cases, 10 hard-source lanes.
+- **Live sweep** (`search all --execute --extract --score`): 7/7 lanes execute; 28 hits discovered, **27/28 with readable content** (the 1 miss = a 17-second speechless clip, reported honestly):
   - web — full page content ✔
   - **x — clean tweet text + engagement (FxTwitter API), local Nitter fallback (tweet + replies)** ✔
   - **reddit — always-on threads (PullPush / Arctic Shift → Redlib live → route pool)** ✔
-  - **tiktok — full metadata via TikWM (description, plays/likes/comments, music) + top comment texts** ✔
-  - **instagram — full captions + social proof via the loginless embed (2.3–2.7k chars per item)** ✔
+  - **tiktok — metadata + top comments + real transcripts (platform caption track first; full audio transcription when none)** ✔
+  - **instagram — post/reel captions + full profile pages through the authenticated session** ✔
   - **youtube — transcripts (disk cache + JS-runtime + impersonation + timeout headroom) with a Groq-Whisper ASR tier that covers captionless videos** ✔
   - **github — repo metadata + README excerpt (≈1.3k chars/repo)** ✔
 
@@ -87,11 +87,54 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 
 **YouTube transcripts are live.** Residential proxy (<proxy-provider>, with pool failover) bypasses YouTube's VPS IP block — thousands of characters of clean, deduplicated auto-captions per video when it serves.
 
-**Instagram public posts and reels extract.** Proxy-backed HTTP fetching and stealth Chrome with browser fingerprinting bypass login walls. Full captions, hashtags, and engagement data at discovery grade.
+**Instagram public posts and reels extract.** Full captions, hashtags, and engagement data at discovery grade — and profile pages now extract through the authenticated session (verified live: a 104M-follower profile returned its full metadata and page).
 
-**TikTok captions are rich.** oEmbed + rehydration blob return author, description, hashtags, and engagement stats.
+**Facebook pages extract** through the same authenticated session tier.
+
+**TikTok goes deep.** Metadata, top comments, and the video's actual spoken words — the platform's own caption track is read first (a tiny text file, near-instant), with full audio transcription as the fallback for videos that have none.
 
 **Web summaries are clean.** HTML is stripped to readable text. GitHub repos return full API metadata.
+
+## The Score
+
+**Ask anything; get what the internet actually says — with receipts, and with an honest list of what couldn't be reached.**
+
+### Product dimensions
+
+| Dimension | Grade | What that means in practice |
+|---|---|---|
+| **Breadth** | **A** | One question fans out across seven platform families at once — video, social, forum, code, and open web — in a single sweep. |
+| **Depth** | **A−** | Not links — content: captions, full threads, spoken transcripts, top comments, profile pages, repository facts. |
+| **Freshness** | **A** | Platforms are read live — this hour's threads, today's posts — not a stale index. |
+| **Authenticated reach** | **A−** | What sits behind a login is reachable too: the account inbox, plus live Instagram and Facebook sessions that persist. |
+| **Honesty** | **A** | Blocked is reported blocked, with the reason. Failure is a first-class output, never painted green. |
+| **Reliability** | **B+** | Lanes are watched and self-healing; the remaining weak spot (single-route fallbacks) is named openly in the failure ledger. |
+| **Effort & cost** | **A** | One command — or just ask your agent. Free-first by default; the entire cache weighs kilobytes, not gigabytes. |
+
+### Per-lane scorecard (verified live, October 14, 2026)
+
+| Lane | Grade | What you get |
+|---|---|---|
+| **YouTube** | **A** | Full spoken transcripts — captionless videos included |
+| **GitHub** | **A** | Repository facts, READMEs, releases, file trees |
+| **Web** | **A−** | Clean deep content — docs, forums, PDFs |
+| **Reddit** | **A−** | Full threads with comment context |
+| **X/Twitter** | **A−** | Structured posts and practitioner discussions |
+| **TikTok** | **A−** | Metadata, top comments, and the video's actual spoken words |
+| **Instagram** | **A−** | Reel/post captions plus full profile pages |
+
+*Grades describe what a researcher gets today, verified against live runs — not ambitions. A− means "strong, with named edges still worth filing down."*
+
+## Aspirations — where this goes
+
+1. **Every answer arrives with receipts.** Research you can act on without double-checking: quotes, numbers, authors, dates — each traceable to its source, extracted rather than guessed.
+2. **Nothing behind a login stays unreachable.** Email, social, membership walls — access matures into infrastructure (insured, monitored, self-healing), and the reachable frontier keeps moving outward.
+3. **The front door for every agent in the fleet.** Every bot and workflow asks its research questions here first, because answers come back grounded — and what's learned flows into durable memory, compounding over time.
+4. **Depth on every terrain.** The gaps shrink each cycle: photo posts, comment threads, long videos, niche platforms — each becomes just another lane that works.
+5. **Quiet, boring, unbreakable.** Maintenance trends to zero. A lane that breaks announces itself before anyone notices. Trust is earned by being dull.
+6. **Value you can hand to someone.** Reports that change decisions — what competitors shipped this week, what practitioners discovered, what the market is actually saying — evidence-first and story-ready.
+
+*The story: a research surface that makes the invisible internet visible — so that no question is answered with "I couldn't find it" when the answer was there the whole time.*
 
 ## Quick start
 
