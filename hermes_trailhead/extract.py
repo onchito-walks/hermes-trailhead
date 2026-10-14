@@ -18,6 +18,7 @@ from typing import Callable, Literal
 
 from .search import SearchHit
 from .paths import hermes_secrets_dir, hermes_state_dir
+from .backends import REDLIB_LOCAL_URL
 
 ExtractionStatus = Literal["ok", "blocked", "error", "not_attempted"]
 TranscriptAttemptStatus = Literal["ok", "blocked", "not_available", "not_attempted"]
@@ -247,16 +248,33 @@ def _fetch_youtube_transcript(url: str, timeout: int = 20) -> str:
 
 def _reddit_frontend_url(url: str) -> str:
     """Convert Reddit URLs to old.reddit.com for proxy-backed extraction.
-    
-    Redlib OAuth is blocked from VPS/residential IPs. old.reddit.com serves
-    full HTML without auth when fetched through a residential proxy with
-    proper browser headers. 
+
+    The local Redlib instance is attempted first (see `_redlib_thread_url`);
+    old.reddit.com remains the fallback — it serves full HTML without auth
+    when fetched through a residential proxy with proper browser headers.
     """
     parsed = urlparse(url)
     if "reddit.com" not in parsed.netloc.lower():
         return url
     # Use old.reddit.com which returns clean HTML with full post + comments
     return f"https://old.reddit.com{parsed.path}"
+
+
+def _redlib_thread_url(url: str) -> str:
+    """Map a reddit URL onto the local Redlib instance for readable HTML.
+
+    The self-hosted Redlib frontend serves post + comment HTML from localhost
+    without auth, OAuth, or a residential proxy (verified 2026-10-14).
+    """
+    parsed = urlparse(url)
+    if "reddit.com" not in parsed.netloc.lower():
+        return url
+    return f"{REDLIB_LOCAL_URL}{parsed.path or '/'}"
+
+
+def _fetch_redlib(url: str, timeout: int = 15) -> str:
+    """Fetch through the local Redlib instance (direct localhost HTTP)."""
+    return _fetch_text(url, timeout=timeout)
 
 
 def _github_api_json(api: str, timeout: int = 15):
@@ -920,60 +938,75 @@ def _proxy_failover_plan() -> list[str | None]:
     return plan
 
 
-def _fetch_proxy(url: str, timeout: int = 15) -> str:
-    """Lightweight HTTP fetch through residential proxy.
+_FETCH_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/131.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
+
+def _fetch_via_route(url: str, proxy, timeout: int = 15, *, opener_factory=None) -> str | None:
+    """Fetch a URL through ONE specific route (a proxy URL, or None = direct).
+
+    Returns the decoded body (capped at 50k chars) or None on any failure /
+    insufficient content.  Shared by the proxy-pool fetch and by callers that
+    need to inspect content per-route (e.g. skipping routes that serve shells).
+    """
+    try:
+        if opener_factory is not None:
+            opener = opener_factory(proxy)
+        elif proxy:
+            opener = urllib.request.build_opener(
+                urllib.request.ProxyHandler({"http": proxy, "https": proxy})
+            )
+        else:
+            opener = urllib.request.build_opener()
+        resp = opener.open(urllib.request.Request(url, headers=_FETCH_HEADERS), timeout=timeout)
+        raw = resp.read()
+        # Try UTF-8, fall back to latin-1
+        try:
+            text = raw.decode()
+        except UnicodeDecodeError:
+            text = raw.decode("latin-1")
+        if text and len(text) > 200:
+            return text[:50000]
+    except Exception:
+        pass
+    return None
+
+
+def _fetch_proxy(url: str, timeout: int = 15, *, opener_factory=None) -> str:
+    """HTTP fetch through the residential proxy pool with failover.
 
     Handles sites that block datacenter IPs — sits between free web_extract
     (datacenter, fast, no JS) and Browser Harness (residential, heavy, JS).
 
-    Uses the centralized proxy file.  Falls back to direct fetch if no proxy
-    is configured, making it safe to use as a universal fetcher.
+    Routes come from `_proxy_failover_plan()` (round-robin pick first, then the
+    remaining enabled proxies).  A dead route (e.g. expired residential auth
+    returning 407) must not kill the proxy tier while another enabled proxy
+    still works, and individual residential routes are observed to flake
+    per-request — so the plan runs twice before giving up.  Falls back to a
+    direct fetch when no proxy is configured, making it safe to use as a
+    universal fetcher.
     """
-    proxy = _get_proxy_url()
-    headers = {
-        "User-Agent": (
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/131.0.0.0 Safari/537.36"
-        ),
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-    }
-
-    def _try_fetch(req_url: str, use_proxy: bool) -> str | None:
-        try:
-            if use_proxy and proxy:
-                proxy_handler = urllib.request.ProxyHandler(
-                    {"http": proxy, "https": proxy}
-                )
-                opener = urllib.request.build_opener(proxy_handler)
-                req = urllib.request.Request(req_url, headers=headers)
-                resp = opener.open(req, timeout=timeout)
-            else:
-                req = urllib.request.Request(req_url, headers=headers)
-                resp = urllib.request.urlopen(req, timeout=timeout)
-            raw = resp.read()
-            # Try UTF-8, fall back to latin-1
-            try:
-                return raw.decode()
-            except UnicodeDecodeError:
-                return raw.decode("latin-1")
-        except Exception:
-            return None
-
-    # Strategy 1: proxy (residential IP — handles bot-hostile sites)
-    if proxy:
-        result = _try_fetch(url, use_proxy=True)
-        if result and len(result) > 200:
-            return result[:50000]
+    routes = [p for p in _proxy_failover_plan() if p]
+    for _round in range(2):
+        for proxy in routes:
+            result = _fetch_via_route(url, proxy, timeout=timeout, opener_factory=opener_factory)
+            if result:
+                return result
 
     # Strategy 2: direct (datacenter IP — works for most sites)
-    result = _try_fetch(url, use_proxy=False)
-    if result and len(result) > 200:
-        return result[:50000]
+    result = _fetch_via_route(url, None, timeout=timeout, opener_factory=opener_factory)
+    if result:
+        return result
 
     raise RuntimeError(
-        f"Failed to fetch {url} — both proxy and direct paths returned "
+        f"Failed to fetch {url} — proxy pool and direct paths returned "
         f"insufficient content"
     )
 
@@ -1744,22 +1777,66 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
             video_evidence=video_ev,
         )
 
-    # Reddit often blocks direct fetches; try Redlib before generic page extraction.
+    # Reddit often blocks direct fetches.  The local Redlib instance serves
+    # readable thread HTML (post + comments) straight from localhost — try it
+    # first, then old.reddit.com through the proxy tiers, before generic fetch.
     shell_seen = False
     if source_type == "reddit":
-        try:
-            content = fetcher(_reddit_frontend_url(url), timeout)
-            if _is_usable_page_text(content):
-                return ExtractionResult(
-                    status="ok",
-                    content=content,
-                    content_length=len(content),
-                    source_type=source_type,
-                )
-            if _is_html_shell(content):
-                shell_seen = True
-        except Exception:
-            pass  # Fall through to Hermes/Jina/direct fetch
+        if fetch is None:
+            try:
+                redlib_content = _fetch_redlib(_redlib_thread_url(url), timeout=timeout)
+                if _is_usable_page_text(redlib_content):
+                    return ExtractionResult(
+                        status="ok",
+                        content=redlib_content,
+                        content_length=len(redlib_content),
+                        source_type=source_type,
+                    )
+            except Exception:
+                pass  # Local Redlib not running — fall through to old.reddit
+            # old.reddit: direct first, then every residential route in the
+            # pool, taking the first route that returns USABLE content — some
+            # routes serve a logged-out shell, which is skipped, not "won".
+            try:
+                content = _fetch_text(_reddit_frontend_url(url), timeout=timeout)
+                if content and _is_usable_page_text(content):
+                    return ExtractionResult(
+                        status="ok",
+                        content=content,
+                        content_length=len(content),
+                        source_type=source_type,
+                    )
+                if content and _is_html_shell(content):
+                    shell_seen = True
+            except Exception:
+                pass
+            for _round in range(2):
+                for proxy in [p for p in _proxy_failover_plan() if p]:
+                    content = _fetch_via_route(_reddit_frontend_url(url), proxy, timeout=timeout)
+                    if content and _is_usable_page_text(content):
+                        return ExtractionResult(
+                            status="ok",
+                            content=content,
+                            content_length=len(content),
+                            source_type=source_type,
+                        )
+                    if content and _is_html_shell(content):
+                        shell_seen = True
+            # Fall through to generic tiers (direct www, Jina, Hermes extract)
+        else:
+            try:
+                content = fetcher(_reddit_frontend_url(url), timeout)
+                if _is_usable_page_text(content):
+                    return ExtractionResult(
+                        status="ok",
+                        content=content,
+                        content_length=len(content),
+                        source_type=source_type,
+                    )
+                if _is_html_shell(content):
+                    shell_seen = True
+            except Exception:
+                pass  # Fall through to Hermes/Jina/direct fetch
 
     # Try direct fetch first (fast, no subprocess).
     try:

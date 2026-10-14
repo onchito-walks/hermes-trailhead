@@ -180,8 +180,45 @@ def _youtube_search_url(query: str) -> str:
     return f"https://www.youtube.com/results?search_query={quote_plus(query)}"
 
 
+REDLIB_LOCAL_URL = "http://127.0.0.1:8789"
+
+
 def _redlib_search_url(query: str) -> str:
-    return f"https://redlib.perennialte.ch/search?q={quote_plus(query)}"
+    """Local self-hosted Redlib instance (privacy Reddit frontend).
+
+    The local instance at 127.0.0.1:8789 serves search + thread pages with
+    readable HTML (post + comments) from the VPS.  Remote public Redlib
+    instances and reddit.com OAuth stay blocked (see README prior-art note).
+    """
+    return f"{REDLIB_LOCAL_URL}/search?q={quote_plus(query)}&sort=relevance"
+
+
+def _redlib_parser() -> Callable:
+    return _parse_redlib_results
+
+
+def _parse_redlib_results(page: str, limit: int):
+    """Parse local Redlib search HTML into Reddit hits (canonical reddit.com URLs)."""
+    from .search import SearchHit
+
+    hits: list[SearchHit] = []
+    seen: set[str] = set()
+    for match in re.finditer(
+        r'<h2 class="post_title">\s*(?:<a[^>]*class="post_flair"[^>]*>.*?</a>\s*)?'
+        r'<a href="(/r/[^"]+/comments/[^"]+)"[^>]*>(.*?)</a>',
+        page,
+        flags=re.I | re.S,
+    ):
+        path = html.unescape(match.group(1)).rstrip("/")
+        title = _clean_title(html.unescape(match.group(2)))
+        url = f"https://www.reddit.com{path}"
+        if not title or url in seen or not _reddit_result_url(url):
+            continue
+        seen.add(url)
+        hits.append(SearchHit(title=title, url=url, snippet=""))
+        if len(hits) >= limit:
+            break
+    return tuple(hits)
 
 
 def _reddit_result_url(url: str) -> bool:
@@ -650,10 +687,12 @@ BACKENDS: dict[str, list[Backend]] = {
         Backend("github_search", "GitHub repository search", _github_search_url, _hp, accept_url=_github_result_url),
     ],
     "reddit": [
-        # Redlib (VPS IP blocked) and SearXNG (0 results for site:reddit.com)
-        # are unreliable for Reddit discovery on both Oracle and RackNerd.
-        # social-search binary is not installed on either machine.
-        # Jina DDG is the only working Reddit discovery backend as of 2026-07-07.
+        # Local Redlib instance serves search + threads (verified 2026-10-14):
+        # lane-native, free, no proxy needed.  Remote public Redlib instances
+        # stay blocked and the social-search binary is absent on both machines,
+        # so DDG/Jina remain as fallbacks.
+        Backend("redlib_local_search", "Local Redlib instance search",
+                _redlib_search_url, _redlib_parser, accept_url=_reddit_result_url, timeout=15),
         Backend("ddg_lite_site_reddit", "DuckDuckGo Lite site:reddit.com",
                 lambda q: _ddg_lite_url(f"site:reddit.com {q}"), _hp, accept_url=_reddit_result_url),
         Backend("jina_duckduckgo_site_reddit", "Jina Reader over DuckDuckGo site:reddit.com",

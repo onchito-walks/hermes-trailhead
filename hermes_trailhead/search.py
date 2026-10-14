@@ -155,7 +155,7 @@ def _site_query(site: str, query: str) -> str:
 
 def _search_url(engine: str, query: str) -> str:
     if engine == "redlib":
-        return f"https://redlib.perennialte.ch/search?q={quote_plus(query)}"
+        return f"{backends.REDLIB_LOCAL_URL}/search?q={quote_plus(query)}"
     if engine == "nitter":
         return f"http://localhost:8788/search?f=tweets&q={quote_plus(query)}"
     if engine == "github":
@@ -293,7 +293,7 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
 
     if platform == "reddit":
         status = "ready"
-        caveat = "Prefer Redlib/reddit-search first; browser/cookie auth requires approval."
+        caveat = "Prefer the local Redlib instance first; browser/cookie auth requires approval."
         if live:
             res = check_reddit(live=True)
             if res.status != "ok":
@@ -305,10 +305,10 @@ def action_for(platform: str, query: str, *, live: bool = False) -> SearchAction
             platform="reddit",
             status=status,
             query=query,
-            recommended_tool="Redlib, reddit-search, web_search, or hermes-trailhead --execute site search",
+            recommended_tool="Local Redlib instance, reddit-search, web_search, or hermes-trailhead --execute site search",
             direct_url=_search_url("redlib", query),
             site_query=_site_query("reddit.com", query),
-            frontend_url="https://redlib.perennialte.ch",
+            frontend_url=backends.REDLIB_LOCAL_URL,
             paid_api_required=False,
             evidence_needed=("query/subreddits", "post count", "comment/thread links", "working Redlib or Reddit links"),
             caveat=caveat,

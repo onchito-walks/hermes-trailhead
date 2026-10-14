@@ -80,6 +80,50 @@ def test_youtube_backend_filters_navigation_and_returns_video_results():
     ]
 
 
+def test_redlib_parser_extracts_canonical_thread_urls():
+    from hermes_trailhead.backends import _parse_redlib_results
+
+    page = '''
+    <h2 class="post_title">
+        <a href="/r/LocalLLaMA/search?q=flair_name%3A%22Discussion%22" class="post_flair" style="color:white;" dir="ltr"><span>Discussion</span></a>
+        <a href="/r/LocalLLaMA/comments/1w0muuz/the_rtx_3060_12gb_an_unsung_hero/">The RTX 3060 12GB: An unsung hero of local AI</a>
+    </h2>
+    <h2 class="post_title"><a href="/r/ollama/comments/1rudsyc/professionalgrade_local_ai/">Professional-grade local AI on consumer hardware</a></h2>
+    <a href="https://www.reddit.com/search?q=x">Noise search link</a>
+    '''
+    hits = _parse_redlib_results(page, 5)
+
+    assert [h.url for h in hits] == [
+        "https://www.reddit.com/r/LocalLLaMA/comments/1w0muuz/the_rtx_3060_12gb_an_unsung_hero",
+        "https://www.reddit.com/r/ollama/comments/1rudsyc/professionalgrade_local_ai",
+    ]
+
+
+def test_reddit_chain_prefers_local_redlib():
+    from hermes_trailhead.backends import _reset_circuit
+
+    _reset_circuit("redlib_local_search")
+
+    calls = []
+
+    def fake_fetch(url, timeout):
+        calls.append(url)
+        if "127.0.0.1:8789" in url:
+            return (
+                '<h2 class="post_title">'
+                '<a href="/r/LocalLLaMA/comments/1w0muuz/the_rtx_3060_12gb/">'
+                'The RTX 3060 12GB: an unsung hero of local AI'
+                "</a></h2>"
+            )
+        return ""
+
+    result = execute_backend_chain("reddit", "rtx 3060 local", limit=2, fetch=fake_fetch)
+
+    assert result.engine == "redlib_local_search"
+    assert calls and calls[0].startswith("http://127.0.0.1:8789/search")
+    assert result.hits[0].url == "https://www.reddit.com/r/LocalLLaMA/comments/1w0muuz/the_rtx_3060_12gb"
+
+
 def test_github_result_url_rejects_marketing_and_accepts_repos():
     assert _github_result_url("https://github.com/DraftShift/StealthChanger") is True
     assert _github_result_url("https://github.com/DraftShift/StealthChanger/wiki/Installation") is True
