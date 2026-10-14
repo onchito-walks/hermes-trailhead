@@ -279,7 +279,26 @@ def _tiktok_result_url(url: str) -> bool:
     parsed = urlparse(url)
     host = parsed.netloc.lower()
     path = parsed.path.lower()
+    if host.startswith("shop."):
+        # TikTok Shop listings are commercial pages, not creator content.
+        return False
     return "tiktok.com" in host and not path.startswith(("/about", "/legal", "/login"))
+
+
+def _open_web_result_url(url: str) -> bool:
+    """Web lane accepts open-web content only.
+
+    Interactive-media hosts handled by dedicated lanes (YouTube, TikTok,
+    Instagram, Facebook) are rejected here — their family lanes return them
+    with richer evidence (transcripts, captions), and a web-lane extraction of
+    a platform page mostly yields `blocked` noise at the top of the results.
+    """
+    parsed = urlparse(url)
+    host = parsed.netloc.lower()
+    return not any(
+        d in host
+        for d in ("youtube.com", "youtu.be", "tiktok.com", "instagram.com", "facebook.com", "fb.watch", "twitch.tv")
+    )
 
 
 def _instagram_result_url(url: str) -> bool:
@@ -744,11 +763,11 @@ BACKENDS: dict[str, list[Backend]] = {
                 lambda q: _ddg_lite_url(f"site:x.com {q}"), _hp, accept_url=_x_result_url),
     ],
     "web": [
-        Backend("ddg_lite", "DuckDuckGo Lite", _ddg_lite_url, _hp),
-        Backend("ddg_html", "DuckDuckGo HTML", _ddg_html_url, _hp),
-        Backend("jina_duckduckgo", "Jina Reader over DuckDuckGo", _jina_ddg_url, _mk),
-        Backend("bing_search", "Bing search", _bing_search_url, _bing_parser),
-        Backend("searxng", "Local SearXNG", _searxng_url, _searxng_parser, timeout=10),
+        Backend("ddg_lite", "DuckDuckGo Lite", _ddg_lite_url, _hp, accept_url=_open_web_result_url),
+        Backend("ddg_html", "DuckDuckGo HTML", _ddg_html_url, _hp, accept_url=_open_web_result_url),
+        Backend("jina_duckduckgo", "Jina Reader over DuckDuckGo", _jina_ddg_url, _mk, accept_url=_open_web_result_url),
+        Backend("bing_search", "Bing search", _bing_search_url, _bing_parser, accept_url=_open_web_result_url),
+        Backend("searxng", "Local SearXNG", _searxng_url, _searxng_parser, accept_url=_open_web_result_url, timeout=10),
     ],
     "tiktok": [
         Backend("ddg_lite_site_tiktok", "DuckDuckGo Lite site:tiktok.com (discovery only)",

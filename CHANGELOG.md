@@ -30,6 +30,16 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - GitHub discovery keeps numeric-axis compounds (`5 axis` → `5-axis`) in its
   search-API query: "DIY 5 axis 3D printer" now finds Open5x, Fractal-5-Pro and
   Gen5X instead of repos that merely contain `axis`.
+- Web lane rejects interactive-media hosts (youtube/tiktok/instagram/facebook)
+  at discovery — those belong to their family lanes; blocked platform pages no
+  longer surface at the top of web results.
+- TikTok lane rejects `shop.tiktok.com` listings (commercial pages, not
+  creator content).
+- JSON output: `hits[]` follows the ranked evidence order when scoring is on
+  ("ranks results by quality"); `extracted[]` stays score-sorted.
+- Doctor: new `frontends` channel — a live map of nitter / redlib / searxng
+  (plus parked proxitok / proxigram) so the container layer is visible in the
+  health surface.
 - Added `docs/KNOWN-ISSUES.md` — the parked/dead-component ledger (evidence +
   fix scope per item) so degradations are logged when discovered, never rusting
   silently.
