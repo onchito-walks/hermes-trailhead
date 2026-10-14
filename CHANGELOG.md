@@ -6,6 +6,14 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+**Changed** — TikTok transcripts now prefer TikTok's native caption track (no media download)
+
+- `_fetch_tiktok_captions`: parse the page's `captionInfos` VTT URL (the same
+  track `yt-dlp --list-subs` reports), fetch the ~1KB WebVTT, convert to
+  deduped text. Tier order: native captions → ASR fallback for captionless.
+- Verified live 2026-10-14: 563-char transcript in **2.8s** (vs ~30s via the
+  download+ASR path); all cached (`.captions.txt`).
+
 **Added** — TikTok video audio transcripts (Groq Whisper ASR)
 
 - `_fetch_tiktok_transcript`: pulls the no-watermark MP4 via TikWM's `play`
