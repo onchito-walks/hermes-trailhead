@@ -71,7 +71,7 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 
 ## Current product state (October 14, 2026 — verified live)
 
-`hermes-trailhead doctor --live --record` on Oracle: **10 ok / 4 warn / 4 off, 0 fail**. Warnings are watched conditions, not failures — Reddit flips `ok`↔`warn` with the local Redlib upstream windows, and the `hermes-upstream` / `agent-reach` warns are by-design review gates. Scores rank leads; they do not verify claims or authorize automatic GBrain ingestion.
+`hermes-trailhead doctor --live --record` on Oracle: **10 ok / 5 warn / 4 off, 0 fail** across 18 channels. Warnings are watched conditions, not failures — Reddit + frontends flip with the local Redlib upstream windows, and the `hermes-upstream` / `agent-reach` warns are by-design review gates. Scores rank leads; they do not verify claims or authorize automatic GBrain ingestion.
 
 - **Tests:** 230 passing (from 218 this morning) · **PhD gauntlet:** 100/100 — 4 cases, 10 hard-source lanes.
 - **Live sweep** (`search all --execute --extract --score`): 7/7 lanes execute; 21 hits discovered, 16/21 with readable content:
