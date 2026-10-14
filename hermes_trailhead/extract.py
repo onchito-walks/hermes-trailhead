@@ -672,6 +672,113 @@ def _fetch_tikwm(url: str, timeout: int = 25) -> str:
     return "\n\n".join(parts)
 
 
+def _tiktok_video_id(url: str) -> str:
+    m = re.search(r"/video/(\d+)", url)
+    return m.group(1) if m else ""
+
+
+def _download_small_media(url: str, out_base: str, timeout: int = 45, max_bytes: int = 24 * 1024 * 1024) -> str:
+    """Download a small media file with a byte cap; single pass, proxy pool fallback."""
+    import urllib.request as _urllib_request
+
+    last_error = ""
+    for proxy in _proxy_failover_plan():
+        path = out_base + ".mp4"
+        try:
+            req = _urllib_request.Request(
+                url,
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                        "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                    ),
+                    "Accept": "*/*",
+                },
+            )
+            proxies = {"http": proxy, "https": proxy} if proxy else {}
+            with _urllib_request.build_opener(_urllib_request.ProxyHandler(proxies)).open(req, timeout=timeout) as resp:
+                declared = resp.headers.get("Content-Length")
+                if declared and int(declared) > max_bytes:
+                    raise RuntimeError(f"media too large ({int(declared) // (1024 * 1024)}MB)")
+                total = 0
+                with open(path, "wb") as fh:
+                    while True:
+                        chunk = resp.read(256 * 1024)
+                        if not chunk:
+                            break
+                        total += len(chunk)
+                        if total > max_bytes:
+                            raise RuntimeError(f"media too large (> {max_bytes // (1024 * 1024)}MB)")
+                        fh.write(chunk)
+            return path
+        except Exception as exc:
+            last_error = str(exc)[:140]
+            try:
+                os.remove(path)
+            except Exception:
+                pass
+    raise RuntimeError(f"media download failed: {last_error or 'no route'}")
+
+
+def _fetch_tiktok_transcript(url: str, timeout: int = 60) -> str:
+    """ASR transcript for a TikTok video (Groq Whisper, free tier).
+
+    Downloads the no-watermark MP4 via TikWM's ``play`` URL (proxy-pool
+    fallback; whisper accepts mp4 directly) and caches per video id.
+    Verified 2026-10-14; honest failure on music-only / photo posts.
+    """
+    vid = _tiktok_video_id(url)
+    if not vid:
+        raise RuntimeError("Could not parse TikTok video id")
+    cache_dir = hermes_state_dir() / "trailhead-transcripts"
+    cache_file = cache_dir / f"tt-{vid}.asr.txt"
+    try:
+        if cache_file.exists():
+            cached = cache_file.read_text(encoding="utf-8")
+            if len(cached) > 50:
+                return cached
+    except Exception:
+        pass
+    api_key = _get_groq_key()
+    if not api_key:
+        raise RuntimeError("GROQ_API_KEY not configured — ASR tier unavailable")
+    data = _http_json(f"https://www.tikwm.com/api/?url={quote(url, safe='')}", timeout)
+    d = data.get("data") or {}
+    candidates = [
+        c for c in (d.get("play"), d.get("wmplay"), d.get("hdplay"))
+        if isinstance(c, str) and c.startswith("http")
+    ]
+    if not candidates:
+        raise RuntimeError("TikTok ASR: no downloadable video URL (photos post?)")
+    out_base = f"/tmp/tt-media-{vid}"
+    media_path = None
+    last_error = ""
+    for cand in candidates:
+        try:
+            media_path = _download_small_media(cand, out_base, timeout=max(timeout, 45))
+            break
+        except Exception as exc:
+            last_error = str(exc)[:140]
+    if not media_path:
+        raise RuntimeError(f"TikTok ASR: {last_error or 'download failed'}")
+    try:
+        text = _transcribe_audio_groq(media_path, api_key)
+    finally:
+        try:
+            os.remove(media_path)
+        except Exception:
+            pass
+    if not text or len(text) < 40:
+        raise RuntimeError("TikTok ASR: transcript too short or empty (music only?)")
+    result = f"TikTok ASR transcript for {vid}\n\n{text}"
+    try:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        cache_file.write_text(result, encoding="utf-8")
+    except Exception:
+        pass
+    return result
+
+
 def _fetch_instagram_embed(url: str, timeout: int = 20) -> str:
     """Public Instagram content via the loginless /embed/captioned/ page.
 
@@ -2148,15 +2255,27 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
             try:
                 content = _fetch_tikwm(url, timeout=max(timeout, 20))
                 if content and len(content) > 200:
+                    # Video audio transcript (Groq Whisper via TikWM's play URL).
+                    # Best-effort: metadata/comments never fail because of it.
+                    transcript, tr_status, tr_error = "", "not_available", ""
+                    try:
+                        transcript = _fetch_tiktok_transcript(url, timeout=max(timeout, 60))
+                        tr_status = "ok"
+                    except Exception as exc:
+                        tr_error = str(exc)[:140]
+                    full = content + (f"\n\n{transcript}" if transcript else "")
                     return ExtractionResult(
                         status="ok",
-                        content=content[:8000],
-                        content_length=len(content),
+                        content=full[:8000],
+                        content_length=len(full),
                         source_type=source_type,
                         video_evidence=VideoEvidence(
                             caption_status="ok",
                             caption_text=content[:2000],
-                            caption_transcript_status="not_attempted",
+                            caption_transcript_status=tr_status,
+                            caption_transcript=transcript[:4000],
+                            caption_transcript_length=len(transcript),
+                            caption_transcript_error=tr_error if tr_status != "ok" else "",
                             visual_analysis_status="available",
                             visual_analysis_summary=content[:2000],
                             metadata_url=url,

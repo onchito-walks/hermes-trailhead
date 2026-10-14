@@ -6,6 +6,17 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+**Added** — TikTok video audio transcripts (Groq Whisper ASR)
+
+- `_fetch_tiktok_transcript`: pulls the no-watermark MP4 via TikWM's `play`
+  URL (proxy-pool fallback, 24MB cap) and transcribes with Groq's free-tier
+  whisper-large-v3-turbo; cached per video id (`.asr.txt`).
+- Wired into the primary TikWM tier: metadata + comments + transcript in one
+  extraction; transcript failures (photo posts, music-only) degrade to an
+  honest `not_available` and never block the metadata result.
+- Verified live 2026-10-14: 467-char spoken transcript on a real TikTok.
+  Hermetic tests in `tests/test_tiktok_asr_tier.py` (264 total passing).
+
 **Added** — authenticated session tier (Camofox) for Instagram profiles & Facebook pages
 
 - New `_camofox_session_fetch` / `_camofox_req` in `extract.py`: fetch page content
