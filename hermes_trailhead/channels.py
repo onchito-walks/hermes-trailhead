@@ -7,12 +7,13 @@ import json
 import os
 import shutil
 import subprocess
+import urllib.error
 import urllib.request
 from typing import Callable, Literal
 
 
 from .paths import resolve_hermes_agent_repo, resolve_hermes_home
-from .backends import _resolve_ytdlp
+from .backends import REDLIB_LOCAL_URL, _resolve_ytdlp
 
 
 HERMES_HOME = resolve_hermes_home()
@@ -259,6 +260,14 @@ def _real_http(method: str, url: str, timeout: int = 5) -> tuple[int, str]:
         resp = urllib.request.urlopen(req, timeout=timeout)
         body = resp.read(512).decode("utf-8", errors="replace")[:100]
         return resp.status, body
+    except urllib.error.HTTPError as exc:
+        # Surface the HTTP status (e.g. 404/503) instead of an unreachable 0,
+        # so a running-but-failing service is reported accurately.
+        try:
+            body = exc.read(512).decode("utf-8", errors="replace")[:100]
+        except Exception:
+            body = str(exc)
+        return exc.code, body
     except Exception as exc:
         return 0, str(exc)
 
@@ -294,6 +303,27 @@ def _contains(path: Path, needle: str) -> bool:
         return needle in _io.read_text(path)
     except Exception:
         return False
+
+
+def _env_or_hermes_env(var_name: str) -> tuple[bool, str]:
+    """True when *var_name* is set in the process env, or present in $HERMES_HOME/.env.
+
+    The doctor often runs outside the gateway process, so provider keys that
+    Hermes loads from its env file would otherwise be misreported as absent.
+    Only the KEY NAME is checked in the env file — values are never read.
+    """
+    if _io.getenv(var_name):
+        return True, "process env"
+    env_path = HERMES_HOME / ".env"
+    try:
+        if _io.exists(env_path):
+            for line in _io.read_text(env_path).splitlines():
+                name = line.split("=", 1)[0].strip()
+                if name == var_name:
+                    return True, f"{env_path} (Hermes env)"
+    except Exception:
+        pass
+    return False, ""
 
 
 def _cron_jobs() -> list[dict]:
@@ -428,38 +458,63 @@ def check_x_search(live: bool = False) -> CheckResult:
 
 
 def check_reddit(live: bool = False) -> CheckResult:
-    redlib = "https://redlib.perennialte.ch"
+    local = REDLIB_LOCAL_URL
+    remote = "https://redlib.perennialte.ch"
 
     if live:
+        local_note = "local instance not reachable"
         try:
-            status_code, body = _io.http_get(redlib, timeout=5)
+            status_code, _body = _io.http_get(local, timeout=8)
             if 200 <= status_code < 400:
                 return _result(
                     "ok",
-                    f"Redlib frontend is live and responding at {redlib} (HTTP {status_code}).",
-                    evidence=(HttpEvidence("http", f"Redlib responded HTTP {status_code}, body preview: {body}", url=redlib, status_code=status_code),),
+                    f"Local Redlib instance is live at {local} (HTTP {status_code}); search + thread extraction available.",
+                    evidence=(
+                        HttpEvidence("http", f"Local Redlib responded HTTP {status_code}", url=local, status_code=status_code),
+                        PolicyEvidence("memory", f"Local Redlib instance preferred over remote frontends: {local}"),
+                    ),
+                )
+            if status_code:
+                local_note = f"local instance running but not serving (HTTP {status_code} — Reddit upstream throttled)"
+        except Exception:
+            pass  # Local instance down — fall back to the remote probe below
+
+        try:
+            status_code, body = _io.http_get(remote, timeout=8)
+            if 200 <= status_code < 400:
+                return _result(
+                    "ok",
+                    f"Remote Redlib frontend at {remote} is live (HTTP {status_code}); {local_note}.",
+                    evidence=(
+                        HttpEvidence("http", f"Redlib responded HTTP {status_code}, body preview: {body}", url=remote, status_code=status_code),
+                        PolicyEvidence("memory", "Local Redlib instance first; remote as fallback"),
+                    ),
                 )
             return _result(
                 "warn",
-                f"Redlib frontend at {redlib} returned HTTP {status_code}; fall back to existing reddit-search tooling.",
+                f"Redlib not serving right now ({local_note}; remote {remote} returned HTTP {status_code}); reddit-search tooling stands in.",
                 evidence=(
-                    HttpEvidence("http", f"Redlib returned HTTP {status_code}", url=redlib, status_code=status_code),
-                    PolicyEvidence("memory", f"Configured Redlib frontend: {redlib}"),
+                    HttpEvidence("http", f"Remote Redlib returned HTTP {status_code}", url=remote, status_code=status_code),
+                    PolicyEvidence("memory", f"Configured Redlib routes: local {local}, remote {remote}"),
                 ),
                 error_kind="network_error",
             )
         except Exception as exc:
             return _result(
                 "warn",
-                f"Redlib frontend at {redlib} not reachable ({exc}); fall back to existing reddit-search tooling.",
+                f"Redlib not serving right now ({local_note}; remote probe failed: {exc}); reddit-search tooling stands in.",
                 evidence=(
-                    HttpEvidence("http", f"Redlib probe failed: {exc}", url=redlib),
-                    PolicyEvidence("memory", f"Configured Redlib frontend: {redlib}"),
+                    HttpEvidence("http", f"Remote Redlib probe failed: {exc}", url=remote),
+                    PolicyEvidence("memory", f"Configured Redlib routes: local {local}, remote {remote}"),
                 ),
                 error_kind="network_error",
             )
 
-    return _result("ok", f"Prefer Redlib/privacy frontend or existing reddit-search tooling. Known Redlib: {redlib}", evidence=(PolicyEvidence("memory", f"Configured Redlib frontend: {redlib}"),))
+    return _result(
+        "ok",
+        f"Prefer the local Redlib instance ({local}) or existing reddit-search tooling. Remote fallback: {remote}",
+        evidence=(PolicyEvidence("memory", f"Local Redlib instance: {local}"),),
+    )
 
 
 def check_youtube() -> CheckResult:
@@ -554,8 +609,9 @@ def check_agent_reach_upstream() -> CheckResult:
 # ── New tool channel checks ───────────────────────────────────────────────
 
 def check_firecrawl() -> CheckResult:
-    if _io.getenv("FIRECRAWL_API_KEY"):
-        return _result("ok", "FIRECRAWL_API_KEY present; Firecrawl available for crawl/search/extract.", evidence=(EnvEvidence("env", "FIRECRAWL_API_KEY is present", var_name="FIRECRAWL_API_KEY"),), category="external_tooling")
+    present, where = _env_or_hermes_env("FIRECRAWL_API_KEY")
+    if present:
+        return _result("ok", f"FIRECRAWL_API_KEY present ({where}); Firecrawl available for crawl/search/extract.", evidence=(EnvEvidence("env", f"FIRECRAWL_API_KEY is present ({where})", var_name="FIRECRAWL_API_KEY"),), category="external_tooling")
     return _result("off", "No FIRECRAWL_API_KEY; Firecrawl not configured. Crawl4AI or Hermes web_extract can serve as fallbacks.", action="Set FIRECRAWL_API_KEY only if the crawl/extract budget justifies it.", evidence=(EnvEvidence("env", "FIRECRAWL_API_KEY absent", var_name="FIRECRAWL_API_KEY"),), error_kind="config_missing", category="external_tooling")
 
 
@@ -570,8 +626,11 @@ def check_crawl4ai() -> CheckResult:
 
 
 def check_browserbase() -> CheckResult:
-    if _io.getenv("BROWSERBASE_API_KEY") or _io.getenv("BROWSERBASE_PROJECT_ID"):
-        return _result("ok", "Browserbase credentials present; hosted browser infrastructure available.", evidence=(EnvEvidence("env", "Browserbase env vars present", var_name="BROWSERBASE_API_KEY"),), approval_required=True, category="external_tooling")
+    key_present, key_where = _env_or_hermes_env("BROWSERBASE_API_KEY")
+    proj_present, proj_where = _env_or_hermes_env("BROWSERBASE_PROJECT_ID")
+    if key_present or proj_present:
+        where = key_where or proj_where
+        return _result("ok", f"Browserbase credentials present ({where}); hosted browser infrastructure available.", evidence=(EnvEvidence("env", f"Browserbase env vars present ({where})", var_name="BROWSERBASE_API_KEY"),), approval_required=True, category="external_tooling")
     return _result("off", "Browserbase not configured. Use Hermes browser tools for interactive work.", action="Set BROWSERBASE_API_KEY and BROWSERBASE_PROJECT_ID only when agent-native browser tools are insufficient.", evidence=(EnvEvidence("env", "BROWSERBASE_API_KEY absent", var_name="BROWSERBASE_API_KEY"),), error_kind="config_missing", category="external_tooling")
 
 
@@ -586,8 +645,9 @@ def check_jina_reader() -> CheckResult:
 
 
 def check_exa() -> CheckResult:
-    if _io.getenv("EXA_API_KEY"):
-        return _result("ok", "EXA_API_KEY present; Exa semantic search available.", evidence=(EnvEvidence("env", "EXA_API_KEY is present", var_name="EXA_API_KEY"),), category="external_tooling")
+    present, where = _env_or_hermes_env("EXA_API_KEY")
+    if present:
+        return _result("ok", f"EXA_API_KEY present ({where}); Exa semantic search available.", evidence=(EnvEvidence("env", f"EXA_API_KEY is present ({where})", var_name="EXA_API_KEY"),), category="external_tooling")
     return _result("off", "No EXA_API_KEY; Exa not configured. Hermes web_search serves as the default discovery engine.", evidence=(EnvEvidence("env", "EXA_API_KEY absent", var_name="EXA_API_KEY"),), error_kind="config_missing", category="external_tooling")
 
 

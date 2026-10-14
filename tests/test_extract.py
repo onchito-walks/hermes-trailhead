@@ -169,6 +169,60 @@ def test_reddit_extraction_uses_old_reddit_frontend_before_generic_extract(monke
     assert seen == ["https://old.reddit.com/r/VORONDesign/comments/abc123/title/"]
 
 
+def test_reddit_extraction_uses_local_redlib_first(monkeypatch):
+    from hermes_trailhead import extract as extract_mod
+
+    seen = []
+
+    def fake_redlib(url, timeout=15):
+        seen.append(url)
+        return "<html><body>" + ("Local Redlib thread content about StealthChanger build. " * 5) + "</body></html>"
+
+    monkeypatch.setattr(extract_mod, "_fetch_redlib", fake_redlib)
+
+    result = extract_mod.extract_one("https://www.reddit.com/r/VORONDesign/comments/abc123/title/")
+
+    assert result.status == "ok"
+    assert result.source_type == "reddit"
+    assert seen == ["http://127.0.0.1:8789/r/VORONDesign/comments/abc123/title/"]
+
+
+def test_redlib_thread_url_maps_reddit_paths():
+    from hermes_trailhead.extract import _redlib_thread_url
+
+    assert _redlib_thread_url("https://www.reddit.com/r/VORONDesign/comments/abc123/title/") == "http://127.0.0.1:8789/r/VORONDesign/comments/abc123/title/"
+    assert _redlib_thread_url("https://example.com/x") == "https://example.com/x"
+
+
+def test_reddit_extraction_skips_shell_routes_and_uses_usable_route(monkeypatch):
+    """Routes that serve a logged-out shell must not win; the first route
+    with usable content is used."""
+    import hermes_trailhead.extract as extract_mod
+
+    def dead_redlib(url, timeout=15):
+        raise RuntimeError("redlib down")
+
+    def dead_direct(url, timeout=15):
+        raise RuntimeError("403 blocked")
+
+    def fake_route(url, proxy, timeout=15, *, opener_factory=None):
+        assert "old.reddit.com" in url
+        if proxy == "http://shell.example:1":
+            return "<html><body>" + ("reddit home popular login signup " * 400) + "</body></html>"
+        usable = " ".join(f"word{i} content{i} detail{i}" for i in range(60))
+        return f"<html><body>{usable}</body></html>"
+
+    monkeypatch.setattr(extract_mod, "_fetch_redlib", dead_redlib)
+    monkeypatch.setattr(extract_mod, "_fetch_text", dead_direct)
+    monkeypatch.setattr(extract_mod, "_proxy_failover_plan", lambda: ["http://shell.example:1", "http://good.example:1"])
+    monkeypatch.setattr(extract_mod, "_fetch_via_route", fake_route)
+
+    result = extract_mod.extract_one("https://www.reddit.com/r/LocalLLaMA/comments/abc123/title/")
+
+    assert result.status == "ok"
+    assert "word59 content59 detail59" in result.content
+
+
 def test_reddit_frontend_url_preserves_path():
     assert _reddit_frontend_url("https://www.reddit.com/r/VORONDesign/comments/abc123/title/") == "https://old.reddit.com/r/VORONDesign/comments/abc123/title/"
 
@@ -389,3 +443,65 @@ def test_instagram_session_reads_canonical_secrets(tmp_path, monkeypatch):
     canonical = _canonical_env(tmp_path, monkeypatch)
     (canonical / "secrets" / "instagram-session.txt").write_text("session-cookie")
     assert extract_mod._get_instagram_session() == "session-cookie"
+
+
+def test_fetch_proxy_fails_over_across_routes_and_flaky_rounds(monkeypatch):
+    """A dead residential route (407) must not kill the proxy tier while
+    another enabled proxy still works; per-request 407 flakes are retried."""
+    import hermes_trailhead.extract as extract_mod
+
+    monkeypatch.setattr(
+        extract_mod,
+        "_proxy_failover_plan",
+        lambda: ["http://dead.example:1", "http://alive.example:1"],
+    )
+
+    calls: list[str | None] = []
+    alive_attempts: list[int] = []
+
+    class FakeResp:
+        def read(self):
+            return b"<html><body>" + b"real proxy content " * 30 + b"</body></html>"
+
+    class FakeOpener:
+        def __init__(self, proxy):
+            self.proxy = proxy
+
+        def open(self, req, timeout=None):
+            calls.append(self.proxy)
+            if self.proxy == "http://dead.example:1":
+                raise RuntimeError("407 Proxy Authentication Required")
+            alive_attempts.append(1)
+            if len(alive_attempts) == 1:
+                raise RuntimeError("407 transient flake")
+            return FakeResp()
+
+    out = extract_mod._fetch_proxy("https://example.com/page", timeout=5, opener_factory=FakeOpener)
+
+    assert "real proxy content" in out
+    assert calls[0] == "http://dead.example:1"
+    assert calls.count("http://dead.example:1") == 2  # both rounds tried the dead route
+    assert len(alive_attempts) == 2  # first flake retried in round 2
+
+
+def test_fetch_proxy_direct_fallback_without_routes(monkeypatch):
+    """No configured proxies: the tier still attempts a direct fetch."""
+    import hermes_trailhead.extract as extract_mod
+
+    monkeypatch.setattr(extract_mod, "_proxy_failover_plan", lambda: [None])
+
+    class FakeResp:
+        def read(self):
+            return b"<html>direct fallback content here</html>" * 12
+
+    class FakeOpener:
+        def __init__(self, proxy):
+            self.proxy = proxy
+
+        def open(self, req, timeout=None):
+            assert self.proxy is None
+            return FakeResp()
+
+    out = extract_mod._fetch_proxy("https://example.com/page", timeout=5, opener_factory=FakeOpener)
+
+    assert "direct fallback content" in out

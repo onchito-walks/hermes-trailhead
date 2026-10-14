@@ -54,7 +54,7 @@ def test_search_reddit_uses_loginless_redlib(capsys):
     assert rc == 0
     action = data["actions"][0]
     assert action["platform"] == "reddit"
-    assert "redlib.perennialte.ch" in action["direct_url"]
+    assert "127.0.0.1:8789" in action["direct_url"]
     assert action["approval_required"] is False
     assert action["paid_api_required"] is False
 
