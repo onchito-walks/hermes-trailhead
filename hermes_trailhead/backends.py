@@ -454,15 +454,44 @@ def _run_ytdlp_flat_search(query: str, limit: int, *, timeout: int = 20, runner:
     return tuple(hits)
 
 
+def _github_query_terms(query: str) -> tuple[str, ...]:
+    """Query terms for GitHub's search API.
+
+    GitHub search is near-exact (all terms must match), so numeric-axis
+    compounds are kept as hyphenated tokens ("5 axis" -> "5-axis") — the
+    generic web/social tokenizer drops both halves ("5" for length, "axis"
+    only survives alone), which reduced queries like "DIY 5 axis 3D printer"
+    to the single generic term "axis" and returned unrelated repos.
+    """
+    tokens = re.findall(r"[a-z0-9]+", query.lower())
+    terms: list[str] = []
+    skip_next = False
+    for i, tok in enumerate(tokens):
+        if skip_next:
+            skip_next = False
+            continue
+        nxt = tokens[i + 1] if i + 1 < len(tokens) else ""
+        if tok.isdigit() and nxt == "axis":
+            compound = f"{tok}-axis"
+            if compound not in terms:
+                terms.append(compound)
+            skip_next = True
+            continue
+        if len(tok) >= 4 and tok not in QUERY_STOPWORDS and tok not in terms:
+            terms.append(tok)
+    return tuple(terms)
+
+
 def _github_api_search_url(query: str, endpoint: str) -> str:
     """GitHub public search API URL (free, no auth, rate-limited unauthenticated).
 
     GitHub search is exact-match over the raw query string, unlike web search:
     a verbose multi-word query (e.g. "VORON Stealthchanger 3D printer") returns
     zero results because every token must match.  Reduce to the top meaningful
-    terms so the API finds the canonical repos/issues the caller actually wants.
+    terms (keeping numeric-axis compounds like "5-axis") so the API finds the
+    canonical repos/issues the caller actually wants.
     """
-    terms = _query_terms(query)
+    terms = _github_query_terms(query)
     gh_query = " ".join(terms) if terms else query
     qualifier = "+in:title" if endpoint == "issues" else ""
     return f"https://api.github.com/search/{endpoint}?q={quote_plus(gh_query)}{qualifier}&per_page=6"
