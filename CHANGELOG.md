@@ -69,6 +69,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Guardian Pattern 5: monitors the third-party content APIs (FxTwitter,
   TikWM, PullPush, Arctic Shift) every 30 minutes; 429 = throttled (window),
   not down. Fragility register added to `docs/KNOWN-ISSUES.md`.
+- **TikTok depth**: TikWM's comment endpoint wired — videos now carry top-10
+  score-ranked comment texts (1,036 vs 445 chars on the reference video).
+- **YouTube ASR tier — the captionless gap is closed**: `_fetch_youtube_asr`
+  downloads bestaudio through the proxy pool and transcribes with Groq's
+  free-tier whisper-large-v3-turbo (verified live: 6,874 chars on MUDgtjQBERI,
+  matching its captions; genuinely speechless clips report honestly, never
+  fabricated). Groq's API sits behind Cloudflare — browser UA + Origin needed
+  (403 error 1010 without, same signature as the opencode.ai GO tier).
+- Instagram profiles: `web_profile_info` is walled (429 from both the
+  datacenter IP and the residential route; bot-UA profile pages are generic
+  shells) — posts/reels remain covered by the embed tier; profiles stay a
+  logged gap, no loginless method found.
 - Doctor: new `frontends` channel — a live map of nitter / redlib / searxng
   (plus parked proxitok / proxigram) so the container layer is visible in the
   health surface.
