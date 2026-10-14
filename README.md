@@ -18,6 +18,22 @@ Trailhead exists because the best answer to a technical question is often on a
 platform that search engines treat as invisible. It lives to make that invisible
 terrain part of every agent''s normal research surface.
 
+## Mission
+
+Make the hard-to-reach, high-signal internet part of every agent's normal research surface.
+
+## Goals
+
+1. **Find evidence where it actually lives.** Seven source families — X/Twitter, Reddit, YouTube, TikTok, Instagram, GitHub, and the open web — each with its own discovery chain and automatic failover.
+2. **Take the best free-first route that works right now.** Loginless public access by default; privacy frontends, residential proxies, and browser escalation are fallbacks, not requirements. No accounts, no paid APIs by default.
+3. **Return evidence, not coverage theater.** Every hit ships as `url + title + summary + score + transcript_status`, with honest caveats for anything that could not be reached.
+4. **Rank by source authority.** 0–100 quality scores across canonical → practitioner → current → community → generic → SEO tiers.
+5. **Say what is blind.** Blocked lanes, login walls, and dead links are reported as such — never painted green.
+
+## Non-goals
+
+Trailhead is **not** a crawler, a browser automation framework, a scraping toolkit, a SaaS connector marketplace, a credential broker, a social bot, or a public MCP registry. Generic web fetch/extract/crawl and browser automation are **Hermes-native** capabilities that Trailhead routes to; Trailhead owns source terrain, route choice, evidence requirements, and honest blind spots.
+
 ## What Trailhead delivers
 
 For any research question, you get:
@@ -53,25 +69,22 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 
 **Honest about limits.** Login-walled content, JS-rendered shells, VPS IP blocks — these are reported truthfully with caveats, not painted green.
 
-## Current product state (September 20, 2026 — v1.0.0)
+## Current product state (October 14, 2026 — verified live)
 
-All seven source families have implemented discovery/extraction routes, with links, summaries, and quality scores when the active backend works. This table describes the release's implemented routes, **not a guarantee that every lane is reachable on every host or for every query**. Check `hermes-trailhead doctor --format json` and the per-query `search all` caveats before claiming coverage. On Oracle on 2026-09-30, the doctor reported 9 ok / 3 warn / 6 off auxiliary channels (X warn; dedicated Instagram frontend off); a search returned irrelevant social hits alongside useful web sources. Scores rank leads; they do not verify claims or authorize automatic GBrain ingestion.
+`hermes-trailhead doctor --live --record` on Oracle: **10 ok / 4 warn / 4 off, 0 fail**. Warnings are watched conditions, not failures — Reddit flips `ok`↔`warn` with the local Redlib upstream windows, and the `hermes-upstream` / `agent-reach` warns are by-design review gates. Scores rank leads; they do not verify claims or authorize automatic GBrain ingestion.
 
-```
-web        ✅  canonical docs    score: 87
-x          ✅  practitioner posts score: 45
-reddit     ✅  thread excerpts    score: 70
-tiktok     ✅  captions + stats   score: 30
-instagram  ✅  post/reel captions score: 25
-youtube    ✅  full transcripts   score: 50
-github     ✅  repo metadata      score: 70
-```
+- **Tests:** 230 passing (from 218 this morning) · **PhD gauntlet:** 100/100 — 4 cases, 10 hard-source lanes.
+- **Live sweep** (`search all --execute --extract --score`): 7/7 lanes execute; 21 hits discovered, 16/21 with readable content:
+  - web, github, x — full content extraction ✔
+  - tiktok, instagram — captions + engagement metadata ✔
+  - youtube — transcripts via residential proxy when YouTube serves them (2/3 on the last sweep)
+  - reddit — discovery always; thread content is best-effort (local Redlib window or old.reddit through the residential route pool, shell-skipping and failover — see "Honest limits" in `docs/boss-architecture.md`)
 
-**YouTube transcripts are live.** Residential proxy rotation (<proxy-provider> + <proxy-provider>) bypasses YouTube's VPS IP block. 3,000+ characters of clean, deduplicated auto-captions per video.
+**YouTube transcripts are live.** Residential proxy rotation (<proxy-provider> + <proxy-provider>, with pool failover) bypasses YouTube's VPS IP block — 3,000+ characters of clean, deduplicated auto-captions per video when it serves.
 
-**Instagram public posts and reels extract.** Proxy-backed HTTP fetching and stealth Chrome with browser fingerprinting bypass login walls. Full captions, hashtags, and engagement data.
+**Instagram public posts and reels extract.** Proxy-backed HTTP fetching and stealth Chrome with browser fingerprinting bypass login walls. Full captions, hashtags, and engagement data at discovery grade.
 
-**TikTok captions are rich.** oEmbed returns author, description, hashtags, and engagement stats.
+**TikTok captions are rich.** oEmbed + rehydration blob return author, description, hashtags, and engagement stats.
 
 **Web summaries are clean.** HTML is stripped to readable text. GitHub repos return full API metadata.
 
@@ -130,8 +143,8 @@ See [`TEAM.md`](TEAM.md) for the engineering team structure.
 ## Prior art
 
 - **[Agent-Reach](https://github.com/Panniantong/Agent-Reach)** — the direct launchpad for the access doctrine: channel registry, probes, upstream-tool realism
-- **Jina Reader, yt-dlp, Tavily, social-search, old.reddit.com** — pragmatic access paths for current social/practitioner signal.
-  (Redlib is not listed: Reddit blocks its OAuth flow from datacenter and residential IPs, so the Reddit lane extracts via `old.reddit.com` through the residential proxy instead.)
+- **Jina Reader, yt-dlp, Tavily, old.reddit.com, local Redlib** — pragmatic access paths for current social/practitioner signal.
+  (The local self-hosted Redlib instance serves search and thread pages for the Reddit lane's discovery and extraction fallback; public remote Redlib instances and Reddit OAuth remain blocked. `social-search` is an optional composite tool that is not installed on the current fleet — the Reddit lane does not require it.)
 - **Firecrawl, Crawl4AI, Puppeteer** — mature extraction primitives Trailhead routes to, not replaces
 
 ## Launchpad

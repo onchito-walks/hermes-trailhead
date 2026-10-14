@@ -6,6 +6,32 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+**Added** — local Redlib integration for the Reddit lane
+
+- Reddit discovery now starts with the local Redlib instance
+  (`http://127.0.0.1:8789`, backend `redlib_local_search`); DDG/Jina remain as
+  fallbacks. Remote public Redlib instances and Reddit OAuth stay blocked.
+- Reddit extraction tries the local Redlib thread view first, then
+  old.reddit.com direct, then every residential route in the pool — skipping
+  routes that serve a logged-out shell and taking the first route with usable
+  content (verified serving full 330KB thread content when a route cooperates).
+- `_fetch_proxy` now fails over across the whole residential proxy pool and
+  retries once — a dead or flaky route (e.g. per-request 407) no longer kills
+  the proxy tier while another enabled route works.
+
+**Fixed** — doctor reporting drift + YouTube lane regression
+
+- The live Redlib check probes the local instance first (remote as fallback);
+  Firecrawl / Browserbase / Exa checks also recognise keys present in the
+  Hermes `.env` the gateway loads (they previously read as "off" from bare
+  shells). Only key names are checked — values are never read.
+- Restored `yt-dlp` in the project venv (YouTube discovery/transcripts had
+  silently degraded to fallbacks).
+
+Adds coverage for the new Redlib parser/chain, redlib-first extraction,
+usable-route selection, proxy-pool failover, and the Hermes-env fallbacks
+(test baseline 230).
+
 **Fixed** — false-success extraction and evidence scoring
 
 - The extractor's own failure narration (e.g. `Extraction failed: web_extract is
