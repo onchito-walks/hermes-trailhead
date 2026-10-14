@@ -73,12 +73,15 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 
 `hermes-trailhead doctor --live --record` on Oracle: **10 ok / 5 warn / 4 off, 0 fail** across 18 channels. Warnings are watched conditions, not failures — Reddit + frontends flip with the local Redlib upstream windows, and the `hermes-upstream` / `agent-reach` warns are by-design review gates. Scores rank leads; they do not verify claims or authorize automatic GBrain ingestion.
 
-- **Tests:** 241 passing (from 218 this morning) · **PhD gauntlet:** 100/100 — 4 cases, 10 hard-source lanes.
-- **Live sweep** (`search all --execute --extract --score`): 7/7 lanes execute; 21 hits discovered, **19/21 with readable content**:
-  - web, github, x — full content extraction ✔
-  - tiktok, instagram — captions + engagement metadata ✔
-  - **reddit — discovery always, thread content now ALWAYS-ON**: local Redlib when its upstream window is open, otherwise **PullPush / Arctic Shift** (Pushshift successors) serve post + top-20 comments via public JSON APIs that answer any IP; old.reddit through the residential pool as last resort
-  - youtube — transcripts (2/3 typical; per-video caption windows), with JS-runtime + impersonation + timeout headroom wired
+- **Tests:** 247 passing (from 218 this morning) · **PhD gauntlet:** 100/100 — 4 cases, 10 hard-source lanes.
+- **Live sweep** (`search all --execute --extract --score`): 7/7 lanes execute; 21 hits discovered, **20/21 with readable content** (the 1 miss = a YouTube caption window; an immediate retry recovers it, and transcripts are disk-cached):
+  - web — full page content ✔
+  - **x — clean tweet text + engagement (FxTwitter API), local Nitter fallback (tweet + replies)** ✔
+  - **reddit — always-on threads (PullPush / Arctic Shift → Redlib live → route pool)** ✔
+  - **tiktok — full metadata via TikWM (description, plays/likes/comments, music)** ✔
+  - **instagram — full captions + social proof via the loginless embed (2.3–2.7k chars per item)** ✔
+  - **youtube — transcripts (disk cache + JS-runtime + impersonation + timeout headroom)** ✔
+  - **github — repo metadata + README excerpt (≈1.3k chars/repo)** ✔
 
 **Reddit threads no longer depend on Redlib's windows.** PullPush + Arctic Shift extraction tiers were added 2026-10-14 — verified 3/3 threads with real content while Redlib was throttled.
 

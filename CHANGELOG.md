@@ -51,6 +51,18 @@ Versions follow [Semantic Versioning](https://semver.org/).
   comments via public JSON APIs reachable from any IP. Verified 3/3 threads
   with real content while Redlib was throttled (full sweep: 21 hits, 19/21
   extracted).
+- Lane-native content methods (all verified live 2026-10-14 evening):
+  - **X**: FxTwitter API (tweet text + engagement + media), local Nitter
+    fallback (tweet + replies) — replaces ~150k-char whole-page reader text.
+  - **TikTok**: TikWM public API tier (description, plays/likes/comments/
+    shares/saves, music, duration).
+  - **Instagram**: loginless `/embed/captioned/` tier (bot UA serves the
+    static variant) — full caption + author + social proof (2.3–2.7k chars vs
+    previous 110–453).
+  - **YouTube**: transcript disk cache (repeat queries never re-hit YouTube).
+  - **GitHub**: README excerpt appended to repo metadata (≈1.3k vs 145 chars).
+  - Sweep after all updates: 21 hits / **20 extracted** — every lane returns
+    substantial content.
 - Doctor: new `frontends` channel — a live map of nitter / redlib / searxng
   (plus parked proxitok / proxigram) so the container layer is visible in the
   health surface.
