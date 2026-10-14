@@ -439,6 +439,32 @@ def test_github_query_terms_keep_numeric_axis_compounds():
     assert "q=5-axis" in url
 
 
+def test_github_token_reads_process_env(monkeypatch):
+    from hermes_trailhead.backends import _github_request_headers
+
+    monkeypatch.setenv("GITHUB_TOKEN", "test-token-123")
+    headers = _github_request_headers()
+    assert headers["Authorization"] == "Bearer test-token-123"
+
+
+def test_github_token_falls_back_to_hermes_env_file(monkeypatch, tmp_path):
+    from hermes_trailhead import backends as backends_mod
+
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    (tmp_path / ".env").write_text("GITHUB_TOKEN=from-env-file\n")
+    monkeypatch.setattr(backends_mod, "resolve_hermes_home", lambda home=None: tmp_path)
+    assert backends_mod._github_token() == "from-env-file"
+
+
+def test_github_request_headers_anonymous_without_token(monkeypatch, tmp_path):
+    from hermes_trailhead import backends as backends_mod
+
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.setattr(backends_mod, "resolve_hermes_home", lambda home=None: tmp_path)
+    headers = backends_mod._github_request_headers()
+    assert "Authorization" not in headers
+
+
 def test_tiktok_result_url_rejects_shop_listings():
     from hermes_trailhead.backends import _tiktok_result_url
 

@@ -63,6 +63,12 @@ Versions follow [Semantic Versioning](https://semver.org/).
   - **GitHub**: README excerpt appended to repo metadata (≈1.3k vs 145 chars).
   - Sweep after all updates: 21 hits / **20 extracted** — every lane returns
     substantial content.
+- GitHub lane authenticates with `GITHUB_TOKEN` (env or `$HERMES_HOME/.env`):
+  verified **5,000 req/hr core + 30 search/min** vs the 60/hr anonymous cap —
+  the lane no longer degrades under sustained sweeps. Token never logged.
+- Guardian Pattern 5: monitors the third-party content APIs (FxTwitter,
+  TikWM, PullPush, Arctic Shift) every 30 minutes; 429 = throttled (window),
+  not down. Fragility register added to `docs/KNOWN-ISSUES.md`.
 - Doctor: new `frontends` channel — a live map of nitter / redlib / searxng
   (plus parked proxitok / proxigram) so the container layer is visible in the
   health surface.

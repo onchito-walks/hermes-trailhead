@@ -516,6 +516,38 @@ def _github_api_search_url(query: str, endpoint: str) -> str:
     return f"https://api.github.com/search/{endpoint}?q={quote_plus(gh_query)}{qualifier}&per_page=6"
 
 
+def _github_token() -> str:
+    """GITHUB_TOKEN from the process env or $HERMES_HOME/.env (value at runtime).
+
+    Authenticated GitHub API = 5,000 req/hr core and 30 search req/min vs 60/hr
+    and ~10/min anonymous.  The token is attached only to outbound API
+    requests; it is never logged, printed, or returned by lane tools.
+    """
+    import os
+
+    key = os.environ.get("GITHUB_TOKEN", "")
+    if key:
+        return key
+    env_path = resolve_hermes_home() / ".env"
+    if os.path.exists(env_path):
+        try:
+            for line in open(env_path):
+                if line.startswith("GITHUB_TOKEN="):
+                    return line.strip().split("=", 1)[1].strip("\"' \t")
+        except OSError:
+            pass
+    return ""
+
+
+def _github_request_headers() -> dict[str, str]:
+    """Headers for GitHub API requests — Bearer auth when a token exists."""
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "Hermes-Trailhead"}
+    token = _github_token()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    return headers
+
+
 def _run_github_api_search(
     query: str,
     limit: int,
@@ -543,10 +575,7 @@ def _run_github_api_search(
             if opener is not None:
                 page = opener(url, timeout)
             else:
-                req = urllib.request.Request(
-                    url,
-                    headers={"Accept": "application/vnd.github+json", "User-Agent": "Hermes-Trailhead"},
-                )
+                req = urllib.request.Request(url, headers=_github_request_headers())
                 with urllib.request.urlopen(req, timeout=timeout) as resp:
                     page = resp.read().decode("utf-8", errors="replace")
             data = json.loads(page)
