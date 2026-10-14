@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 import json
 import re
+import shutil
 import subprocess
 import time
 import urllib.request
@@ -657,6 +658,11 @@ def _fetch_ytdlp_transcript(url: str, timeout: int = 30) -> str:
     if not video_id:
         raise RuntimeError("Could not parse YouTube video id")
 
+    # yt-dlp's subtitle download+convert needs headroom: CLI extract budgets
+    # pass ~10s which starves every attempt (transcript exists, route works,
+    # but the call times out → false "blocked"). Floor per-attempt timeout.
+    timeout = max(timeout, 30)
+
     out_path = f"/tmp/yt-trailhead-{video_id}"
 
     # Proxy failover: prefer the round-robin proxy, but if a residential
@@ -666,6 +672,19 @@ def _fetch_ytdlp_transcript(url: str, timeout: int = 30) -> str:
     proxy_plan = _proxy_failover_plan()
 
     last_error: str | None = None
+    node = shutil.which("node")
+    if not node:
+        from pathlib import Path as _P
+        for cand in sorted((_P.home() / ".hermes" / "tools").glob("node-*/bin/node")):
+            node = str(cand)
+            break
+    js_args: list[str] = []
+    if node:
+        # Newer YouTube extraction needs a JS runtime for challenge solving
+        # ("No supported JavaScript runtime could be found") — node exists on
+        # this host; without this flag many videos fail despite captions
+        # existing. Harmless (ignored) if yt-dlp predates the option.
+        js_args = ["--js-runtimes", f"node:{node}"]
     for proxy in proxy_plan:
         cmd = [
             "yt-dlp",
@@ -674,6 +693,7 @@ def _fetch_ytdlp_transcript(url: str, timeout: int = 30) -> str:
             "--sub-lang", "en",
             "--convert-subs", "srt",
             "-o", out_path,
+            *js_args,
         ]
         if proxy:
             cmd.extend(["--proxy", proxy])

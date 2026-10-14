@@ -437,6 +437,42 @@ def test_fetch_ytdlp_transcript_fails_over_when_first_proxy_dead(tmp_path, monke
     assert attempts == ["p1.example:8080", "p2.example:8080"]
 
 
+def test_fetch_ytdlp_transcript_timeout_floor_and_js_runtime(tmp_path, monkeypatch):
+    """CLI extract budgets pass ~10s which starves yt-dlp (transcript loads
+    exist, route works, call times out -> false 'blocked'). The per-attempt
+    timeout must be floored at 30s, and node must be offered as the JS runtime
+    for YouTube challenge solving."""
+    import hermes_trailhead.extract as extract_mod
+
+    _canonical_env(tmp_path, monkeypatch)
+
+    captured = {}
+
+    class FakeProc:
+        returncode = 0
+        stderr = ""
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["timeout"] = kwargs.get("timeout")
+        out_path = cmd[cmd.index("-o") + 1]
+        with open(out_path + ".en.srt", "w") as f:
+            f.write(
+                "1\n00:00:00,000 --> 00:00:02,000\n"
+                "Hello from the floored timeout with plenty of content here\n"
+            )
+        return FakeProc()
+
+    monkeypatch.setattr(extract_mod.subprocess, "run", fake_run)
+    out = extract_mod._fetch_ytdlp_transcript(
+        "https://www.youtube.com/watch?v=abc123XYZ", timeout=10
+    )
+    assert "Hello from the floored timeout" in out
+    assert captured["timeout"] >= 30
+    if __import__("shutil").which("node"):
+        assert "--js-runtimes" in captured["cmd"]
+
+
 def test_instagram_session_reads_canonical_secrets(tmp_path, monkeypatch):
     import hermes_trailhead.extract as extract_mod
 
