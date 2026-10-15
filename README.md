@@ -1,3 +1,5 @@
+![Hermes Trailhead — a pixel-art wanderer overlooking a sea of fog](assets/banner.png)
+
 # Hermes Trailhead
 
 The internet is full of answers that search engines can't reach. Practitioner
