@@ -1,6 +1,6 @@
 [project]
 name = "hermes-trailhead"
-version = "1.0.0"
+version = "1.1.0"
 description = "Make hard-to-reach, high-signal internet sources part of Hermes research without paid APIs by default"
 readme = "README.md"
 requires-python = ">=3.11"

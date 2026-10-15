@@ -4,7 +4,7 @@ All notable changes to **Hermes Trailhead** are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.1.0] - 2026-10-15
 
 **Added** — `score` command: the per-lane product scorecard, live-probed
 
@@ -157,6 +157,29 @@ usable-route selection, proxy-pool failover, and the Hermes-env fallbacks
   `transcript_status: not_attempted` instead of `ok`.
 
 Adds `tests/test_false_success_regressions.py` (test baseline 212).
+
+**Added** — project identity and share-ready distribution
+
+- `assets/`: pixel-art banner (README header), square logo, portrait poster,
+  footer art, and favicon set (16/32/48 + `.ico`) — the project's visual
+  identity.
+- `integrations/hermes/skills/hermes-trailhead/SKILL.md`: a concise public
+  Hermes skill so any agent install can drive the CLI (lanes, commands,
+  honest-reading rules, optional auth tier).
+- `docs/HERMES-INTEGRATION.md`: five-minute new-machine install flow
+  (clone → wrapper → doctor → skill), including a no-sudo user-local option.
+- README reorganized product-first: mission → scorecard (dimensions + lanes)
+  → aspirations → landscape → future trails → bring-your-own-accounts →
+  privacy; implementation notes moved below an "explanatory, subject to
+  change" divider.
+
+**Verified** (v1.1.0)
+
+- 274 tests passing; PhD gauntlet 100/100.
+- `score --live`: all seven lanes probed green on the deployment host.
+- Fresh-clone install exercised end-to-end from GitHub before release.
+- Privacy sweep: no credentials, cookies, tokens, or instance identifiers in
+  tree or history.
 
 ## [1.0.0] - 2026-09-20
 
