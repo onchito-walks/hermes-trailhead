@@ -103,6 +103,10 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 
 *Does it really run like this? Yes — every grade was re-verified against live runs on the date shown. A− means "strong, with named edges still worth filing down" — and those edges are listed, not hidden, in [`docs/KNOWN-ISSUES.md`](docs/KNOWN-ISSUES.md). `score --live` re-probes every lane on your own host.*
 
+<p align="center">
+  <img src="assets/mark.png" width="260" alt="The wanderer above the sea of fog — the project's mark">
+</p>
+
 ## Aspirations — where this goes
 
 1. **Every answer arrives with receipts.** Research you can act on without double-checking: quotes, numbers, authors, dates — each traceable to its source, extracted rather than guessed.
