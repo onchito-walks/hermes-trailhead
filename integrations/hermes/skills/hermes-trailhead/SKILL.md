@@ -74,7 +74,7 @@ Instagram profiles (and other login-walled pages) extract through a persistent
 browser session **the user sets up themselves** — passwords are never handled
 by the agent. If `TRAILHEAD_CAMOFOX_API` and `TRAILHEAD_CAMOFOX_USER` are set,
 the tier is active; otherwise it skips silently and public routes continue.
-See the README section "Bring your own accounts" for the one-time setup.
+See `docs/AUTHENTICATED-TIER.md` for the full one-time setup (persistent browser session + optional Gmail mailbox access).
 
 ## Operations
 

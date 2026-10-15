@@ -27,9 +27,9 @@ cp integrations/hermes/skills/hermes-trailhead/SKILL.md ~/.hermes/skills/researc
 ```
 
 Updates are `git pull` in the repo. The authenticated tier (login-walled pages)
-is opt-in via `TRAILHEAD_CAMOFOX_API` / `TRAILHEAD_CAMOFOX_USER` — see the
-README's "Bring your own accounts" section; without it, the tool runs entirely
-on public routes.
+is opt-in via `TRAILHEAD_CAMOFOX_API` / `TRAILHEAD_CAMOFOX_USER` — see
+[`AUTHENTICATED-TIER.md`](AUTHENTICATED-TIER.md) for the complete setup guide;
+without it, the tool runs entirely on public routes.
 
 ## Commands
 
