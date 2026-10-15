@@ -4,6 +4,17 @@ All notable changes to **Hermes Trailhead** are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+**Added** — `docs/AUTHENTICATED-TIER.md`: the complete bring-your-own-accounts guide
+
+- Part 1: persistent browser session (Camofox reference setup, systemd unit,
+  sign-in flow, env vars, verification, persistence checks).
+- Part 2: Gmail API mailbox access (Google Cloud walkthrough, scopes, Hermes
+  google-workspace shortcut).
+- Security model: passwords never touch the agent; sessions and tokens are
+  local files; logout = instant revoke.
+
 ## [1.1.0] - 2026-10-15
 
 **Added** — `score` command: the per-lane product scorecard, live-probed
