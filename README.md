@@ -253,3 +253,9 @@ Hermes Trailhead was launched from **[Panniantong/Agent-Reach](https://github.co
 ## License
 
 BSD 3-Clause. See [`NOTICE.md`](NOTICE.md) for prior-art acknowledgments.
+
+---
+
+<p align="center">
+  <img src="assets/footer.png" width="400" alt="A lone wanderer at the end of the trail, facing the horizon">
+</p>
