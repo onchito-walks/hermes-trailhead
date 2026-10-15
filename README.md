@@ -69,39 +69,13 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 
 **Honest about limits.** Login-walled content, JS-rendered shells, VPS IP blocks — these are reported truthfully with caveats, not painted green.
 
-## Current product state (October 14, 2026 — verified live)
-
-`hermes-trailhead doctor --live --record` on a live deployment host: **10 ok / 5 warn / 4 off, 0 fail** across 18 channels. Warnings are watched conditions, not failures — Reddit + frontends flip with the local Redlib upstream windows, and the `hermes-upstream` / `agent-reach` warns are by-design review gates. Scores rank leads; they do not verify claims or authorize automatic GBrain ingestion.
-
-- **Tests:** 268 passing · **PhD gauntlet:** 100/100 — 4 cases, 10 hard-source lanes.
-- **Live sweep** (`search all --execute --extract --score`): 7/7 lanes execute; 28 hits discovered, **27/28 with readable content** (the 1 miss = a 17-second speechless clip, reported honestly):
-  - web — full page content ✔
-  - **x — clean tweet text + engagement (FxTwitter API), local Nitter fallback (tweet + replies)** ✔
-  - **reddit — always-on threads (PullPush / Arctic Shift → Redlib live → route pool)** ✔
-  - **tiktok — metadata + top comments + real transcripts (platform caption track first; full audio transcription when none)** ✔
-  - **instagram — post/reel captions + full profile pages through the authenticated session** ✔
-  - **youtube — transcripts (disk cache + JS-runtime + impersonation + timeout headroom) with a Groq-Whisper ASR tier that covers captionless videos** ✔
-  - **github — repo metadata + README excerpt (≈1.3k chars/repo)** ✔
-
-**Reddit threads no longer depend on Redlib's windows.** PullPush + Arctic Shift extraction tiers were added 2026-10-14 — verified 3/3 threads with real content while Redlib was throttled.
-
-**YouTube transcripts are live.** Residential proxy (<proxy-provider>, with pool failover) bypasses YouTube's VPS IP block — thousands of characters of clean, deduplicated auto-captions per video when it serves.
-
-**Instagram public posts and reels extract.** Full captions, hashtags, and engagement data at discovery grade — and profile pages now extract through the authenticated session (verified live: a 104M-follower profile returned its full metadata and page).
-
-**Facebook pages extract** through the same authenticated session tier.
-
-**TikTok goes deep.** Metadata, top comments, and the video's actual spoken words — the platform's own caption track is read first (a tiny text file, near-instant), with full audio transcription as the fallback for videos that have none.
-
-**Web summaries are clean.** HTML is stripped to readable text. GitHub repos return full API metadata.
-
 ## The Score
 
 **Ask anything; get what the internet actually says — with receipts, and with an honest list of what couldn't be reached.**
 
 *Machine-readable and live: `hermes-trailhead score --live` prints this scorecard with every lane probed against your own host, right now.*
 
-### Product dimensions
+### Part 1 — product dimensions
 
 | Dimension | Grade | What that means in practice |
 |---|---|---|
@@ -113,7 +87,7 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 | **Reliability** | **B+** | Lanes are watched and self-healing; the remaining weak spot (single-route fallbacks) is named openly in the failure ledger. |
 | **Effort & cost** | **A** | One command — or just ask your agent. Free-first by default; the entire cache weighs kilobytes, not gigabytes. |
 
-### Per-lane scorecard (verified live, October 14, 2026)
+### Part 2 — per-lane grades (verified live, October 14, 2026)
 
 | Lane | Grade | What you get |
 |---|---|---|
@@ -125,7 +99,7 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 | **TikTok** | **A−** | Metadata, top comments, and the video's actual spoken words |
 | **Instagram** | **A−** | Reel/post captions plus full profile pages |
 
-*Grades describe what a researcher gets today, verified against live runs — not ambitions. A− means "strong, with named edges still worth filing down."*
+*Does it really run like this? Yes — every grade was re-verified against live runs on the date shown. A− means "strong, with named edges still worth filing down" — and those edges are listed, not hidden, in [`docs/KNOWN-ISSUES.md`](docs/KNOWN-ISSUES.md). `score --live` re-probes every lane on your own host.*
 
 ## Aspirations — where this goes
 
@@ -133,10 +107,41 @@ The output is always `url` + `title` + `summary` + `score` + `transcript_status`
 2. **Nothing behind a login stays unreachable.** Email, social, membership walls — access matures into infrastructure (insured, monitored, self-healing), and the reachable frontier keeps moving outward.
 3. **The front door for every agent in the fleet.** Every bot and workflow asks its research questions here first, because answers come back grounded — and what's learned flows into durable memory, compounding over time.
 4. **Depth on every terrain.** The gaps shrink each cycle: photo posts, comment threads, long videos, niche platforms — each becomes just another lane that works.
-5. **Quiet, boring, unbreakable.** Maintenance trends to zero. A lane that breaks announces itself before anyone notices. Trust is earned by being dull.
-6. **Value you can hand to someone.** Reports that change decisions — what competitors shipped this week, what practitioners discovered, what the market is actually saying — evidence-first and story-ready.
+5. **The lightest path that works.** Prefer the platform's own structured data before brute force — the caption track over the download, the smallest fetch over the crawl. Efficiency is a feature, not an optimization.
+6. **Quiet, boring, unbreakable.** Maintenance trends to zero. A lane that breaks announces itself before anyone notices. Trust is earned by being dull.
+7. **Value you can hand to someone.** Reports that change decisions — what competitors shipped this week, what practitioners discovered, what the market is actually saying — evidence-first and story-ready.
 
 *The story: a research surface that makes the invisible internet visible — so that no question is answered with "I couldn't find it" when the answer was there the whole time.*
+
+## The landscape — how this compares
+
+Honest map, not trash talk. Most of these are allies — Trailhead routes to several of them when they're the best path.
+
+| Family | Examples | What they're best at | Where Trailhead differs |
+|---|---|---|---|
+| **Search APIs** | Tavily, Exa, Brave, Serper | Fast, clean web results | Web-only depth; per-call pricing; no platform-native content. Trailhead reads the platforms themselves, free-first. |
+| **Scraping platforms** | Firecrawl, Apify, Browserbase | Industrial extraction infrastructure | They are plumbing you assemble; Trailhead is the assembled research product — lanes, failover, evidence rules, honest caveats. |
+| **Social data APIs** | Per-platform scraper APIs | Single-platform data at scale | One platform, one key, one bill each; Trailhead is multi-lane, needs no keys by default, and brings-your-own-session for authenticated reach. |
+| **Answer engines** | Perplexity, deep-research modes | Synthesized prose answers | Answers from the indexed web with opaque sourcing; Trailhead returns the content itself — with receipts and named blind spots. |
+| **Open-source building blocks** | yt-dlp, Jina Reader, Redlib/Nitter frontends, PullPush | Excellent single-purpose access | Not products — parts. Trailhead assembles, supervises, and fails over between them. |
+
+## Future trails worth adding
+
+Ranked by value-to-effort — candidates, not commitments:
+
+| Candidate | Value | Effort | Why it earns a lane |
+|---|---|---|---|
+| **Hacker News** | High | Trivial | Official API; practitioner gold; front-page signal |
+| **Podcasts** | High | Low | RSS feeds + the transcript machinery already built |
+| **Bluesky** | High | Trivial | Public API; a growing practitioner base |
+| **Stack Overflow / Exchange** | High | Trivial | The deep technical Q&A canon |
+| **arXiv / papers** | High | Trivial | Primary research sources, citation-ready |
+| **Threads** | Medium | Medium | Meta's API walls — the same session approach as Instagram |
+| **LinkedIn** | High | Hard | Aggressive walls; session-based, careful pacing required |
+| **Discord communities** | High | Hard | Invite-gated; session-based |
+| **Telegram public channels** | Medium | Medium | Public channel API path exists |
+| **Twitch** | Medium | Medium | Clips + VOD transcripts |
+| **Reviews** (Steam, app stores, G2) | Medium | Low | Buying-decision signal |
 
 ## Bring your own accounts (bot-ready logins)
 
@@ -158,6 +163,12 @@ Recovery and verification codes land in your email — connect a mailbox (e.g. v
 - **Sessions live outside the code**, in the browser profile's local files on your machine.
 - **Instance specifics are environment configuration** (`HERMES_HOME`, `TRAILHEAD_CAMOFOX_*`), never source code.
 - **You are the operator.** The tool only reads pages you've already made accessible to it; logging out of the profile revokes everything.
+
+---
+
+# How it works
+
+**Everything from here down explains the current implementation for the curious. It is explanatory only and subject to change — the product promise lives in everything above.**
 
 ## Quick start
 
@@ -187,7 +198,7 @@ sudo bash scripts/install-hermes-trailhead-wrapper.sh
 # Verify the active install
 hermes-trailhead doctor
 
-# Source-mode: run the full deterministic test suite (196 tests + 100/100 PhD gauntlet)
+# Source-mode: run the full deterministic test suite (274 tests + 100/100 PhD gauntlet)
 python3 -m pytest -q
 python3 -m hermes_trailhead gauntlet
 
@@ -198,21 +209,33 @@ pip install -e ".[dev]"       # or pip
 npm install && npm test
 ```
 
-See `docs/HERMES-INTEGRATION.md` for how Trailhead fits into Hermes and Quiver.
+See `docs/HERMES-INTEGRATION.md` for how Trailhead fits into Hermes and Quiver, and [`TEAM.md`](TEAM.md) for the engineering team structure.
 
-## What Trailhead is not:
+## Current state (verified live, October 14, 2026)
 
-- a crawler
-- a browser automation framework
-- a scraping toolkit
-- a SaaS connector marketplace
-- a credential broker
-- a social bot
-- a public MCP registry
+`hermes-trailhead doctor --live --record` on a live deployment host: **10 ok / 5 warn / 4 off, 0 fail** across 18 channels. Warnings are watched conditions, not failures — Reddit + frontends flip with the local Redlib upstream windows, and the `hermes-upstream` / `agent-reach` warns are by-design review gates. Scores rank leads; they do not verify claims or authorize automatic GBrain ingestion.
 
-It is the local Hermes research trailhead: source terrain, route choice, free-first retrieval, evidence requirements, and honest blind spots.
+- **Tests:** 274 passing · **PhD gauntlet:** 100/100 — 4 cases, 10 hard-source lanes.
+- **Live sweep** (`search all --execute --extract --score`): 7/7 lanes execute; 28 hits discovered, **27/28 with readable content** (the 1 miss = a 17-second speechless clip, reported honestly):
+  - web — full page content ✔
+  - **x — clean tweet text + engagement (FxTwitter API), local Nitter fallback (tweet + replies)** ✔
+  - **reddit — always-on threads (PullPush / Arctic Shift → Redlib live → route pool)** ✔
+  - **tiktok — metadata + top comments + real transcripts (platform caption track first; full audio transcription when none)** ✔
+  - **instagram — post/reel captions + full profile pages through the authenticated session** ✔
+  - **youtube — transcripts (disk cache + JS-runtime + impersonation + timeout headroom) with an ASR tier that covers captionless videos** ✔
+  - **github — repo metadata + README excerpt (≈1.3k chars/repo)** ✔
 
-See [`TEAM.md`](TEAM.md) for the engineering team structure.
+**Reddit threads no longer depend on Redlib's windows.** PullPush + Arctic Shift extraction tiers were added 2026-10-14 — verified 3/3 threads with real content while Redlib was throttled.
+
+**YouTube transcripts are live.** Residential proxy (with pool failover) bypasses YouTube's VPS IP block — thousands of characters of clean, deduplicated auto-captions per video when it serves.
+
+**Instagram public posts and reels extract.** Full captions, hashtags, and engagement data at discovery grade — and profile pages now extract through the authenticated session (verified live: a 104M-follower profile returned its full metadata and page).
+
+**Facebook pages extract** through the same authenticated session tier.
+
+**TikTok goes deep.** Metadata, top comments, and the video's actual spoken words — the platform's own caption track is read first (a tiny text file, near-instant), with full audio transcription as the fallback for videos that have none.
+
+**Web summaries are clean.** HTML is stripped to readable text. GitHub repos return full API metadata.
 
 ## Prior art
 
