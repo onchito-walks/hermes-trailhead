@@ -693,7 +693,7 @@ def test_github_repo_summary_extraction(monkeypatch):
 
 # ── Canonical Hermes home resolution (HOME != Hermes home) ─────────────
 # Regression: extract.py used raw ~/.hermes expansion, so from the normal
-# host shell (HOME=<user-home>, canonical home exported as HERMES_HOME) the
+# host shell (HOME=plain login home, canonical home exported as HERMES_HOME) the
 # proxy file was looked up under the shell home and YouTube transcript
 # extraction ran without the residential proxy (and failed).
 

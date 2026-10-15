@@ -22,7 +22,7 @@ def _installed_skill_md() -> Path | None:
 
     The installed skill lives in the canonical Hermes profile skills tree, which
     is NOT ``$HOME/.hermes``: ``HOME`` often names the service-user home (e.g.
-    ``<HERMES_SHARED>``), whose ``.hermes`` is a private cross-user
+    a shared storage root), whose ``.hermes`` is a private cross-user
     directory.  Resolve it through the same canonical-home doctrine the rest of
     the codebase uses (``paths.resolve_hermes_home``, from ``HERMES_HOME``), so
     the check validates the real installed source instead of ``$HOME/.hermes``.

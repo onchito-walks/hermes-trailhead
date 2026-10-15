@@ -175,7 +175,7 @@ scores by default, with honest blind-spot reporting.
 - `report` subcommand: repeatable research deliverable written to
   `docs/outcome-loop/deliverable-<slug>.md`.
 - `benchmark`, `reliability`, and `route` subcommands.
-- YouTube transcripts via residential proxy rotation (<proxy-provider> + <proxy-provider>),
+- YouTube transcripts via residential proxy rotation (provider rotation),
   bypassing YouTube's VPS IP block; clean, deduplicated auto-captions.
 - Instagram post and reel caption extraction via proxy-backed HTTP and stealth
   Chrome — OG captions, hashtags, and engagement data without a login wall.

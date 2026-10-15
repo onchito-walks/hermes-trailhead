@@ -1,8 +1,8 @@
 """Canonical Hermes home resolution — regression tests.
 
-The normal host shell has ``HOME=<user-home>`` (a plain login home whose
+The normal host shell has a plain login home (a login home whose
 ``~/.hermes`` holds no config or secrets) while the canonical Hermes home is
-exported via ``HERMES_HOME`` (e.g. ``<HERMES_ROOT>/.hermes``).
+exported via ``HERMES_HOME`` (e.g. a shared ``.hermes`` home).
 Raw ``~/.hermes`` expansion used to lose the canonical secrets/proxy files,
 breaking YouTube transcript extraction from the shell.
 """

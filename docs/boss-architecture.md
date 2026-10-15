@@ -51,7 +51,7 @@ Hermes synthesis
 
 | Lane | Summaries | Transcripts | Method |
 |---|---|---|---|
-| YouTube | ✅ descriptions | ✅ 3,000+ chars | yt-dlp via residential proxy (<proxy-provider>/<proxy-provider> rotation) |
+| YouTube | ✅ descriptions | ✅ 3,000+ chars | yt-dlp via residential proxy (provider rotation) |
 | TikTok | ✅ captions + stats | Captions only | oEmbed + rehydration blob |
 | Instagram | ✅ post/reel captions | Captions only | HTTP proxy fetch + stealth Chrome for JS shells |
 | Reddit | ✅ excerpts | N/A | social-search snippets |
@@ -74,7 +74,7 @@ Scoring is default on every `search all --execute`.
 
 ### Infrastructure
 
-- **Proxy rotation:** <proxy-provider> + <proxy-provider> residential proxies, roundrobin
+- **Proxy rotation:** residential proxy providers, roundrobin
 - **Stealth Chrome:** puppeteer-extra with stealth plugin, proxy-backed, for JS-rendered pages
 - **SRT deduplication:** Gemini auto-caption tripling removed, clean readable transcripts
 - **HTML cleaning:** raw HTML shells stripped to readable text for web summaries
