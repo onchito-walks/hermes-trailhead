@@ -147,17 +147,12 @@ Ranked by value-to-effort — candidates, not commitments:
 
 ## Bring your own accounts (bot-ready logins)
 
-Some of the best terrain sits behind a login: profile pages, membership forums, inboxes that receive verification codes. Trailhead covers that **without ever touching your passwords**:
+Some of the best terrain sits behind a login: profile pages, membership forums, inboxes that receive verification codes. Trailhead covers that **without ever touching your passwords** — you sign in once in a persistent browser you control, the session survives restarts, and the tool reads through it as you. Log out any time to revoke.
 
-1. **Run a persistent browser profile** the tool can drive locally (any browser server with a saved profile and a remote screen you can open in a tab).
-2. **Sign in once, yourself.** Open the browser's remote screen and log into the accounts you want covered — your fingers, your credentials. Nothing is shared with the agent.
-3. **The session persists.** The profile saves its cookies on a clean shutdown; the tool then reads pages through that profile as you. Sign out any time to revoke everything instantly.
+- **Recommended:** let your Hermes agent set it up — it handles the plumbing (browser server, service unit, env vars, verification) end to end; you just do the one-time sign-in on the screen it hands you.
+- **Manual:** the same setup works standalone with any browser and a VNC client.
 
-Point the authenticated extraction tier at your profile with two environment variables (`TRAILHEAD_CAMOFOX_API`, `TRAILHEAD_CAMOFOX_USER`). With none set, the tool simply skips that tier and continues on its public routes.
-
-Recovery and verification codes land in your email — connect a mailbox (e.g. via OAuth) and the agent can read those too, with your consent and without codes ever entering a conversation.
-
-**This is how the project runs in production.** The reference sessions were captured exactly this way: one manual sign-in in a persistent browser, verified to survive restarts, then reused by every extraction — no password sharing, no cookie handling by the agent.
+**Full guide — browser session + Gmail mailbox, step by step: [`docs/AUTHENTICATED-TIER.md`](docs/AUTHENTICATED-TIER.md).** Without the tier, the tool simply runs on its public routes.
 
 ## Privacy — what never leaves your machine
 
@@ -165,6 +160,15 @@ Recovery and verification codes land in your email — connect a mailbox (e.g. v
 - **Sessions live outside the code**, in the browser profile's local files on your machine.
 - **Instance specifics are environment configuration** (`HERMES_HOME`, `TRAILHEAD_CAMOFOX_*`), never source code.
 - **You are the operator.** The tool only reads pages you've already made accessible to it; logging out of the profile revokes everything.
+
+## Documentation
+
+| Guide | What's inside |
+|---|---|
+| **[Authenticated tier](docs/AUTHENTICATED-TIER.md)** | Bring-your-own-accounts setup: persistent browser session + Gmail mailbox access |
+| **[Hermes integration](docs/HERMES-INTEGRATION.md)** | New-machine install flow, commands, agent skill |
+| **[Known issues](docs/KNOWN-ISSUES.md)** | The failure ledger — what's degraded, and the workarounds |
+| **[Architecture notes](docs/boss-architecture.md)** | How the lanes are wired (historical, subject to change) |
 
 ---
 

@@ -14,6 +14,11 @@ Versions follow [Semantic Versioning](https://semver.org/).
   google-workspace shortcut).
 - Security model: passwords never touch the agent; sessions and tokens are
   local files; logout = instant revoke.
+- The guide leads with the agent-assisted setup path (recommended for Hermes
+  users); the manual browser/VNC path is documented as a fully standalone
+  option.
+- README slimmed: bring-your-own-accounts is now a short pointer, plus a new
+  Documentation index linking the deep guides.
 
 ## [1.1.0] - 2026-10-15
 
