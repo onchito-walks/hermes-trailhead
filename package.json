@@ -1,6 +1,6 @@
 {
   "name": "hermes-trailhead",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "**Hermes Trailhead makes the hard-to-reach, high-signal internet part of Hermes' normal research plane.**",
   "main": "index.js",
   "directories": {
