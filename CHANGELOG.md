@@ -19,6 +19,9 @@ Versions follow [Semantic Versioning](https://semver.org/).
   option.
 - README slimmed: bring-your-own-accounts is now a short pointer, plus a new
   Documentation index linking the deep guides.
+- Favicon set upgraded to the pixel-perfect native 32×32 render (crisp
+  16/32/48 + `.ico`); the full-size mark now anchors the README's Aspirations
+  section (`assets/mark.png`).
 
 ## [1.1.0] - 2026-10-15
 
