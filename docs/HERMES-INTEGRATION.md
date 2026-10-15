@@ -31,6 +31,12 @@ is opt-in via `TRAILHEAD_CAMOFOX_API` / `TRAILHEAD_CAMOFOX_USER` — see
 [`AUTHENTICATED-TIER.md`](AUTHENTICATED-TIER.md) for the complete setup guide;
 without it, the tool runs entirely on public routes.
 
+**Platforms:** verified on Linux (the reference deployment). The core is pure
+Python 3 stdlib and written to be portable — on macOS or Windows, run from
+source (`python3 -m hermes_trailhead doctor`) and let `doctor` report what
+that machine can reach. The wrapper script and service examples are POSIX
+(bash / systemd).
+
 ## Commands
 
 From an installed wrapper:
