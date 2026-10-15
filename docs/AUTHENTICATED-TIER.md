@@ -16,6 +16,18 @@ Two independent parts — use either or both:
 Without either, Trailhead runs entirely on public routes — nothing breaks,
 those lanes just reach less.
 
+## Recommended: let your Hermes agent do it
+
+If you run Hermes (desktop or CLI), the smoothest path is to **ask your agent
+to set this up** — it can install the browser server, write the service unit,
+wire the environment variables, and run the verification for you. You still do
+the one-time sign-in yourself on the screen it hands you — passwords never
+touch the agent; that's the whole point.
+
+The manual steps below are the same setup done by hand. They work **standalone
+with any browser and a VNC client** — the server's built-in noVNC page, or a
+native VNC viewer. No agent required.
+
 ---
 
 ## Part 1 — the persistent browser session
@@ -77,7 +89,8 @@ WantedBy=default.target
 ### Sign in (once, with your own fingers)
 
 1. Open the remote screen: `http://127.0.0.1:9378/vnc.html` (password = the
-   one you chose).
+   one you chose) — in any browser, or point a native VNC viewer at the same
+   host and port.
 2. Log into Instagram, Facebook, or any site you want covered — your
    credentials, typed by you, in the browser.
 3. **Close the browser gracefully** so the profile saves its cookies.
