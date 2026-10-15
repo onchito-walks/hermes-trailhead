@@ -211,7 +211,7 @@ pip install -e ".[dev]"       # or pip
 npm install && npm test
 ```
 
-See `docs/HERMES-INTEGRATION.md` for how Trailhead fits into Hermes and Quiver, and [`TEAM.md`](TEAM.md) for the engineering team structure.
+See `docs/HERMES-INTEGRATION.md` for the full new-machine install flow (clone → wrapper → doctor → agent skill), how Trailhead fits into Hermes and Quiver, and [`TEAM.md`](TEAM.md) for the engineering team structure.
 
 ## Current state (verified live, October 14, 2026)
 
