@@ -232,7 +232,7 @@ def test_version_arg_prints_package_version(capsys):
 def test_public_readme_does_not_claim_to_be_crawler_or_registry():
     readme = __import__("pathlib").Path("README.md").read_text()
 
-    assert "not:" in readme
+    assert "**not** a crawler" in readme or "not a crawler" in readme
     assert "a public MCP registry" in readme
     assert "a crawler" in readme
     assert "BSD 3-Clause" in readme
