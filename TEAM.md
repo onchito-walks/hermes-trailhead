@@ -82,7 +82,7 @@ Aggregate: 77/100 across 6 benchmark tasks (4 pass, 2 partial, 0 fail).
 ```
 delegate_task(
     goal="Implement extraction follow-through in hermes_trailhead/extract.py",
-    context="Working in <repo-root>. Read hermes_trailhead/search.py first. ...",
+    context="Working in the hermes-trailhead repo. Read hermes_trailhead/search.py first. ...",
     toolsets=["terminal", "file"]
 )
 ```
@@ -116,7 +116,7 @@ docs: TEAM.md engineering conventions
 ## Verification checklist (every PR)
 
 ```bash
-cd <repo-root>
+cd /path/to/hermes-trailhead
 command -v hermes-trailhead
 hermes-trailhead --version
 python3 -m py_compile hermes_trailhead/*.py

@@ -8,7 +8,7 @@ cd "__REPO__"
 # for login shells and by the Hermes runtime for agent sessions, but a bare
 # caller may not have it. Fall back to the operator's ~/.profile export so
 # secrets/state resolve to the canonical home (e.g.
-# <HERMES_ROOT>/.hermes) instead of $HOME/.hermes.
+# a shared HERMES_HOME) instead of $HOME/.hermes.
 if [[ -z "${HERMES_HOME:-}" && -f "$HOME/.profile" ]]; then
   _hermes_home="$(sed -n 's/^export HERMES_HOME=//p' "$HOME/.profile" | head -1)"
   _hermes_home="${_hermes_home%\"}"

@@ -16,7 +16,7 @@ hermes-trailhead gauntlet
 From source, equivalent:
 
 ```bash
-cd <repo-root>
+cd /path/to/hermes-trailhead
 python3 -m hermes_trailhead doctor
 ```
 

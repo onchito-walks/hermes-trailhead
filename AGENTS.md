@@ -18,7 +18,7 @@ Failure to follow the team structure is a build failure. `tests/test_team_enforc
 ## Verification checklist (run before every push)
 
 ```bash
-cd <repo-root>
+cd /path/to/hermes-trailhead
 python3 -m py_compile hermes_trailhead/*.py
 python3 -m pytest -q
 python3 -m hermes_trailhead search all "test query" --execute --extract --limit 2 --format json
