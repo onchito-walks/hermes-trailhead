@@ -1,0 +1,157 @@
+{
+  "note": "Parent independent public CLI reads; token vars removed and fresh home, environment isolation not sandbox",
+  "rows": [
+    {
+      "url": "https://github.com/pallets/flask/issues/5",
+      "exit_code": 0,
+      "ok": true,
+      "checks": {
+        "Implement SQLAlchemy": true,
+        "[id 308703]": true,
+        "captured 2 of 2": true
+      },
+      "payload": {
+        "command": "read",
+        "schema_version": 1,
+        "ok": true,
+        "url": "https://github.com/pallets/flask/issues/5",
+        "source_type": "github",
+        "timeout_seconds": 15,
+        "asr": {
+          "enabled": false,
+          "env": "TRAILHEAD_DISABLE_ASR",
+          "note": "read never invokes paid ASR"
+        },
+        "policy": {
+          "agent_reach": "not_used",
+          "asr": "disabled",
+          "hermes_web_extract": "disabled",
+          "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+        },
+        "extraction_status": "ok",
+        "content_length": 714,
+        "returned_chars": 714,
+        "truncated": false,
+        "truncation_note": "",
+        "content": "GitHub issue pallets/flask#5: Implement SQLAlchemy\nState: closed | Author: justquick | Created: 2010-04-13 | Updated: 2020-11-14\nURL: https://github.com/pallets/flask/issues/5\n\nIssue body:\nUse SQLAlchemy in the core framework as an ORM\n\nConversation comments: captured 2 of 2 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint.\n\n--- comment 1: dcolish (2010-07-12) [id 308703]\nJust use the Flask-SQLAlchemy extension\n\n--- comment 2: mitsuhiko (2010-07-12) [id 308779]\nWhat dcolish said.\n\nCapture note: this is the issue body plus a bounded public comment capture, not a complete issue-history export (timeline events, reactions, edits and hidden/deleted comments are not included).",
+        "pagination": {
+          "schema_version": 1,
+          "offset": 0,
+          "max_chars": 200000,
+          "start": 0,
+          "end": 714,
+          "returned_chars": 714,
+          "next_offset": null,
+          "more": false,
+          "total_available_chars": 714,
+          "document_sha256": "b2191546f4d203f7e5d49ce3d42ad1677bdd63b2d71bbd4cdadf612de87c0fc7",
+          "window_empty": false,
+          "retrieval_char_cap": 1000000,
+          "extractor_truncated": false,
+          "retrieval_capped": false,
+          "transport_byte_cap": 8388608,
+          "transport_capped": false,
+          "note": ""
+        },
+        "completeness": {
+          "extracted_document_complete": true,
+          "raw_page_complete": false,
+          "note": "content is readable text extracted from the page, not the raw HTML; markup, scripts and repeated chrome are removed, so completeness never means a byte-identical copy of the fetched page, and a later read may refetch a changed version — compare pagination.document_sha256 before chaining offsets across calls"
+        },
+        "error": null,
+        "evidence": {
+          "usable": true,
+          "transport_ok": true,
+          "relevance": "unknown",
+          "reasons": [],
+          "source_quality": {
+            "quality": "technical",
+            "score": 90,
+            "reasons": [
+              "GitHub issue/PR",
+              "Successfully extracted (long content)"
+            ],
+            "label": "GitHub issue/PR"
+          }
+        },
+        "video_evidence": null
+      }
+    },
+    {
+      "url": "https://github.com/pallets/flask/pull/112",
+      "exit_code": 0,
+      "ok": true,
+      "checks": {
+        "JSONP": true,
+        "captured 14 of 14": true,
+        "NOT the complete PR conversation": true
+      },
+      "payload": {
+        "command": "read",
+        "schema_version": 1,
+        "ok": true,
+        "url": "https://github.com/pallets/flask/pull/112",
+        "source_type": "github",
+        "timeout_seconds": 15,
+        "asr": {
+          "enabled": false,
+          "env": "TRAILHEAD_DISABLE_ASR",
+          "note": "read never invokes paid ASR"
+        },
+        "policy": {
+          "agent_reach": "not_used",
+          "asr": "disabled",
+          "hermes_web_extract": "disabled",
+          "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+        },
+        "extraction_status": "ok",
+        "content_length": 3614,
+        "returned_chars": 3614,
+        "truncated": false,
+        "truncation_note": "",
+        "content": "GitHub pull request pallets/flask#112: JSONP\nState: closed | Merged: no | Draft: no | Author: ghost | Created: 2010-09-01\nBase: pallets:master | Head: 5fad5473e24541846e9a05905c95ff70fbebef2d\nCommits: 1 | Changed files: 2 | Additions/Deletions: +6/-1\nURL: https://github.com/pallets/flask/pull/112\n\nPull request body:\nIf you are interested, I added a function to return padded JSON. I needed it for a project I'm working on and it seemed like the easiest thing to do was add the six lines of code into Flask.\n\nThanks for the awesome framework.\n\nTom\n\nConversation comments: captured 14 of 14 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint.\n\n--- comment 1: mitsuhiko (2010-09-01) [id 382640]\nThat does look interesting, but where is callback coming from? Also, it would need unittests and an import in the **init** file.\n\n--- comment 2: ghost (2010-09-01) [id 383274]\nThe import in the init file is there. The callback is generated on the client side, so whatever function wants to generate the JSONP would have to get it from the client and provide it to the jsonify function. I can add a usage example when I get home from work.\n\nI'll look through your unit tests and write one for this function.\n\nThanks for taking a look.\n\n--- comment 3: galvez (2010-12-17) [id 618181]\n+1 on this. Would play well with jQuery's getJSON() function (which uses JSONP if you add a \"?callback=?\" to the end of the URL (you can guess how this works... :))\n\n--- comment 4: ghost (2010-12-18) [id 620332]\nI'll try to get on writing some unit tests.\n\n--- comment 5: subtlepath (2011-01-04) [id 650978]\nJSONP should be returned with MIME type 'text/javascript', not 'application/json'.\n\n--- comment 6: y3i12 (2011-04-24) [id 1050643]\nOk, it works and it would be an amazing feature to work with jQuery.\nJust found a little error on return generation:\ncontent = str(request.args['callback']) + '(' + json.dumps(dict(_args, *_kwargs)) + ')'\n\n--- comment 7: robbiet480 (2011-10-05) [id 2304151]\n+1. This would be a most useful feature to add.\n\n--- comment 8: jokull (2011-10-06) [id 2308644]\n+1\n\n--- comment 9: rduplain (2012-01-17) [id 3522442]\nAnyone up for writing tests?\n\n--- comment 10: rduplain (2012-01-17) [id 3529766]\nWe'd like to see the same jsonify function support padded and unpadded (instead of a separate padded_jsonify function).  Either way we'll need good tests if someone would like to contribute.  :-)\n\n--- comment 11: rduplain (2012-01-17) [id 3535071]\n@jarus just posted a new pull request which would supercede this one:\nhttps://github.com/mitsuhiko/flask/pull/384\n\nPlease weigh in there.\n\n--- comment 12: jarus (2012-03-02) [id 4275572]\nI am sorry but is there a reason that the pull request is not accepted already? I am open for feedback an improvement suggestions. :)\n\n--- comment 13: woto (2012-03-05) [id 4322406]\nSorry for bad English. Absolutely agree, it was to hard to find this help http://flask.pocoo.org/snippets/79/\n\n--- comment 14: rduplain (2012-03-14) [id 4489650]\nAbout to pull #437. Closing this one. Thanks for the discussion!\n\nReviews: captured 0 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint.\n\nInline review comments: captured 0 of 0 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint.\n\nCapture note: this is the pull-request body plus bounded public conversation comments, reviews and inline review comments. It is NOT the complete PR conversation: timeline events, review-thread resolution, reactions, force-push history, per-commit diffs and hidden/deleted comments are not captured.",
+        "pagination": {
+          "schema_version": 1,
+          "offset": 0,
+          "max_chars": 200000,
+          "start": 0,
+          "end": 3614,
+          "returned_chars": 3614,
+          "next_offset": null,
+          "more": false,
+          "total_available_chars": 3614,
+          "document_sha256": "4d537c66976b72d98ded2ea9e89408abc7c26b0e3bcdac71ec2be864eb1b0da4",
+          "window_empty": false,
+          "retrieval_char_cap": 1000000,
+          "extractor_truncated": false,
+          "retrieval_capped": false,
+          "transport_byte_cap": 8388608,
+          "transport_capped": false,
+          "note": ""
+        },
+        "completeness": {
+          "extracted_document_complete": true,
+          "raw_page_complete": false,
+          "note": "content is readable text extracted from the page, not the raw HTML; markup, scripts and repeated chrome are removed, so completeness never means a byte-identical copy of the fetched page, and a later read may refetch a changed version — compare pagination.document_sha256 before chaining offsets across calls"
+        },
+        "error": null,
+        "evidence": {
+          "usable": true,
+          "transport_ok": true,
+          "relevance": "unknown",
+          "reasons": [],
+          "source_quality": {
+            "quality": "technical",
+            "score": 90,
+            "reasons": [
+              "GitHub issue/PR",
+              "Successfully extracted (long content)"
+            ],
+            "label": "GitHub issue/PR"
+          }
+        },
+        "video_evidence": null
+      }
+    }
+  ]
+}

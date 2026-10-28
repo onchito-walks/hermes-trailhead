@@ -1,0 +1,226 @@
+{
+  "artifact": "github-artifact-depth",
+  "generated_at_utc": "2026-10-28T14:43:32.181709+00:00",
+  "scope": "Native issue/pull reads: requested body plus bounded public discussion capture",
+  "conditions": {
+    "public_api_only": true,
+    "credentials_stripped": [
+      "GITHUB_TOKEN",
+      "GH_TOKEN",
+      "GH_ENTERPRISE_TOKEN"
+    ],
+    "home": "isolated /tmp/empty-home (no $HERMES_HOME/.env)",
+    "auth_calls": false,
+    "paid_calls": false,
+    "asr": "force-disabled by read",
+    "agent_reach": "not imported or invoked",
+    "hermes_web_extract": "disabled for read",
+    "token_present": false,
+    "rate_limit_class": "anonymous public GitHub REST"
+  },
+  "frozen_before_any_code_change": {
+    "method": "anonymous GET api.github.com with tokens and home stripped; identities recorded before reading through Trailhead",
+    "issue": {
+      "url": "https://github.com/pallets/flask/issues/5",
+      "issue_id": 170451,
+      "title": "Implement SQLAlchemy",
+      "comment_ids": [
+        308703,
+        308779
+      ]
+    },
+    "pull": {
+      "url": "https://github.com/pallets/flask/pull/112",
+      "pull_id": 541,
+      "title": "JSONP",
+      "conversation_comment_ids": [
+        382640,
+        383274,
+        618181,
+        620332,
+        650978,
+        1050643,
+        2304151,
+        2308644,
+        3522442,
+        3529766,
+        3535071,
+        4275572,
+        4322406,
+        4489650
+      ],
+      "reviews": 0,
+      "review_comments": 0
+    }
+  },
+  "live_reads": {
+    "issue": {
+      "command": [
+        "python",
+        "-m",
+        "hermes_trailhead",
+        "read",
+        "https://github.com/pallets/flask/issues/5",
+        "--format",
+        "json"
+      ],
+      "ok": true,
+      "extraction_status": "ok",
+      "source_type": "github",
+      "content_chars": 714,
+      "content_sha256": "b2191546f4d203f7e5d49ce3d42ad1677bdd63b2d71bbd4cdadf612de87c0fc7",
+      "pagination": {
+        "total_available_chars": 714,
+        "more": false,
+        "retrieval_char_cap": 1000000
+      },
+      "artifact_checks": {
+        "expected_title_line_present": true,
+        "expected_comment_ids": [
+          308703,
+          308779
+        ],
+        "expected_comment_ids_present": [
+          true,
+          true
+        ],
+        "all_expected_comment_ids_present": true,
+        "repo_metadata_present": false,
+        "repository_stats_present": false,
+        "capture_counts": [
+          "Conversation comments: captured 2 of 2 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint."
+        ],
+        "capture_notes": [
+          "Capture note: this is the issue body plus a bounded public comment capture, not a complete issue-history export (timeline events, reactions, edits and hidden/deleted comments are not included)."
+        ]
+      }
+    },
+    "pull": {
+      "command": [
+        "python",
+        "-m",
+        "hermes_trailhead",
+        "read",
+        "https://github.com/pallets/flask/pull/112",
+        "--format",
+        "json"
+      ],
+      "ok": true,
+      "extraction_status": "ok",
+      "source_type": "github",
+      "content_chars": 3614,
+      "content_sha256": "4d537c66976b72d98ded2ea9e89408abc7c26b0e3bcdac71ec2be864eb1b0da4",
+      "pagination": {
+        "total_available_chars": 3614,
+        "more": false,
+        "retrieval_char_cap": 1000000
+      },
+      "artifact_checks": {
+        "expected_title_line_present": true,
+        "expected_comment_ids": [
+          382640,
+          383274,
+          618181,
+          620332,
+          650978,
+          1050643,
+          2304151,
+          2308644,
+          3522442,
+          3529766,
+          3535071,
+          4275572,
+          4322406,
+          4489650
+        ],
+        "expected_comment_ids_present": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "all_expected_comment_ids_present": true,
+        "repo_metadata_present": false,
+        "repository_stats_present": false,
+        "capture_counts": [
+          "Conversation comments: captured 14 of 14 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint."
+        ],
+        "capture_notes": [
+          "Capture note: this is the pull-request body plus bounded public conversation comments, reviews and inline review comments. It is NOT the complete PR conversation: timeline events, review-thread resolution, reactions, force-push history, per-commit diffs and hidden/deleted comments are not captured."
+        ]
+      }
+    },
+    "artifact_not_char_count": "pass/fail is decided by expected title, issue/pull id and every frozen comment id; content length is reported but never used as proof"
+  },
+  "failed_issue_url": {
+    "url": "https://github.com/pallets/flask/issues/999999999",
+    "ok": false,
+    "exit_code": 1,
+    "extraction_status": "error",
+    "error_code": "extraction_error",
+    "content_chars": 0,
+    "repo_metadata_present": false,
+    "note": "a failed issue number returns an extraction error, never repository metadata as success"
+  },
+  "contract": {
+    "issue_path": "GET /repos/{owner}/{repo}/issues/{n} + GET /repos/{owner}/{repo}/issues/{n}/comments",
+    "pull_path": "GET /repos/{owner}/{repo}/pulls/{n} + issue comments + /reviews + /pulls/{n}/comments",
+    "repo_root_unchanged": "github.com/{owner}/{repo} still returns the full README plus labelled metadata",
+    "list_page_budget": {
+      "per_page": 100,
+      "max_pages": 3
+    },
+    "per_item_body_cap_chars": 4000,
+    "discussion_text_char_budget": 400000,
+    "read_pagination_bounds_unchanged": {
+      "retrieval_char_cap": 1000000,
+      "window_default": 20000,
+      "window_max": 200000
+    },
+    "search_preview_unchanged": "search --execute --extract still slices the preview at the 20k readable limit",
+    "pr_conversation_claim": "bounded capture; explicitly NOT the complete PR conversation"
+  },
+  "deterministic_tests": {
+    "command": "python -m pytest -q tests/test_github_artifact_depth.py",
+    "passed": 17,
+    "full_suite": {
+      "command": "python -m pytest -q",
+      "passed": 945,
+      "exit_code": 0
+    },
+    "live_rerun_hash_match": {
+      "issue": true,
+      "pull": true,
+      "note": "a second public read of both frozen artifacts reproduced the same content sha256 recorded above"
+    },
+    "covers": [
+      "issue URL returns issue body + frozen comment ids, not repo metadata",
+      "pull URL returns PR body + 14 comment ids + reviews/review comments",
+      "wrong returned issue number is rejected",
+      "404/API error raises; extract_one never substitutes repo metadata",
+      "API error object is not rendered as evidence",
+      "pagination across 3 pages, complete and NOT complete + next URL disclosure",
+      "per-comment cap and total artifact cap disclosure",
+      "secondary comment endpoint failure is disclosed, not fatal",
+      "read pagination over the resulting artifact text (contiguous windows)",
+      "search preview stays bounded at the 20k readable limit",
+      "artifact cap stays under the 1M read retrieval cap"
+    ]
+  },
+  "not_claimed": [
+    "complete GitHub issue/PR conversation or history export",
+    "review-thread resolution, reactions, timeline events, force-push history or diffs",
+    "authenticated rate limit or private repositories",
+    "that frozen live identifiers or comment counts cannot change upstream"
+  ]
+}

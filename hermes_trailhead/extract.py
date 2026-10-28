@@ -1248,6 +1248,331 @@ def _fetch_github_releases(owner: str, repo: str, rest: list[str], timeout: int)
     return "\n".join(lines)
 
 
+_GITHUB_LIST_PAGE_SIZE = 100
+_GITHUB_LIST_MAX_PAGES = 3
+_GITHUB_BODY_CHAR_CAP = 20000
+_GITHUB_COMMENT_CHAR_CAP = 4000
+_GITHUB_ARTIFACT_CHAR_CAP = 400_000
+
+
+def _github_login(value) -> str:
+    """Login name from a GitHub user/author object (never a token or e-mail)."""
+    if isinstance(value, dict):
+        return str(value.get("login") or "").strip()[:80]
+    return ""
+
+
+def _github_clip(text, limit: int) -> tuple[str, bool, int]:
+    """Return ``(bounded_text, was_truncated, measured_length)``."""
+    body = str(text or "").strip()
+    if len(body) <= limit:
+        return body, False, len(body)
+    return body[:limit].rstrip(), True, len(body)
+
+
+def _github_reason(exc: Exception) -> str:
+    """Compact one-line failure reason for a secondary (non-fatal) endpoint."""
+    return f"{type(exc).__name__}: {' '.join(str(exc).split())[:160]}"
+
+
+def _github_paginated_list(api: str, timeout: int) -> dict:
+    """Capture a bounded number of pages from a public GitHub REST list endpoint.
+
+    The public API exposes no total for these collections beyond the parent
+    payloads, so the caller reports exactly what it captured, the page/cap it
+    used, and the next page URL when more exists.  A response that is not a
+    list (an API error object) raises rather than being rendered as evidence.
+    """
+    per_page = int(_GITHUB_LIST_PAGE_SIZE)
+    separator = "&" if "?" in api else "?"
+    items: list[dict] = []
+    pages = 0
+    complete = False
+    next_url = ""
+    url = f"{api}{separator}per_page={per_page}"
+    while pages < int(_GITHUB_LIST_MAX_PAGES):
+        data = _github_api_json(url, timeout)
+        if not isinstance(data, list):
+            raise RuntimeError(
+                f"GitHub list endpoint did not return a list: {api}"
+            )
+        pages += 1
+        items.extend(row for row in data if isinstance(row, dict))
+        if len(data) < per_page:
+            complete = True
+            next_url = ""
+            break
+        next_url = f"{api}{separator}per_page={per_page}&page={pages + 1}"
+        url = next_url
+    return {
+        "items": items,
+        "pages": pages,
+        "per_page": per_page,
+        "complete": complete,
+        "next_url": "" if complete else next_url,
+    }
+
+
+def _github_capture_summary(label: str, capture: dict, total=None) -> str:
+    """One line stating capture count, page/cap bounds and the next page URL."""
+    captured = len(capture["items"])
+    count = f"captured {captured}"
+    if isinstance(total, int) and total >= captured:
+        count += f" of {total}"
+    detail = (
+        f"{capture['pages']} page(s), per_page {capture['per_page']}, "
+        f"body cap {_GITHUB_COMMENT_CHAR_CAP} chars per item"
+    )
+    if capture["complete"]:
+        return f"{label}: {count} ({detail}); complete for this endpoint."
+    next_url = capture.get("next_url") or "(next page URL unavailable)"
+    return (
+        f"{label}: {count} ({detail}); NOT complete — more exist beyond this "
+        f"capture; next page: {next_url}"
+    )
+
+
+def _github_render_items(
+    lines: list[str], items: list[dict], *, kind: str, budget: int
+) -> tuple[int, int]:
+    """Append per-item blocks within ``budget``; return ``(budget, skipped)``."""
+    skipped = 0
+    for index, item in enumerate(items, 1):
+        body, truncated, measured = _github_clip(
+            item.get("body"), _GITHUB_COMMENT_CHAR_CAP
+        )
+        header = f"--- {kind} {index}: {_github_login(item.get('user')) or 'unknown'}"
+        created = str(item.get("created_at") or "")[:10]
+        if created:
+            header += f" ({created})"
+        if item.get("id") is not None:
+            header += f" [id {item.get('id')}]"
+        if kind == "review":
+            state = str(item.get("state") or "").strip().upper()
+            if state:
+                header += f" — {state}"
+        elif kind == "inline review comment":
+            path = str(item.get("path") or "").strip()
+            line = item.get("line") or item.get("original_line")
+            if path:
+                header += f" — {path}" + (f":{line}" if line else "")
+        block = header + "\n" + (body or "(no body)")
+        if truncated:
+            block += f"\n[body truncated at {_GITHUB_COMMENT_CHAR_CAP} of {measured} chars]"
+        if budget - (len(block) + 2) < 0:
+            skipped = len(items) - index + 1
+            break
+        lines.append("")
+        lines.append(block)
+        budget -= len(block) + 2
+    return budget, skipped
+
+
+def _github_section(
+    lines: list[str],
+    label: str,
+    api: str,
+    timeout: int,
+    *,
+    total,
+    kind: str,
+    budget: int,
+) -> int:
+    """Append one bounded collection section; a secondary failure is disclosed."""
+    try:
+        capture = _github_paginated_list(api, timeout)
+    except Exception as exc:
+        lines.append("")
+        lines.append(
+            f"{label}: not captured ({_github_reason(exc)}); the requested "
+            "artifact above is unaffected by this secondary endpoint failure."
+        )
+        return budget
+    lines.append("")
+    summary = _github_capture_summary(label, capture, total)
+    lines.append(summary)
+    budget -= len(summary) + 2
+    if capture["items"]:
+        budget, skipped = _github_render_items(
+            lines, capture["items"], kind=kind, budget=budget
+        )
+        if skipped:
+            lines.append("")
+            lines.append(
+                f"[discussion text cap {_GITHUB_ARTIFACT_CHAR_CAP} chars reached; "
+                f"{skipped} captured {kind}(s) not included]"
+            )
+    return budget
+
+
+def _github_number_matches(data: dict, requested: str) -> bool:
+    """Guard against an endpoint returning a different object than requested."""
+    if data.get("number") is None:
+        return False
+    try:
+        return int(str(data.get("number"))) == int(requested)
+    except (TypeError, ValueError):
+        return False
+
+
+def _github_body_block(data: dict, kind: str) -> list[str]:
+    """The requested body, its cap disclosure and the field label."""
+    body, truncated, measured = _github_clip(data.get("body"), _GITHUB_BODY_CHAR_CAP)
+    if not body:
+        return ["", f"{kind} body:", "(no body text on this artifact)"]
+    block = ["", f"{kind} body:", body]
+    if truncated:
+        block.append(
+            f"[body truncated at {_GITHUB_BODY_CHAR_CAP} of {measured} chars]"
+        )
+    return block
+
+
+def _github_fetch_issue(
+    owner: str, repo: str, number: str, timeout: int
+) -> str:
+    """The requested issue: title, body and bounded discussion comments."""
+    api = f"https://api.github.com/repos/{owner}/{repo}/issues/{number}"
+    data = _github_api_json(api, timeout)
+    if not isinstance(data, dict) or not _github_number_matches(data, number):
+        raise RuntimeError(
+            f"GitHub issue API returned no issue {owner}/{repo}#{number}"
+        )
+    if isinstance(data.get("pull_request"), dict):
+        # ``/issues/<n>`` addresses a pull request when that number is a PR.
+        return _github_fetch_pull(owner, repo, number, timeout)
+
+    title = str(data.get("title") or "").strip()
+    lines = [f"GitHub issue {owner}/{repo}#{number}: {title or '(untitled)'}"]
+    state = str(data.get("state") or "").strip().lower() or "unknown"
+    facts = [f"State: {state}"]
+    author = _github_login(data.get("user"))
+    if author:
+        facts.append(f"Author: {author}")
+    created = str(data.get("created_at") or "")[:10]
+    if created:
+        facts.append(f"Created: {created}")
+    updated = str(data.get("updated_at") or "")[:10]
+    if updated:
+        facts.append(f"Updated: {updated}")
+    lines.append(" | ".join(facts))
+    labels = [
+        str(label.get("name")).strip()
+        for label in data.get("labels") or []
+        if isinstance(label, dict) and str(label.get("name") or "").strip()
+    ]
+    if labels:
+        lines.append("Labels: " + ", ".join(labels))
+    lines.append(f"URL: {data.get('html_url') or f'https://github.com/{owner}/{repo}/issues/{number}'}")
+    lines.extend(_github_body_block(data, "Issue"))
+
+    budget = _GITHUB_ARTIFACT_CHAR_CAP - len("\n".join(lines))
+    budget = _github_section(
+        lines,
+        "Conversation comments",
+        f"{api}/comments",
+        timeout,
+        total=data.get("comments"),
+        kind="comment",
+        budget=budget,
+    )
+    lines.append("")
+    lines.append(
+        "Capture note: this is the issue body plus a bounded public comment "
+        "capture, not a complete issue-history export (timeline events, reactions, "
+        "edits and hidden/deleted comments are not included)."
+    )
+    return "\n".join(lines)
+
+
+def _github_fetch_pull(
+    owner: str, repo: str, number: str, timeout: int
+) -> str:
+    """The requested pull request: description plus bounded discussion evidence.
+
+    Pull-request discussion has three separate public collections: conversation
+    comments, reviews and inline review comments.  Each is captured bounded and
+    labelled; nothing here claims the complete PR conversation.
+    """
+    api = f"https://api.github.com/repos/{owner}/{repo}/pulls/{number}"
+    data = _github_api_json(api, timeout)
+    if not isinstance(data, dict) or not _github_number_matches(data, number):
+        raise RuntimeError(
+            f"GitHub pull API returned no pull request {owner}/{repo}#{number}"
+        )
+
+    title = str(data.get("title") or "").strip()
+    lines = [f"GitHub pull request {owner}/{repo}#{number}: {title or '(untitled)'}"]
+    state = str(data.get("state") or "").strip().lower() or "unknown"
+    facts = [f"State: {state}"]
+    if data.get("merged_at"):
+        facts.append(f"Merged: {str(data.get('merged_at'))[:10]}")
+    elif data.get("merged") is False and state == "closed":
+        facts.append("Merged: no")
+    facts.append(f"Draft: {'yes' if data.get('draft') else 'no'}")
+    author = _github_login(data.get("user"))
+    if author:
+        facts.append(f"Author: {author}")
+    created = str(data.get("created_at") or "")[:10]
+    if created:
+        facts.append(f"Created: {created}")
+    lines.append(" | ".join(facts))
+    base = str((data.get("base") or {}).get("label") or (data.get("base") or {}).get("ref") or "")
+    head = str((data.get("head") or {}).get("label") or (data.get("head") or {}).get("ref") or "")
+    if base or head:
+        lines.append(f"Base: {base or 'unknown'} | Head: {head or 'unknown'}")
+    counts = []
+    if isinstance(data.get("commits"), int):
+        counts.append(f"Commits: {data['commits']}")
+    if isinstance(data.get("changed_files"), int):
+        counts.append(f"Changed files: {data['changed_files']}")
+    if isinstance(data.get("additions"), int) and isinstance(data.get("deletions"), int):
+        counts.append(f"Additions/Deletions: +{data['additions']}/-{data['deletions']}")
+    if counts:
+        lines.append(" | ".join(counts))
+    lines.append(f"URL: {data.get('html_url') or f'https://github.com/{owner}/{repo}/pull/{number}'}")
+    lines.extend(_github_body_block(data, "Pull request"))
+
+    budget = _GITHUB_ARTIFACT_CHAR_CAP - len("\n".join(lines))
+    budget = _github_section(
+        lines,
+        "Conversation comments",
+        f"https://api.github.com/repos/{owner}/{repo}/issues/{number}/comments",
+        timeout,
+        total=data.get("comments"),
+        kind="comment",
+        budget=budget,
+    )
+    # Reviews have no total in the public pull payload; review comments do.
+    budget = _github_section(
+        lines,
+        "Reviews",
+        f"{api}/reviews",
+        timeout,
+        total=None,
+        kind="review",
+        budget=budget,
+    )
+    budget = _github_section(
+        lines,
+        "Inline review comments",
+        f"{api}/comments",
+        timeout,
+        total=data.get("review_comments"),
+        kind="inline review comment",
+        budget=budget,
+    )
+    lines.append("")
+    lines.append(
+        "Capture note: this is the pull-request body plus bounded public "
+        "conversation comments, reviews and inline review comments. It is NOT "
+        "the complete PR conversation: timeline events, review-thread resolution, "
+        "reactions, force-push history, per-commit diffs and hidden/deleted "
+        "comments are not captured."
+    )
+    return "\n".join(lines)
+
+
 def _fetch_github_file(owner: str, repo: str, ref: str, path: str, timeout: int) -> str:
     """Fetch the requested repository file's actual content."""
     raw = f"https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}"
@@ -1285,11 +1610,12 @@ def _fetch_github_tree(owner: str, repo: str, ref: str, path: str, timeout: int)
 def _fetch_github_summary(url: str, timeout: int = 15) -> str:
     """Fetch the resource the GitHub URL actually requests.
 
-    A requested release/releases page yields release notes, and a requested
-    blob/tree page yields the file/directory content.  When the specifically
-    requested resource cannot be retrieved we raise rather than silently
-    returning repository metadata, which would misrepresent the page as the
-    evidence that was asked for.
+    A requested release/releases page yields release notes, a blob/tree page
+    yields the file/directory content, and an ``/issues/<n>`` or ``/pull/<n>``
+    URL yields that issue/pull request's own body plus a bounded public
+    discussion capture.  When the specifically requested resource cannot be
+    retrieved we raise rather than silently returning repository metadata,
+    which would misrepresent the page as the evidence that was asked for.
     """
     parsed = urlparse(url)
     if parsed.netloc.lower() != "github.com":
@@ -1305,6 +1631,13 @@ def _fetch_github_summary(url: str, timeout: int = 15) -> str:
         return _github_repo_metadata(owner, repo, parts, timeout, full_readme=True)
     if rest and rest[0] == "releases":
         return _fetch_github_releases(owner, repo, rest, timeout)
+    if len(rest) >= 2 and rest[0] in {"issues", "pull", "pulls"} and rest[1].isdigit():
+        # Issue/pull numbers are the requested artifact.  A number-shaped path
+        # must never fall back to repository metadata: that would report a
+        # different artifact as success.
+        if rest[0] == "issues":
+            return _github_fetch_issue(owner, repo, rest[1], timeout)
+        return _github_fetch_pull(owner, repo, rest[1], timeout)
     if len(rest) >= 3 and rest[0] in {"blob", "raw"}:
         return _fetch_github_file(owner, repo, rest[1], "/".join(rest[2:]), timeout)
     if len(rest) >= 2 and rest[0] == "tree":
