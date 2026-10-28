@@ -8,6 +8,7 @@ what failed.  The product goal is to turn "5 links found" into "3 pages extracte
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from html import unescape as _html_unescape
 import json
 import os
 import re
@@ -151,26 +152,88 @@ class ExtractedHit:
         return cls(title=hit.title, url=hit.url, snippet=hit.snippet, query=getattr(hit, "query", ""))
 
 
+def _parsed_url(url: str):
+    """``urlparse`` that tolerates scheme-less input such as ``v2ex.com/t/1``.
+
+    Search engines occasionally hand back bare hosts; without a scheme
+    ``urlparse`` reports no hostname and every host rule silently misses.
+    """
+    raw = (url or "").strip()
+    try:
+        parsed = urlparse(raw)
+        # Only when there is no leading ``scheme://`` — a query string that
+        # embeds another URL must not be re-parsed as this URL's host.
+        if not parsed.hostname and not re.match(r"^[a-zA-Z][a-zA-Z0-9+.\-]*://", raw):
+            parsed = urlparse("//" + raw.lstrip("/"))
+        return parsed
+    except ValueError:
+        return urlparse("")
+
+
+def _host(url_or_host: str) -> str:
+    """Lowercased hostname with a trailing dot removed ('' when unparseable)."""
+    parsed = _parsed_url(url_or_host)
+    return (parsed.hostname or "").lower().rstrip(".")
+
+
+def _host_matches(host: str, domain: str) -> bool:
+    """True for the exact domain or a real subdomain — never a bare substring.
+
+    ``v2ex.com`` is not ``x.com``, ``github.com.evil.test`` is not ``github.com``
+    and a domain appearing in a query string never counts: ``host`` must already
+    be the parsed hostname.
+    """
+    host = (host or "").lower().rstrip(".")
+    return bool(host) and (host == domain or host.endswith("." + domain))
+
+
+_X_DOMAINS = ("x.com", "twitter.com")
+_YOUTUBE_DOMAINS = ("youtube.com", "youtu.be", "youtube-nocookie.com")
+
+
+def _is_youtube_url(url: str) -> bool:
+    host = _host(url)
+    return any(_host_matches(host, domain) for domain in _YOUTUBE_DOMAINS)
+
+
 def _classify_source_type(url: str) -> SourceType:
-    """Heuristic URL classification to set source type for extraction context."""
-    url_lower = url.lower()
-    if "github.com" in url_lower:
+    """Classify a URL by its parsed hostname (exact domain or subdomain).
+
+    Host rules are boundary-checked, so a domain can never match because it
+    merely appears inside another hostname (``v2ex.com`` contains ``x.com``) or
+    inside a query string / path.
+    """
+    parsed = _parsed_url(url)
+    host = (parsed.hostname or "").lower().rstrip(".")
+    path = parsed.path or ""
+    path_lower = path.lower()
+
+    if _host_matches(host, "github.com"):
         return "github"
-    if "x.com" in url_lower or "twitter.com" in url_lower:
+    if any(_host_matches(host, domain) for domain in _X_DOMAINS):
         return "x"
-    if "reddit.com" in url_lower:
+    if _host_matches(host, "reddit.com"):
         return "reddit"
-    if "tiktok.com" in url_lower:
+    if _host_matches(host, "tiktok.com"):
         return "tiktok"
-    if "instagram.com" in url_lower:
+    if _host_matches(host, "instagram.com"):
         return "instagram"
-    if "youtube.com" in url_lower or "youtu.be" in url_lower:
+    if any(_host_matches(host, domain) for domain in _YOUTUBE_DOMAINS):
         return "youtube"
-    if url_lower.endswith(".pdf"):
+    # File suffix comes from the parsed path, so ``?query``/``#fragment`` after
+    # the extension (or a download query param) still classifies as a PDF.
+    if path_lower.endswith((".pdf", ".pdf/")):
         return "pdf"
-    if any(d in url_lower for d in ["docs.", "documentation", "readthedocs", "wiki"]):
+    if (
+        host.startswith("docs.")
+        or any(_host_matches(host, domain) for domain in ("readthedocs.io", "readthedocs.org", "docs.rs", "gitbook.io"))
+        or any(marker in path_lower for marker in ("/docs/", "/documentation", "/wiki"))
+    ):
         return "docs"
-    if any(f in url_lower for f in ["forum.", "community.", "discourse", "stackoverflow", "stackexchange"]):
+    if host.startswith(("forum.", "community.", "discourse.", "discuss.")) or any(
+        _host_matches(host, domain)
+        for domain in ("stackoverflow.com", "stackexchange.com", "discourse.org", "v2ex.com")
+    ):
         return "forum"
     return "web"
 
@@ -237,13 +300,18 @@ def _fetch_jina(url: str, timeout: int = 20) -> str:
 
 
 def _youtube_video_id(url: str) -> str:
-    """Extract a YouTube video id from watch, youtu.be, shorts, or embed URLs."""
-    parsed = urlparse(url)
-    host = parsed.netloc.lower()
-    path_parts = [p for p in parsed.path.split("/") if p]
-    if "youtu.be" in host and path_parts:
+    """Extract a YouTube video id from watch, youtu.be, shorts, or embed URLs.
+
+    Host checks are boundary-checked: only real youtube.com/youtu.be hosts
+    (and their subdomains) qualify, so a lookalike such as ``notyoutube.com``
+    or a YouTube link embedded in another site's query string yields no id.
+    """
+    parsed = _parsed_url(url)
+    host = (parsed.hostname or "").lower().rstrip(".")
+    path_parts = [p for p in (parsed.path or "").split("/") if p]
+    if _host_matches(host, "youtu.be") and path_parts:
         return path_parts[0]
-    if "youtube.com" in host:
+    if _host_matches(host, "youtube.com"):
         if parsed.path == "/watch":
             return parse_qs(parsed.query).get("v", [""])[0]
         if len(path_parts) >= 2 and path_parts[0] in {"shorts", "embed"}:
@@ -360,12 +428,32 @@ def _transcribe_audio_groq(audio_path: str, api_key: str, timeout: int = 150) ->
     return (data.get("text") or "").strip()
 
 
+ASR_DISABLE_ENV = "TRAILHEAD_DISABLE_ASR"
+
+
+def _asr_disabled() -> bool:
+    """``TRAILHEAD_DISABLE_ASR=1`` disables media-download ASR for this process.
+
+    Isolated benchmark/comparison runs set it so a case never spends minutes
+    downloading audio; ordinary runtime is unchanged (unset ⇒ enabled).
+    """
+    return (os.environ.get(ASR_DISABLE_ENV) or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _ensure_asr_enabled() -> None:
+    if _asr_disabled():
+        raise RuntimeError(
+            f"ASR disabled for this run ({ASR_DISABLE_ENV}=1) — skipping media download/transcription"
+        )
+
+
 def _fetch_youtube_asr(url: str, timeout: int = 30) -> str:
     """ASR fallback for videos without captions (Groq Whisper, free tier).
 
     Downloads bestaudio (m4a) through the proxy pool and transcribes it.
     Cached with a separate ``.asr.txt`` key so repeats are instant.
     """
+    _ensure_asr_enabled()
     import glob as _glob
     import os as _os
 
@@ -765,6 +853,7 @@ def _fetch_tiktok_transcript(url: str, timeout: int = 60) -> str:
     fallback; whisper accepts mp4 directly) and caches per video id.
     Verified 2026-10-14; honest failure on music-only / photo posts.
     """
+    _ensure_asr_enabled()
     vid = _tiktok_video_id(url)
     if not vid:
         raise RuntimeError("Could not parse TikTok video id")
@@ -1269,6 +1358,17 @@ _EXTRACTION_ERROR_MARKERS = (
 
 _HTML_SCRIPT_STYLE_RE = re.compile(r"<(script|style)\b.*?</\1>", re.I | re.S)
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.S)
+_HTML_INVISIBLE_RE = re.compile(r"<(head|noscript|template|svg|iframe)\b.*?</\1>", re.I | re.S)
+# Block-level boundaries become newlines so paragraphs, list items and table
+# rows stay separated instead of running together into one line of prose.
+_HTML_BLOCK_TAG_RE = re.compile(
+    r"</?(?:p|div|br|li|ul|ol|tr|td|th|table|thead|tbody|section|article|header"
+    r"|footer|nav|main|aside|h[1-6]|blockquote|pre|dd|dt|dl|form|fieldset|hr"
+    r"|figure|figcaption)\b[^>]*>",
+    re.I,
+)
+_READABLE_TEXT_LIMIT = 20000
 
 
 def _looks_like_extraction_error(text: str) -> bool:
@@ -1277,6 +1377,70 @@ def _looks_like_extraction_error(text: str) -> bool:
     if not head:
         return False
     return any(marker in head for marker in _EXTRACTION_ERROR_MARKERS)
+
+
+def _looks_like_html(text: str) -> bool:
+    """True when ``text`` is an HTML document rather than already-clean text.
+
+    Markdown/plain text that merely mentions a tag is left alone; the check
+    looks at the document head plus a tag-density floor.
+    """
+    raw = text or ""
+    head = raw.lstrip()[:512].lower()
+    if head.startswith(("<!doctype html", "<html")) or "<html" in head or "<body" in head:
+        return True
+    return len(_HTML_TAG_RE.findall(raw)) >= 20
+
+
+def _html_to_readable_text(html: str) -> str:
+    """Convert server-rendered HTML into readable plain text.
+
+    Scripts, styles, ``<head>`` and other non-visible bodies are dropped first
+    (their JS/JSON is never evidence), block tags become line breaks so
+    paragraphs survive, remaining tags are stripped, entities decoded and
+    whitespace normalised.  This turns a plain forum/docs page into text a
+    reader can use instead of returning 100k+ chars of markup.
+    """
+    text = _HTML_COMMENT_RE.sub(" ", html or "")
+    text = _HTML_SCRIPT_STYLE_RE.sub(" ", text)
+    text = _HTML_INVISIBLE_RE.sub(" ", text)
+    text = _HTML_BLOCK_TAG_RE.sub("\n", text)
+    text = _HTML_TAG_RE.sub("", text)
+    text = _html_unescape(text)
+
+    lines: list[str] = []
+    seen: set[str] = set()
+    for line in text.splitlines():
+        line = " ".join(line.split())
+        if not line or line in seen:  # repeated nav/footer chrome adds no evidence
+            continue
+        seen.add(line)
+        lines.append(line)
+    readable = "\n".join(lines).strip()
+    if len(readable) > _READABLE_TEXT_LIMIT:
+        readable = readable[:_READABLE_TEXT_LIMIT].rstrip() + "\n..."
+    return readable
+
+
+def _as_readable_page_text(content: str) -> str:
+    """Readable text for an HTML page; already-clean text passes through."""
+    if not _looks_like_html(content):
+        return content or ""
+    return _html_to_readable_text(content)
+
+
+def _readable_page_result(content: str) -> str:
+    """Readable page text when ``content`` is usable evidence, else ``""``.
+
+    Client-rendered shells are rejected on the *raw* payload (their markup is
+    the only shell signal) before cleaning, and the cleaned text must still
+    carry readable content — so a JS-only page never becomes "evidence" just
+    because stripping tags left a few boilerplate words behind.
+    """
+    if _is_html_shell(content):
+        return ""
+    text = _as_readable_page_text(content)
+    return text if _is_usable_page_text(text) else ""
 
 
 def _clean_html_text(text: str) -> str:
@@ -1381,7 +1545,7 @@ def _fetch_stealth_chrome(url: str, timeout: int = 30, cookies: str | None = Non
         cmd.extend(["--proxy", proxy])
     if cookies and __import__("os").path.exists(cookies):
         cmd.extend(["--cookies", cookies])
-    if "youtube.com" in url or "youtu.be" in url:
+    if _is_youtube_url(url):
         cmd.append("--transcript")
 
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 15)
@@ -2813,11 +2977,12 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     # Try direct fetch first (fast, no subprocess).
     try:
         content = fetcher(url, timeout)
-        if _is_usable_page_text(content):
+        text = _readable_page_result(content)
+        if text:
             return ExtractionResult(
                 status="ok",
-                content=content,
-                content_length=len(content),
+                content=text,
+                content_length=len(text),
                 source_type=source_type,
             )
         if _is_html_shell(content):
@@ -2829,11 +2994,12 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     if fetch is None:  # Only try Jina when not testing
         try:
             content = _fetch_jina(url, timeout=timeout)
-            if _is_usable_page_text(content):
+            text = _readable_page_result(content)
+            if text:
                 return ExtractionResult(
                     status="ok",
-                    content=content,
-                    content_length=len(content),
+                    content=text,
+                    content_length=len(text),
                     source_type=source_type,
                 )
             if _is_html_shell(content):
@@ -2844,11 +3010,12 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     # Try Hermes native web_extract last (slow subprocess).
     try:
         content = (extract or _fetch_hermes_web_extract)(url, timeout)
-        if _is_usable_page_text(content):
+        text = _readable_page_result(content)
+        if text:
             return ExtractionResult(
                 status="ok",
-                content=content,
-                content_length=len(content),
+                content=text,
+                content_length=len(text),
                 source_type=source_type,
             )
         if _is_html_shell(content):
