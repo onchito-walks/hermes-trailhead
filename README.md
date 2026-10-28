@@ -2,6 +2,41 @@
 
 # Hermes Trailhead
 
+## Development status — evidence before claims
+
+The October 14 grades and test counts below are **historical release notes**,
+not current certification and not a head-to-head win over another tool.
+`score --live` now separates those static claims from current reachability
+observations; a cache count or HTTP 200 is not proof of useful content.
+
+Current development adds:
+
+- **Evidence usability:** successful transport is distinct from relevant,
+  readable evidence. Empty profiles, off-query hits and missing transcripts
+  are not promoted to successful research. Captions are not visual analysis.
+- **Optional platform/action breadth:** `reach` inventories an existing Agent
+  Reach install; `reach-call` forwards allowlisted read-only actions with
+  upstream attribution. Public calls use a temporary empty home and force
+  declared public backends. Existing authenticated state requires explicit
+  opt-in. This is reuse, not a claim that these are native Trailhead lanes.
+- **Matched comparisons:** `compare` requests the same outcome from both tools,
+  separates cold/warm state and records per-case evidence and failures.
+  It does not compute an overall winner from character counts.
+
+```bash
+hermes-trailhead reach --agent-reach /path/to/agent-reach
+hermes-trailhead reach-call bilibili hot --agent-reach /path/to/agent-reach
+hermes-trailhead compare --list-cases
+```
+
+Agent Reach is optional and is never installed or configured automatically.
+Use its [official GitHub project](https://github.com/Panniantong/Agent-Reach),
+**not the unrelated PyPI package with the same name**.
+See [backend boundaries](docs/agent-reach-backend.md) and the
+[comparison method and remaining gaps](docs/competitive-benchmark.md).
+No overall superiority claim is established.
+
+
 The internet is full of answers that search engines can't reach. Practitioner
 discussions on X that never make it to Google. Reddit threads with the exact
 workaround you need. YouTube videos where someone explains the bug and the fix

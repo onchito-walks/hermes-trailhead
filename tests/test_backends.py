@@ -234,7 +234,10 @@ def test_tavily_falls_through_gracefully_when_key_is_missing(monkeypatch):
     assert result.engine != "tavily_tiktok"
 
 
-def test_tiktok_and_instagram_have_bing_discovery_fallbacks():
+def test_tiktok_and_instagram_have_bing_discovery_fallbacks(monkeypatch):
+    # Exercise the Bing fallback deterministically, never an operator's API key.
+    monkeypatch.setattr(backends, "_tavily_api_key", lambda: "")
+
     def fake_fetch(url, timeout):
         if "bing.com/search" in url and "tiktok.com" in url:
             return f'<a class="tilk" aria-label="TikTok Voron" href="{_bing_href("https://www.tiktok.com/@neokoiprints/video/7520003017949613367")}">TikTok Voron</a>'
