@@ -6,7 +6,7 @@ paid APIs while still producing real retrieved links when the network path is av
 """
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 import html
 import re
 from typing import Callable, Literal, Sequence
@@ -625,6 +625,24 @@ def execute_action(
         allow_reach=trusted_runtime,
         reach_adapter=reach_adapter,
     )
+    # A thin native result (some hits, but under the requested budget) gets one
+    # whole-result replacement attempt.  It is taken only when upstream returns
+    # strictly more valid hits, so attribution stays homogeneous.  A chain that
+    # already spent its one fallback chance on a zero-hit run is left alone.
+    if (
+        trusted_runtime
+        and 0 < len(backend_result.hits) < limit
+        and not any(name.startswith("agent_reach") for name in backend_result.attempts)
+    ):
+        fallback = backends.run_reach_search_fallback(
+            action.platform, action.query, limit=limit, adapter=reach_adapter
+        )
+        if fallback is not None:
+            attempts = backend_result.attempts + [
+                name for name in fallback.attempts if name not in backend_result.attempts
+            ]
+            kept = fallback if len(fallback.hits) > len(backend_result.hits) else backend_result
+            backend_result = replace(kept, attempts=attempts)
     status: ExecutionStatus = "ok" if backend_result.hits else ("gap" if backend_result.saw_response else "blocked")
     error = "" if backend_result.hits else backend_result.error
     # Ordering is a caller preference over URL evidence only.  With no criteria

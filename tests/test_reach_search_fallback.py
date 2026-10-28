@@ -556,3 +556,178 @@ def test_execute_search_patched_default_fetcher_keeps_the_fallback_closed(monkey
     assert execution.engine != "agent_reach_web_search"
     assert execution.attribution == ""
     assert not any(name.startswith("agent_reach") for name in execution.attempts)
+
+
+# ── 8. thin native results: one whole-result replacement chance ───────────
+
+_ONE_NATIVE = '<a href="https://example.com/native-lead">Native lead</a>'
+_TWO_NATIVE = _ONE_NATIVE + '<a href="https://example.com/native-two">Native two</a>'
+
+
+class _HtmlResponse:
+    """Minimal ``urlopen`` result carrying a fixed HTML body."""
+
+    def __init__(self, markup: str):
+        self._markup = markup
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_exc):
+        return False
+
+    def read(self):
+        return self._markup.encode()
+
+
+def _configured_adapter(monkeypatch, adapter):
+    """Operator env + mocked factory; returns the recorded build calls."""
+    built: list[tuple[str, int]] = []
+
+    def factory(executable, *, limit=5):
+        built.append((executable, limit))
+        return adapter
+
+    monkeypatch.setenv(AGENT_REACH_ENV, "/opt/agent-reach/bin/agent-reach")
+    monkeypatch.setattr(backends, "build_reach_search_adapter", factory)
+    return built
+
+
+def _default_runtime_page(monkeypatch, markup):
+    """Real fetcher, patched HTTP layer: the trusted default runtime."""
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *args, **kwargs: _HtmlResponse(markup))
+
+
+def test_thin_native_result_is_replaced_by_a_larger_configured_fallback(monkeypatch):
+    adapter = _FakeAdapter(
+        _reach_result(
+            [
+                _item("https://example.com/reach-lead", title="Reach lead", text="lead text"),
+                _item("https://example.com/reach-two", title="Reach two"),
+            ]
+        )
+    )
+    built = _configured_adapter(monkeypatch, adapter)
+    _default_runtime_page(monkeypatch, _ONE_NATIVE)
+
+    execution = execute_search("web", QUERY, limit=2).executions[0]
+
+    assert built == [("/opt/agent-reach/bin/agent-reach", 2)]
+    assert execution.status == "ok"
+    assert execution.result_count == 2
+    assert execution.engine == "agent_reach_web_search"
+    assert [hit.url for hit in execution.hits] == [
+        "https://example.com/reach-lead",
+        "https://example.com/reach-two",
+    ]
+    # Whole-result replacement: no native URL survives under upstream attribution.
+    assert "https://example.com/native-lead" not in {hit.url for hit in execution.hits}
+    assert execution.attribution == ATTRIBUTION
+    assert execution.error == ""
+    assert "ddg_lite" in execution.attempts
+    assert execution.attempts[-1].startswith("agent_reach_web_search")
+    assert execution.to_dict()["attribution"] == ATTRIBUTION
+
+
+@pytest.mark.parametrize(
+    "items",
+    [
+        pytest.param([_item("https://example.com/reach-only")], id="equal-count"),
+        pytest.param([_item("javascript:alert(1)")], id="no-valid-hits"),
+    ],
+)
+def test_thin_native_result_survives_a_fallback_that_is_not_larger(monkeypatch, items):
+    adapter = _FakeAdapter(_reach_result(items))
+    built = _configured_adapter(monkeypatch, adapter)
+    _default_runtime_page(monkeypatch, _ONE_NATIVE)
+
+    execution = execute_search("web", QUERY, limit=2).executions[0]
+
+    assert built == [("/opt/agent-reach/bin/agent-reach", 2)]
+    assert execution.result_count == 1
+    assert [hit.url for hit in execution.hits] == ["https://example.com/native-lead"]
+    assert execution.engine == "ddg_lite"
+    assert execution.attribution == ""
+    assert execution.error == ""
+    # The attempt is still reported, it just never wins.
+    assert any(name.startswith("agent_reach_web_search") for name in execution.attempts)
+
+
+def test_full_native_budget_never_consults_the_fallback(monkeypatch):
+    adapter = _FakeAdapter(
+        _reach_result([_item("https://example.com/reach-lead"), _item("https://example.com/reach-two")])
+    )
+    built = _configured_adapter(monkeypatch, adapter)
+    _default_runtime_page(monkeypatch, _TWO_NATIVE)
+
+    execution = execute_search("web", QUERY, limit=2).executions[0]
+
+    assert built == []
+    assert adapter.calls == []
+    assert execution.result_count == 2
+    assert execution.engine == "ddg_lite"
+    assert execution.attribution == ""
+    assert not any(name.startswith("agent_reach") for name in execution.attempts)
+
+
+def test_fallback_failure_on_a_thin_native_result_keeps_native_hits(monkeypatch):
+    adapter = _FakeAdapter(
+        _reach_result(ok=False, error={"code": "upstream_blocked", "message": "blocked upstream"})
+    )
+    _configured_adapter(monkeypatch, adapter)
+    _default_runtime_page(monkeypatch, _ONE_NATIVE)
+
+    execution = execute_search("web", QUERY, limit=2).executions[0]
+
+    assert execution.status == "ok"
+    assert execution.result_count == 1
+    assert [hit.url for hit in execution.hits] == ["https://example.com/native-lead"]
+    assert execution.engine == "ddg_lite"
+    assert execution.attribution == ""
+    assert "agent_reach_web_search_upstream_blocked" in execution.attempts
+
+
+def test_zero_native_hits_invokes_the_fallback_exactly_once(monkeypatch):
+    """The zero-hit path belongs to the chain; the thin branch must not repeat it."""
+    adapter = _FakeAdapter(
+        _reach_result([_item("https://example.com/reach-lead"), _item("https://example.com/reach-two")])
+    )
+    built = _configured_adapter(monkeypatch, adapter)
+    _default_runtime_page(monkeypatch, "")
+
+    execution = execute_search("web", QUERY, limit=2).executions[0]
+
+    assert built == [("/opt/agent-reach/bin/agent-reach", 2)]
+    assert len(adapter.calls) == 1
+    assert execution.result_count == 2
+    assert execution.engine == "agent_reach_web_search"
+
+
+def test_partial_fallback_after_zero_hits_is_not_called_twice(monkeypatch):
+    """A fallback that fills only part of the budget already had its one chance."""
+    adapter = _FakeAdapter(_reach_result([_item("https://example.com/reach-lead")]))
+    _configured_adapter(monkeypatch, adapter)
+    _default_runtime_page(monkeypatch, "")
+
+    execution = execute_search("web", QUERY, limit=2).executions[0]
+
+    assert len(adapter.calls) == 1
+    assert execution.result_count == 1
+    assert execution.engine == "agent_reach_web_search"
+    assert execution.attribution == ATTRIBUTION
+
+
+def test_fixture_fetch_thin_result_never_reaches_the_fallback():
+    """A thin fixture result stays a fixture result: no subprocess, no attribution."""
+    adapter = _FakeAdapter(
+        _reach_result([_item("https://example.com/reach-lead"), _item("https://example.com/reach-two")])
+    )
+
+    execution = execute_search("web", QUERY, limit=2, fetch=_html_fetch, reach_adapter=adapter).executions[0]
+
+    assert adapter.calls == []
+    assert execution.result_count == 1
+    assert [hit.url for hit in execution.hits] == ["https://example.com/native-lead"]
+    assert execution.engine == "ddg_lite"
+    assert execution.attribution == ""
+    assert not any(name.startswith("agent_reach") for name in execution.attempts)
