@@ -36,6 +36,14 @@ chasing it further would only add code without adding capability.
    captions, transcripts, threads, repos and pages, then ranks and labels what
    it could not reach.
 
+## Live lane reality (checked 2026-10-28 21:58 UTC)
+
+"40/40 reachable" means every action is addressed by the interface, not that all of
+them succeed. At 21:58 UTC `reliability` reports newsletter, web-extract, web-search,
+x-search and youtube at 100% ok (52-53 checks each); **reddit at 54% declining**; and
+**tiktok at 0% ok across 52 checks** (stagehand 0% is by design — not installed).
+TikTok is the largest real gap behind the coverage number.
+
 ## Where Trailhead is not better, and why
 
 - **Capability depth on 28 of 40 actions is borrowed outright, and 4 more fall back to the same code.** Post reads, thread
