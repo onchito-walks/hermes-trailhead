@@ -103,7 +103,7 @@ No task is marked complete merely because this document or a benchmark exists.
 - Full action sweep attempted all 26 public cases and refused 14 gated cases.
   Replay under the current normalizer: 17 returned-item rows, 6 upstream failures,
   3 withheld shell/missing-page rows. Returned items are NOT completeness/relevance
-  proof. Detailed live ledger remains in operator scratch pending sanitized export.
+  proof. Sanitized replay ledger: [action-sweep-replay.json](evidence/action-sweep-replay.json).
 - [Repeated public evidence](PUBLIC-ACCEPTANCE-EVIDENCE.md): 3 cases × 3 cold +
   3 warm rounds, 18 paired observations. English/Chinese artifact markers improved
   after fixes; presence is not full-artifact completeness or overall superiority.

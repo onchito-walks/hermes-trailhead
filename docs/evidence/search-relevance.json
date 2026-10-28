@@ -1,0 +1,381 @@
+{
+  "schema": "trailhead.search-relevance/1",
+  "status": "executed",
+  "frozen_at": "2026-10-28T13:33:24Z",
+  "scope": {
+    "purpose": "Small agent-reviewed multilingual search relevance probe: does the native web search path return on-topic entities for specific en/zh/es queries?",
+    "not": [
+      "not a parity or superiority comparison against another tool",
+      "not human-reviewed relevance judgment",
+      "not a completeness/artifact-recall measurement",
+      "not a new evaluation framework"
+    ],
+    "reviewer": "Hermes agent (monchobotjr), self-review of returned titles/snippets/URLs; NOT human reviewed",
+    "caps": {
+      "queries": 3,
+      "hits_per_query": 3,
+      "max_hits": 9
+    },
+    "cli": "python3 -m hermes_trailhead search web <query> --execute --no-extract --limit 3 --format json",
+    "read_path": "python3 -m hermes_trailhead read <url> --format json (native extractor; TRAILHEAD_DISABLE_ASR=1; no model web_extract fallback)",
+    "budget": "TRAILHEAD_DISABLE_ASR=1, no paid/auth/login calls, no model-backed extraction, one search call per query plus at most one public-backend fallback and one read per query"
+  },
+  "host": {
+    "platform": "Linux-7.0.0-1013-oracle-aarch64",
+    "python": "3.14.9",
+    "repo_head": "9f0eedc",
+    "working_tree": "clean before run"
+  },
+  "cases": [
+    {
+      "case_id": "sr-en-requests",
+      "language": "en",
+      "query": "requests HTTP library",
+      "search": {
+        "command": "python3 -m hermes_trailhead search web \"requests HTTP library\" --execute --no-extract --limit 3 --format json",
+        "started_at": "2026-10-28T13:33:39Z",
+        "finished_at": "2026-10-28T13:33:41Z",
+        "status": "ok",
+        "engine": "jina_duckduckgo",
+        "attempts": [
+          "ddg_lite",
+          "ddg_html",
+          "jina_duckduckgo"
+        ],
+        "result_count": 3,
+        "hits": [
+          {
+            "rank": 1,
+            "title": "Requests: HTTP for Humans™ — Requests 2.34.2 documentation",
+            "url": "https://docs.python-requests.org/en/master/index.html",
+            "snippet": "",
+            "reviewer_verdict": "relevant",
+            "reviewer_explanation": "Official Requests documentation; page identity matches the expected entity and the expected docs source (docs.python-requests.org)."
+          },
+          {
+            "rank": 2,
+            "title": "requests · PyPI",
+            "url": "https://pypi.org/project/requests/",
+            "snippet": "",
+            "reviewer_verdict": "relevant",
+            "reviewer_explanation": "PyPI project page for the same package (requests); expected distribution source, canonical for install/version."
+          },
+          {
+            "rank": 3,
+            "title": "GitHub - psf/requests: A simple, yet elegant, HTTP library.",
+            "url": "https://github.com/psf/requests",
+            "snippet": "",
+            "reviewer_verdict": "relevant",
+            "reviewer_explanation": "GitHub repository psf/requests — the source repo named in the frozen expectation; correct entity, maintainer-owned."
+          }
+        ],
+        "raw_sha256_16": "84c51c513f307b74"
+      },
+      "read": {
+        "command": "python3 -m hermes_trailhead read \"https://docs.python-requests.org/en/master/index.html\" --format json",
+        "started_at": "2026-10-28T13:33:56Z",
+        "finished_at": "2026-10-28T13:33:57Z",
+        "url": "https://docs.python-requests.org/en/master/index.html",
+        "ok": true,
+        "extraction_status": "ok",
+        "content_length": 14505,
+        "truncated": false,
+        "usable": true,
+        "source_quality": {
+          "quality": "canonical",
+          "score": 80,
+          "reasons": [
+            "Documentation site",
+            "Successfully extracted (long content)"
+          ],
+          "label": "Documentation site"
+        },
+        "asr": {
+          "enabled": false,
+          "env": "TRAILHEAD_DISABLE_ASR",
+          "note": "read never invokes paid ASR"
+        },
+        "policy": {
+          "agent_reach": "not_used",
+          "asr": "disabled",
+          "hermes_web_extract": "disabled",
+          "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+        },
+        "markers": [
+          {
+            "text": "HTTP for Humans",
+            "count": 1
+          },
+          {
+            "text": "requests",
+            "count": 143
+          },
+          {
+            "text": "Installation",
+            "count": 2
+          }
+        ],
+        "content_head": "# Requests: HTTP for Humans™ ¶\n\nRelease v2.34.2. ([Installation](https://docs.python-requests.org/en/latest/user/install/#install))\n\n[![PyPI Version Badge](https://img.shields.io/pypi/v/requests.svg?maxAge=86400)](https://pypi.org/project/r"
+      }
+    },
+    {
+      "case_id": "sr-zh-typing",
+      "language": "zh-Hans",
+      "query": "Python类型提示",
+      "search": {
+        "command": "python3 -m hermes_trailhead search web \"Python类型提示\" --execute --no-extract --limit 3 --format json",
+        "started_at": "2026-10-28T13:33:46Z",
+        "finished_at": "2026-10-28T13:33:48Z",
+        "status": "ok",
+        "engine": "jina_duckduckgo",
+        "attempts": [
+          "ddg_lite",
+          "ddg_html",
+          "jina_duckduckgo"
+        ],
+        "result_count": 3,
+        "hits": [
+          {
+            "rank": 1,
+            "title": "Python 类型注解（Type Hints） - 菜鸟教程",
+            "url": "https://www.runoob.com/python3/python-type-hints.html",
+            "snippet": "",
+            "reviewer_verdict": "partially_relevant",
+            "reviewer_explanation": "Right topic and language (Chinese Type Hints tutorial), but a third-party tutorial site (runoob), not the expected official docs/PEP/mypy source. Ranked above the official page."
+          },
+          {
+            "rank": 2,
+            "title": "typing --- 对类型提示的支持 — Python 3.15.2 文档",
+            "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+            "snippet": "",
+            "reviewer_verdict": "relevant",
+            "reviewer_explanation": "Exactly the expected entity and source: Python zh-cn docs, typing — 对类型提示的支持. Read returned 20,004 chars of Chinese typing reference."
+          },
+          {
+            "rank": 3,
+            "title": "Python 类型提示(Typing Hint)使用详解 - 知乎",
+            "url": "https://zhuanlan.zhihu.com/p/688656182",
+            "snippet": "",
+            "reviewer_verdict": "partially_relevant",
+            "reviewer_explanation": "Chinese practitioner explainer on type hints (Zhihu column); on-topic but user-generated, not an expected canonical entity/source."
+          }
+        ],
+        "raw_sha256_16": "daf1f917ee8d5a6c"
+      },
+      "read": {
+        "command": "python3 -m hermes_trailhead read \"https://docs.python.org/zh-cn/3/library/typing.html\" --format json",
+        "started_at": "2026-10-28T13:33:58Z",
+        "finished_at": "2026-10-28T13:33:58Z",
+        "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+        "ok": true,
+        "extraction_status": "ok",
+        "content_length": 20004,
+        "truncated": true,
+        "usable": true,
+        "source_quality": {
+          "quality": "canonical",
+          "score": 80,
+          "reasons": [
+            "Documentation site",
+            "Successfully extracted (long content)"
+          ],
+          "label": "Documentation site"
+        },
+        "asr": {
+          "enabled": false,
+          "env": "TRAILHEAD_DISABLE_ASR",
+          "note": "read never invokes paid ASR"
+        },
+        "policy": {
+          "agent_reach": "not_used",
+          "asr": "disabled",
+          "hermes_web_extract": "disabled",
+          "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+        },
+        "markers": [
+          {
+            "text": "类型提示",
+            "count": 6
+          },
+          {
+            "text": "typing",
+            "count": 37
+          },
+          {
+            "text": "泛型",
+            "count": 34
+          }
+        ],
+        "content_head": "主题\n自动\n明亮\n黑暗\n目录 — https://docs.python.org/zh-cn/3/contents.html\ntyping --- 对类型提示的支持\n有关 Python 类型系统的规范说明\n类型别名\nNewType\n标注可调用对象\n泛型（Generic）\n标注元组\n类对象的类型\n标注生成器和协程\n用户定义的泛型类型\nAny 类型\n名义子类型 vs 结构子类型\n模块内容\n特殊类型原语\n特殊类型\n特殊形式\n构造泛型类型与类型别名\n其他特殊指令\n协议\n与 IO 相关"
+      }
+    },
+    {
+      "case_id": "sr-es-asyncio",
+      "language": "es",
+      "query": "documentación Python asyncio",
+      "search": {
+        "command": "python3 -m hermes_trailhead search web \"documentación Python asyncio\" --execute --no-extract --limit 3 --format json",
+        "started_at": "2026-10-28T13:33:48Z",
+        "finished_at": "2026-10-28T13:33:50Z",
+        "status": "ok",
+        "engine": "jina_duckduckgo",
+        "attempts": [
+          "ddg_lite",
+          "ddg_html",
+          "jina_duckduckgo"
+        ],
+        "result_count": 3,
+        "hits": [
+          {
+            "rank": 1,
+            "title": "asyncio — Asynchronous I/O — Python 3.15.2 documentation",
+            "url": "https://docs.python.org/3/library/asyncio.html",
+            "snippet": "",
+            "reviewer_verdict": "partially_relevant",
+            "reviewer_explanation": "Authoritative asyncio reference page but in English; the query asked for Spanish documentation, so it only half-matches the frozen expectation."
+          },
+          {
+            "rank": 2,
+            "title": "Desarrollando con asyncio — documentación de Python - 3.15.0",
+            "url": "https://docs.python.org/es/3/library/asyncio-dev.html",
+            "snippet": "",
+            "reviewer_verdict": "relevant",
+            "reviewer_explanation": "Spanish official docs, \"Desarrollando con asyncio\" — matches the expected Spanish asyncio documentation source (docs.python.org/es). Ranked below the English page."
+          },
+          {
+            "rank": 3,
+            "title": "A conceptual overview of asyncio — Python 3.15.2 documentation",
+            "url": "https://docs.python.org/3/howto/a-conceptual-overview-of-asyncio.html",
+            "snippet": "",
+            "reviewer_verdict": "partially_relevant",
+            "reviewer_explanation": "English conceptual howto from the official docs; on-topic but English and tutorial-level rather than the asyncio reference."
+          }
+        ],
+        "raw_sha256_16": "be3bc7e7993ce741"
+      },
+      "read": {
+        "command": "python3 -m hermes_trailhead read \"https://docs.python.org/es/3/library/asyncio-dev.html\" --format json",
+        "started_at": "2026-10-28T13:33:58Z",
+        "finished_at": "2026-10-28T13:33:58Z",
+        "url": "https://docs.python.org/es/3/library/asyncio-dev.html",
+        "ok": true,
+        "extraction_status": "ok",
+        "content_length": 16091,
+        "truncated": false,
+        "usable": true,
+        "source_quality": {
+          "quality": "canonical",
+          "score": 80,
+          "reasons": [
+            "Documentation site",
+            "Successfully extracted (long content)"
+          ],
+          "label": "Documentation site"
+        },
+        "asr": {
+          "enabled": false,
+          "env": "TRAILHEAD_DISABLE_ASR",
+          "note": "read never invokes paid ASR"
+        },
+        "policy": {
+          "agent_reach": "not_used",
+          "asr": "disabled",
+          "hermes_web_extract": "disabled",
+          "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+        },
+        "markers": [
+          {
+            "text": "asyncio",
+            "count": 72
+          },
+          {
+            "text": "Desarrollando con asyncio",
+            "count": 2
+          },
+          {
+            "text": "corrutinas",
+            "count": 3
+          }
+        ],
+        "content_head": "Tema\nAuto\nClaro\nOscuro\nTabla de contenido — https://docs.python.org/es/3/contents.html\nDesarrollando con asyncio\nModo depuración\nConcurrencia y multihilo\nEjecutando código bloqueante\nLogueando\nDetectar corrutinas no esperadas\nDetectar excep"
+      }
+    }
+  ],
+  "relevance_scale": {
+    "relevant": "result is the expected entity/source or a direct authoritative page for the requested topic",
+    "partially_relevant": "right topic family but not the requested entity/language/source (e.g. English page for a Chinese query, secondary tutorial)",
+    "not_relevant": "different topic, different library, or content-free aggregator"
+  },
+  "calls": [],
+  "reads": [
+    {
+      "case_id": "sr-en-requests",
+      "url": "https://docs.python-requests.org/en/master/index.html",
+      "usable": true,
+      "content_length": 14505,
+      "truncated": false,
+      "started_at": "2026-10-28T13:33:56Z",
+      "finished_at": "2026-10-28T13:33:57Z"
+    },
+    {
+      "case_id": "sr-zh-typing",
+      "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+      "usable": true,
+      "content_length": 20004,
+      "truncated": true,
+      "started_at": "2026-10-28T13:33:58Z",
+      "finished_at": "2026-10-28T13:33:58Z"
+    },
+    {
+      "case_id": "sr-es-asyncio",
+      "url": "https://docs.python.org/es/3/library/asyncio-dev.html",
+      "usable": true,
+      "content_length": 16091,
+      "truncated": false,
+      "started_at": "2026-10-28T13:33:58Z",
+      "finished_at": "2026-10-28T13:33:58Z"
+    }
+  ],
+  "gaps": [
+    "All 9 hits came back with an empty snippet on this path (engine jina_duckduckgo returns title+URL only). Relevance review therefore rests on titles/URLs plus the three native reads, not on returned snippets.",
+    "ddg_lite and ddg_html were attempted before jina_duckduckgo on all three queries and produced no hits; one engine served every query, so results are engine-correlated and no independent second backend was exercised.",
+    "No public optional backend fallback was needed: every query returned 3 hits on the first search call. Fallback remains untested for these queries.",
+    "Language targeting is partial, not absent: rank 1 was the requested-language page only for the English query. For zh and es the requested-language official page appeared at rank 2 behind a third-party tutorial (zh) and an English page (es).",
+    "Only the top 3 hits per query were inspected. Expected entities outside the top 3 (PEP 484, mypy zh, es.wikipedia) are unverified — absence from top 3 is not evidence of absence.",
+    "The zh read was truncated at the extractor readable-text cap (20,004 chars); the page continues upstream.",
+    "No recall, completeness, latency, or cross-tool comparison was measured. This is a 3-query relevance probe whose verdicts are one agent's reading of titles, URLs, and read text.",
+    "Titles carry upstream version labels (Python 3.15.2, Requests 2.34.2) that were not re-verified against the live pages beyond the three reads."
+  ],
+  "summary": {
+    "relevant": 5,
+    "partially_relevant": 4,
+    "not_relevant": 0,
+    "note": "5/9 hits were the expected entity/source; 4/9 were the right topic but the wrong source or language. No not-relevant or duplicate hits. No superiority, parity, or completeness claim is made."
+  },
+  "executed_at": "2026-10-28T13:34:20Z",
+  "reviewed_by": "Hermes agent (monchobotjr) — agent-reviewed, NOT human reviewed",
+  "coverage": {
+    "queries": 3,
+    "hits_returned": 9,
+    "max_hits": 9,
+    "search_calls": 3,
+    "read_calls": 3,
+    "fallback_search_calls": 0,
+    "distinct_urls": 9,
+    "duplicate_urls": 0,
+    "distinct_domains": 6,
+    "hits_per_domain": {
+      "docs.python-requests.org": 1,
+      "pypi.org": 1,
+      "github.com": 1,
+      "www.runoob.com": 1,
+      "docs.python.org": 4,
+      "zhuanlan.zhihu.com": 1
+    },
+    "verdict_counts": {
+      "relevant": 5,
+      "partially_relevant": 4,
+      "not_relevant": 0
+    }
+  }
+}

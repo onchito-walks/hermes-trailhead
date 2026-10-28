@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from html import unescape as _html_unescape
+from html.parser import HTMLParser
 import json
 import os
 import re
@@ -1565,11 +1566,18 @@ def _readable_page_result(content: str, base_url: str = "") -> str:
     carry readable content — so a JS-only page never becomes "evidence" just
     because stripping tags left a few boilerplate words behind.
 
+    The same verdict is applied to already-rendered bodies (markdown from a
+    reader tier): an interface surface keeps its structure as short label
+    blocks with a loading placeholder and no paragraph anywhere, so it is
+    rejected on the text itself — but only on that positive evidence.
+
     Usability is judged on the *source* text, without the link annotations
     added for a reader: appended destinations must never lift an interstitial
     over a length-based block/missing-page threshold.
     """
     if _is_html_shell(content):
+        return ""
+    if not _looks_like_html(content) and _is_interface_shell_text(content):
         return ""
     text = _as_readable_page_text(content)
     if not _is_usable_page_text(text):
@@ -1587,13 +1595,375 @@ def _clean_html_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+# ── HTML text provenance: where visible text sits in the document ─────
+# A page's *wording* is a weak shell signal (technical docs repeat their own
+# domain vocabulary for pages on end), but its *structure* is not: interface
+# chrome lives in navigation/form/control elements, and citable prose lives in
+# paragraphs, list items and cells outside them.  This split is what lets the
+# classifier keep a repetitive documentation page and still reject a query
+# playground whose whole body is buttons and an empty result pane.
+
+#: Wrapper elements whose text is interface, not citable prose.
+_CHROME_TAGS = frozenset({
+    "nav", "header", "footer", "aside", "form", "button", "select", "option",
+    "optgroup", "label", "input", "textarea", "datalist", "dialog", "menu",
+})
+#: ARIA roles that name interface regions or controls.
+_CHROME_ROLES = frozenset({
+    "navigation", "banner", "contentinfo", "complementary", "search", "form",
+    "button", "tab", "tablist", "tree", "treeitem", "toolbar", "menu",
+    "menubar", "menuitem", "status", "progressbar", "alert", "dialog",
+    "switch", "slider", "combobox", "checkbox", "radio", "radiogroup", "option",
+})
+#: Elements that carry a citable text block when they sit outside chrome.
+_PROSE_TAGS = frozenset({
+    "p", "pre", "li", "dd", "dt", "blockquote", "td", "th", "figcaption",
+    "h1", "h2", "h3", "h4", "h5", "h6", "div",
+})
+#: Utility classes that hide text from sighted readers (loader placeholders).
+_HIDDEN_CLASS_MARKERS = ("sr-only", "visually-hidden", "visuallyhidden", "screen-reader")
+_CONTROL_TAGS = frozenset({"button", "select", "textarea", "input", "option"})
+_CONTROL_ROLES = frozenset({
+    "button", "tab", "treeitem", "menuitem", "switch", "checkbox", "radio",
+    "slider", "combobox", "textbox", "searchbox",
+})
+#: Never visible text: scripts, styles, head metadata, fallback payloads.
+_INERT_TAGS = frozenset({"script", "style", "head", "title", "noscript", "template", "svg", "canvas"})
+#: Elements with no closing tag: they must never stay open on the tag stack.
+_VOID_TAGS = frozenset({
+    "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta",
+    "param", "source", "track", "wbr", "path",
+})
+#: Implied end tags (HTML5): an open element is closed by the next sibling of
+#: its group even when the source omits ``</li>``/``</p>``, as hand-written
+#: docs pages routinely do.
+_IMPLIED_CLOSE_BY = {
+    "li": ("li",),
+    "option": ("option",),
+    "tr": ("tr", "td", "th"),
+    "td": ("td", "th"),
+    "th": ("td", "th"),
+    "dt": ("dt", "dd"),
+    "dd": ("dt", "dd"),
+    "p": ("p",),
+    "div": ("p",),
+    "section": ("p",),
+    "article": ("p",),
+    "table": ("p",),
+    "ul": ("p",),
+    "ol": ("p",),
+}
+#: A text block has to carry at least this many words to count as prose.
+_PROSE_BLOCK_MIN_WORDS = 8
+#: Shells need no prose; a document needs some.  Both floors are deliberately
+#: low: three ordinary sentences are already more than any app shell renders.
+_PROSE_BLOCK_MIN_COUNT = 3
+_PROSE_WORDS_MIN_TOTAL = 40
+#: Above this cleaned size, provenance parsing is only done for bodies whose
+#: vocabulary is repetitive enough to be a shell candidate.
+_PROVENANCE_ALWAYS_MAX_CHARS = 4000
+
+
+def _word_count(text: str) -> int:
+    """Tokens that carry at least one alphanumeric character."""
+    return sum(1 for w in (text or "").split() if any(c.isalnum() for c in w))
+
+
+class _HtmlProvenanceParser(HTMLParser):
+    """Split visible HTML text by DOM role and record prose blocks.
+
+    Deliberately tolerant of malformed markup: tags are popped best-effort and
+    unknown/void elements simply do not contribute text.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._stack: list[tuple[str, bool, bool]] = []  # (tag, inert, chrome)
+        self._inert_depth = 0
+        self.chrome_parts: list[str] = []
+        self.content_parts: list[str] = []
+        self.prose_blocks: int = 0
+        self.prose_words: int = 0
+        self.controls: int = 0
+
+    def _in_chrome(self) -> bool:
+        return any(chrome for _tag, _inert, chrome in self._stack)
+
+    def _open(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.lower()
+        values = {k.lower(): (v or "") for k, v in attrs}
+        role = values.get("role", "").strip().lower()
+        classes = values.get("class", "").lower()
+        if tag in _INERT_TAGS or self._inert_depth:
+            self._inert_depth += 1
+            self._stack.append((tag, True, True))
+            return
+        if tag in _CONTROL_TAGS or role in _CONTROL_ROLES:
+            self.controls += 1
+        if tag in _VOID_TAGS:
+            return
+        for implied in _IMPLIED_CLOSE_BY.get(tag, ()):
+            while self._stack and self._stack[-1][0] == implied:
+                _closed, inert, _chrome = self._stack.pop()
+                if inert:
+                    self._inert_depth -= 1
+        chrome = (
+            tag in _CHROME_TAGS
+            or role in _CHROME_ROLES
+            or any(marker in classes for marker in _HIDDEN_CLASS_MARKERS)
+        )
+        self._stack.append((tag, False, chrome))
+
+    def handle_starttag(self, tag, attrs):
+        self._open(tag, attrs)
+
+    def handle_startendtag(self, tag, attrs):
+        # Void/self-closed elements (``<input>``, icon ``<path>``): count a
+        # control but never open a text region.
+        tag = tag.lower()
+        role = {k.lower(): (v or "") for k, v in attrs}.get("role", "").strip().lower()
+        if tag in _CONTROL_TAGS or role in _CONTROL_ROLES:
+            self.controls += 1
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        for index in range(len(self._stack) - 1, -1, -1):
+            if self._stack[index][0] == tag:
+                for _open_tag, inert, _chrome in self._stack[index:]:
+                    if inert:
+                        self._inert_depth -= 1
+                del self._stack[index:]
+                return
+
+    def handle_data(self, data):
+        text = " ".join((data or "").split())
+        if not text or self._inert_depth:
+            return
+        if self._in_chrome():
+            self.chrome_parts.append(text)
+            return
+        self.content_parts.append(text)
+        parent = self._stack[-1][0] if self._stack else ""
+        words = _word_count(text)
+        if parent in _PROSE_TAGS and words >= _PROSE_BLOCK_MIN_WORDS:
+            self.prose_blocks += 1
+            self.prose_words += words
+
+
+@dataclass(frozen=True)
+class HtmlTextProvenance:
+    """Visible text split by DOM role, with prose-block evidence."""
+
+    chrome_text: str
+    content_text: str
+    controls: int
+    prose_blocks: int
+    prose_words: int
+
+    def is_interface_only(self) -> bool:
+        """True when visible text is controls/labels with no body content.
+
+        An app surface (query playground, dashboard, editor page) renders its
+        controls server-side and fills the content region from JavaScript, so
+        the only server-sent text sits in chrome and the content left over is
+        a heading or two.  Requiring chrome to dominate keeps a short, genuine
+        page with a search box and share buttons out of this verdict.
+        """
+        content_words = _word_count(self.content_text)
+        chrome_words = _word_count(self.chrome_text)
+        return (
+            self.controls >= 2
+            and content_words < 25
+            and chrome_words > content_words
+        )
+
+    def has_prose_document(self) -> bool:
+        """True when the page shipped real paragraph text outside chrome."""
+        return (
+            self.prose_blocks >= _PROSE_BLOCK_MIN_COUNT
+            and self.prose_words >= _PROSE_WORDS_MIN_TOTAL
+        )
+
+
+def _html_text_provenance(html: str) -> HtmlTextProvenance | None:
+    """Parse ``html`` into chrome/content text and prose-block counts.
+
+    Returns ``None`` when the payload is not HTML at all, so callers can fall
+    back to plain-text judgement instead of inventing structure.
+    """
+    raw = html or ""
+    if not _looks_like_html(raw):
+        return None
+    parser = _HtmlProvenanceParser()
+    try:
+        parser.feed(raw)
+        parser.close()
+    except Exception:  # malformed markup: partial parse is still informative
+        pass
+    return HtmlTextProvenance(
+        chrome_text=" ".join(parser.chrome_parts),
+        content_text=" ".join(parser.content_parts),
+        controls=parser.controls,
+        prose_blocks=parser.prose_blocks,
+        prose_words=parser.prose_words,
+    )
+
+
+#: Rendered interface bodies are small: labels and an empty pane, not prose.
+_INTERFACE_TEXT_MAX_CHARS = 1600
+#: An app surface repeats its controls; two stray labels are not a surface.
+_INTERFACE_MIN_CONTROLS = 4
+#: Fewer blocks than this is a stub, not an interface.
+_INTERFACE_MIN_BLOCKS = 6
+#: A block this long is a paragraph, not a control label.  Words for spaced
+#: scripts; characters where a script (Han, Kana, Hangul) writes without spaces.
+_PARAGRAPH_MIN_WORDS = 20
+_PARAGRAPH_MIN_CJK_CHARS = 40
+#: Labels live in short blocks; anything longer is body text.
+_UI_LABEL_MAX_WORDS = 12
+
+_MD_IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
+_MD_LINK_TARGET_RE = re.compile(r"\((?:https?://|//|/)[^)\s]*\)")
+_MD_HEADING_RE = re.compile(r"^\s{0,3}#{1,6}\s*", re.M)
+_MD_EMPHASIS_RE = re.compile(r"[*_`>]+")
+
+#: Reader tiers prepend transport metadata (page title, source URL, cache
+#: warnings).  It describes the fetch, not the page's subject, so it is
+#: scaffolding — never evidence, and never a "sentence" that rescues a shell.
+_READER_METADATA_RE = re.compile(
+    r"^(?:Title|URL Source|Published Time|Warning|Markdown Content)\s*:"
+)
+
+#: Control labels that an app surface repeats.  Positive evidence only: a
+#: document that merely mentions one of them is never condemned for it, so the
+#: list deliberately stays a vocabulary of chrome rather than a blocklist.
+_UI_CONTROL_LABELS: tuple[str, ...] = (
+    "run", "execute", "format sql", "share", "reset db", "reset", "submit",
+    "sign in", "log in", "save", "dark theme", "light theme", "enter query",
+    "query result", "query history", "new query", "copy", "download",
+    "运行", "执行", "格式化", "分享", "重置", "保存", "查询结果", "查询历史",
+    "ejecutar", "formatear", "compartir", "restablecer", "guardar",
+)
+
+#: ASCII labels need word boundaries ("run" is not "truncate"); scripts without
+#: spaces have no boundary to find, so their labels match as substrings.
+_UI_CONTROL_RES: tuple[re.Pattern[str], ...] = tuple(
+    re.compile(rf"(?<!\w){re.escape(label)}(?!\w)")
+    if label.isascii()
+    else re.compile(re.escape(label))
+    for label in _UI_CONTROL_LABELS
+)
+
+#: Placeholders that mean a pane was never filled — the shell's give-away.
+_UI_EMPTY_MARKERS: tuple[str, ...] = (
+    "loading", "please wait", "no results", "no data",
+    "cargando", "chargement", "carregando",
+    "加载中", "載入中", "読み込み中", "로딩 중", "暂无数据",
+)
+
+#: A source line: prose never starts this way, and a shell never renders code.
+_CODE_LINE_RE = re.compile(
+    r"^(?:[#$>]\s|def |class |import |from \w+ import|function |const |let |var "
+    r"|SELECT\b|INSERT\b|UPDATE\b|CREATE\b|--\s|//\s|<\w+>)",
+    re.IGNORECASE,
+)
+
+
+def _plain_text_blocks(text: str) -> list[str]:
+    """Split rendered markdown/plain text into blocks stripped of link markup.
+
+    Link destinations and image alt text are scaffolding a reader never reads
+    as prose; removing them keeps a label from looking like a clause and a
+    clause from being counted twice.
+    """
+    body = _MD_IMAGE_RE.sub(" ", text or "")
+    body = _MD_LINK_TARGET_RE.sub(" ", body)
+    body = _MD_HEADING_RE.sub("", body)
+    body = _MD_EMPHASIS_RE.sub(" ", body)
+    return [" ".join(block.split()) for block in re.split(r"\n+", body) if block.strip()]
+
+
+def _is_prose_block(block: str) -> bool:
+    """True when a block carries a paragraph's worth of text, in any script.
+
+    Length is the only language-neutral signal available once markup is gone:
+    English needs a couple of dozen words to say anything, while Chinese or
+    Japanese says the same in a few dozen characters with no spaces at all.
+    Counting characters where spaces are absent keeps short non-English prose
+    from being read as a pile of control labels.
+    """
+    cjk_chars = sum(1 for ch in block if "\u3040" <= ch <= "\u9fff" or "\uac00" <= ch <= "\ud7af")
+    if cjk_chars >= _PARAGRAPH_MIN_CJK_CHARS:
+        return True
+    return len(block.split()) >= _PARAGRAPH_MIN_WORDS
+
+
+def _is_code_block(block: str) -> bool:
+    """True when a block is source code — citable content, never chrome."""
+    if "=>" in block or "{{" in block or ";;" in block:
+        return True
+    if " " in block and block.rstrip().endswith((";", "{", "}")):
+        return True
+    return bool(_CODE_LINE_RE.match(block))
+
+
+def _ui_shell_evidence(blocks: list[str]) -> tuple[int, bool]:
+    """Distinct control labels and whether an unfilled-pane marker shows."""
+    labels: set[str] = set()
+    empty = False
+    for block in blocks:
+        low = block.lower()
+        if len(low.split()) > _UI_LABEL_MAX_WORDS:
+            continue
+        if not empty:
+            empty = any(marker in low for marker in _UI_EMPTY_MARKERS)
+        for label, pattern in zip(_UI_CONTROL_LABELS, _UI_CONTROL_RES):
+            if label not in labels and pattern.search(low):
+                labels.add(label)
+    return len(labels), empty
+
+
+def _is_interface_shell_text(text: str) -> bool:
+    """Detect a rendered interface (playground, dashboard) with no prose.
+
+    Reader tiers hand back markdown rather than markup, so DOM provenance is
+    gone and only wording is left.  Absence of English function words proves
+    nothing — short Chinese, Japanese or Spanish pages are prose too — so a
+    verdict needs *positive* evidence instead: several distinct control labels
+    plus a placeholder showing an unfilled pane.  Any paragraph block, in any
+    script, or any rendered code vetoes the verdict, so a documentation page,
+    a list, or an article *about* a loading spinner is never condemned.
+    """
+    raw = (text or "").strip()
+    if not raw or len(raw) > _INTERFACE_TEXT_MAX_CHARS or _looks_like_html(raw):
+        return False
+    blocks = _plain_text_blocks(raw)
+    while blocks and _READER_METADATA_RE.match(blocks[0]):
+        blocks.pop(0)
+    if len(blocks) < _INTERFACE_MIN_BLOCKS:
+        return False
+    if any(_is_prose_block(block) or _is_code_block(block) for block in blocks):
+        return False
+    labels, empty = _ui_shell_evidence(blocks)
+    return labels >= _INTERFACE_MIN_CONTROLS and empty
+
+
 def _is_html_shell(content: str) -> bool:
     """Detect client-rendered HTML/JS shells that carry no readable source text.
 
-    A genuine fetched HTML page (docs, article, forum thread) keeps a large
-    share of unique words once tags and scripts are stripped.  Platform shells
-    (new Reddit, X, JS-only apps) leave only navigation/boilerplate that
-    collapses to a handful of repeated tokens — that is not evidence.
+    Two independent shapes are rejected:
+
+    * **Interface-only pages** — a query playground or dashboard whose whole
+      server-sent body is navigation, form controls and an empty result pane,
+      with a loader placeholder where content will later be injected.
+    * **Boilerplate pages** — markup that survives tag stripping as a small set
+      of repeated navigation tokens (``nav nav nav``), i.e. no prose at all.
+
+    Low vocabulary diversity *alone* is not shell evidence: reference docs
+    (SQL keyword pages, API references) repeat their domain vocabulary across
+    hundreds of paragraphs, and the page is perfectly readable.  A repetitive
+    body is therefore only condemned when the DOM shows no prose blocks
+    outside interface chrome.
     """
     raw = content or ""
     low = raw.lower()
@@ -1604,7 +1974,22 @@ def _is_html_shell(content: str) -> bool:
     if len(words) < 25:
         return True
     unique = len({w.lower() for w in words})
-    return (unique / len(words)) < 0.2
+    ratio = unique / len(words)
+    if ratio >= 0.2 and len(cleaned) > _PROVENANCE_ALWAYS_MAX_CHARS:
+        return False
+    provenance = _html_text_provenance(raw)
+    if provenance is None:
+        return ratio < 0.2
+    if provenance.is_interface_only():
+        return True
+    if ratio >= 0.2:
+        return False
+    return not provenance.has_prose_document()
+
+
+def _is_shell_payload(content: str) -> bool:
+    """Shell verdict for a fetched payload, whether markup or rendered text."""
+    return _is_html_shell(content) or _is_interface_shell_text(content)
 
 
 #: Bodies that mean the fetch was refused by an interstitial, not that the page
@@ -3237,7 +3622,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                 content_length=len(text),
                 source_type=source_type,
             )
-        if _is_html_shell(content):
+        if _is_shell_payload(content):
             shell_seen = True
     except Exception:
         pass  # Fall through to Jina
@@ -3254,7 +3639,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                     content_length=len(text),
                     source_type=source_type,
                 )
-            if _is_html_shell(content):
+            if _is_shell_payload(content):
                 shell_seen = True
         except Exception:
             pass
@@ -3270,7 +3655,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                 content_length=len(text),
                 source_type=source_type,
             )
-        if _is_html_shell(content):
+        if _is_shell_payload(content):
             shell_seen = True
     except Exception:
         pass  # Fall through to error
