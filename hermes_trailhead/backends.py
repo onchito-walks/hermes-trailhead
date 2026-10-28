@@ -972,7 +972,14 @@ def _reach_item_budget(limit: Any) -> int:
 
 
 def build_reach_search_adapter(executable: str, *, limit: int = 5):
-    """Build the public-only Agent Reach adapter used by the fallback."""
+    """Build the public-only Agent Reach adapter used by the fallback.
+
+    One adapter per fallback invocation is deliberate: consent flags, HOME mode
+    and the item budget are per instance and must never be shared.  The parsed
+    ``agent-reach channels`` inventory *is* shared process-wide (see
+    ``reach_backend.registry``), so a sweep over several lanes pays for
+    discovery once instead of once per lane.
+    """
     from .reach_backend import AgentReachBackend
 
     return AgentReachBackend(

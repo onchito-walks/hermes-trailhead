@@ -40,9 +40,17 @@ Hard rules encoded here
   process group.  Known limit: Windows has no process group to signal, so only
   the direct child is killed there and a helper it spawned can outlive the call
   (the byte caps and the wall-clock budget still apply).
-* **Untrusted registry.**  ``agent-reach channels`` is validated field by
-  field (schema version, names, params, backend labels, public-web prefixes)
-  and cached.  Malformed output is an error, not a best-effort guess.
+* **Untrusted registry, discovered once per configuration.**  ``agent-reach
+  channels`` is validated field by field (schema version, names, params,
+  backend labels, public-web prefixes).  Malformed output is an error, not a
+  best-effort guess.  The parsed inventory is cached process-wide by
+  (executable, config identity, public/authenticated HOME mode), so a lane
+  sweep pays for discovery once instead of once per action — the cache shares
+  the *registry*, never an adapter, so consent flags and item budgets stay per
+  instance and a public call cannot inherit an authenticated adapter's reach.
+  Discovery also shares the calling action's wall clock: it may never spend
+  more than ``timeout + timeout_grace`` leaves, so a slow ``channels`` read
+  cannot silently outlive the call it belongs to.
 * **Public mode is public, and blind.**  When ``allow_authenticated`` is
   false the child process runs with a private, empty temporary ``HOME``
   (``XDG_*``, ``APPDATA``, ``LOCALAPPDATA`` included), deleted when the call
@@ -92,9 +100,12 @@ Hard rules encoded here
 """
 from __future__ import annotations
 
+from collections import OrderedDict
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass, field
+import hashlib
 import json
+import math
 import os
 import re
 import selectors
@@ -122,6 +133,17 @@ SCHEMA_VERSION = 1
 MIN_TIMEOUT = 1.0
 MAX_TIMEOUT = 120.0
 DEFAULT_TIMEOUT = 30.0
+
+#: Ceiling, in seconds on top of ``timeout_grace``, for the one discovery read
+#: (``agent-reach channels``).  Discovery is local metadata rather than a paid
+#: or network-bound call, so it gets its own allowance — but when a call has a
+#: wall-clock deadline, that deadline wins over this ceiling.
+REGISTRY_DISCOVERY_BUDGET = 30.0
+
+#: Entries kept in the process-wide registry cache.  A cache hit shares a
+#: *parsed inventory*, never an adapter: consent flags, HOME mode, item budget
+#: and timeout stay per instance.
+REGISTRY_CACHE_ENTRIES = 8
 
 MIN_LIMIT = 1
 MAX_LIMIT = 50
@@ -1172,8 +1194,109 @@ def _validate_int(value: Any, name: str) -> str:
     return str(number)
 
 
+#: Boolean spellings a declared ``bool`` parameter accepts.  Native ``bool``
+#: values are the intended input; the strings keep a CLI caller working.
+_BOOL_TEXT = {
+    "true": "true",
+    "yes": "true",
+    "1": "true",
+    "false": "false",
+    "no": "false",
+    "0": "false",
+}
+
+#: Decimal number spelling for a declared ``float`` parameter.  ``nan``/``inf``
+#: are matched separately so they reach the finiteness check and get the
+#: accurate message; hex/underscore forms are excluded before parsing.
+_FLOAT_TEXT_RE = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]{1,3})?")
+_NON_FINITE_TEXT_RE = re.compile(r"[+-]?(?:inf(?:inity)?|nan)", re.IGNORECASE)
+
+#: A float parameter is a scalar knob (scale, ratio, offset), not a timestamp;
+#: the bound keeps a hostile value from formatting into something exotic.
+MAX_FLOAT_PARAM = 1e12
+
+
+def _validate_bool(value: Any, name: str) -> str:
+    """Coerce a declared ``bool`` parameter to the ``true``/``false`` token.
+
+    ``True``/``1``/``3.5`` are *not* interchangeable here: only a native
+    ``bool`` or one of the documented spellings is accepted, so a caller cannot
+    silently switch a flag on by passing a truthy value.
+    """
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, str):
+        text = _BOOL_TEXT.get(value.strip().lower())
+        if text is not None:
+            return text
+    raise InvalidRequest(
+        "invalid_params",
+        f"parameter {name!r} must be a boolean (true/false)",
+    )
+
+
+def _validate_float(value: Any, name: str) -> str:
+    """Coerce a declared ``float`` parameter to its shortest decimal spelling.
+
+    Non-finite input is rejected as ``invalid_params`` rather than forwarded:
+    ``float('inf')``/``nan`` is not a value any upstream can use, and letting
+    it through would produce a confusing failure two layers deeper.  ``bool``
+    is rejected too — ``True`` is not ``1.0`` for a declared number.
+    """
+    if isinstance(value, bool):
+        raise InvalidRequest("invalid_params", f"parameter {name!r} must be a number")
+    if isinstance(value, (int, float)):
+        try:
+            number = float(value)
+        except OverflowError:
+            # An ``int`` wider than a double has no finite float spelling at
+            # all (``10**309`` overflows).  That is the same unusable input as
+            # a finite value past the bound, so it gets the same stable result
+            # instead of letting ``OverflowError`` escape the validator.
+            raise InvalidRequest(
+                "invalid_params", f"parameter {name!r} is out of bounds"
+            ) from None
+    elif isinstance(value, str) and (
+        _FLOAT_TEXT_RE.fullmatch(value.strip())
+        or _NON_FINITE_TEXT_RE.fullmatch(value.strip())
+    ):
+        try:
+            number = float(value.strip())
+        except ValueError as exc:  # pragma: no cover - the patterns restrict this
+            raise InvalidRequest(
+                "invalid_params", f"parameter {name!r} must be a number"
+            ) from exc
+    else:
+        raise InvalidRequest("invalid_params", f"parameter {name!r} must be a number")
+    if not math.isfinite(number):
+        raise InvalidRequest("invalid_params", f"parameter {name!r} must be finite")
+    if abs(number) > MAX_FLOAT_PARAM:
+        raise InvalidRequest("invalid_params", f"parameter {name!r} is out of bounds")
+    # ``3.0`` is spelled ``3`` so an upstream that parses with ``int`` or
+    # ``float`` reads the same value either way.
+    if number.is_integer() and abs(number) < 1e16:
+        return str(int(number))
+    return repr(number)
+
+
+def _coerce_value(param: "ReachParam", value: Any) -> str:
+    """One declared parameter type → the argv token forwarded upstream."""
+    if param.type == "int":
+        return _validate_int(value, param.name)
+    if param.type == "float":
+        return _validate_float(value, param.name)
+    if param.type == "bool":
+        return _validate_bool(value, param.name)
+    return _validate_str(value, param.name)
+
+
 def _coerce_params(action: ReachAction, params: Mapping[str, Any] | None) -> tuple[list[str], list[tuple[str, str]]]:
-    """Split params into positionals (required) and ``--name value`` options."""
+    """Split params into positionals (required) and ``--name value`` options.
+
+    Each value is coerced by its *declared* type (``str``, ``int``, ``float``,
+    ``bool``) by :func:`_coerce_value`; an unusable value is an
+    ``invalid_params`` result, never a template of the Python repr.
+    """
     if params is not None and not isinstance(params, Mapping):
         raise InvalidRequest("invalid_params", "params must be a mapping of parameter names")
     supplied = dict(params or {})
@@ -1193,13 +1316,13 @@ def _coerce_params(action: ReachAction, params: Mapping[str, Any] | None) -> tup
                 f"{action.name} requires parameter {param.name!r}",
             )
         value = supplied[param.name]
-        text = _validate_int(value, param.name) if param.type == "int" else _validate_str(value, param.name)
+        text = _coerce_value(param, value)
         positionals.append(text)
     for param in action.optional_params:
         value = supplied.get(param.name)
         if value is None:
             continue
-        text = _validate_int(value, param.name) if param.type == "int" else _validate_str(value, param.name)
+        text = _coerce_value(param, value)
         options.append((param.name, text))
     return positionals, options
 
@@ -1599,6 +1722,131 @@ def _output_overflowed(completed: subprocess.CompletedProcess, stdout: str) -> b
     return len(stdout.encode("utf-8", "replace")) > MAX_OUTPUT_BYTES
 
 
+# ── process-wide registry cache ───────────────────────────────────────────
+#
+# ``execute()`` is called once per action, and a lane sweep builds a new
+# adapter per lane, so a per-instance registry cache still pays one
+# ``agent-reach channels`` subprocess per action.  This cache shares the parsed
+# *inventory* by configuration identity instead.  It never shares an adapter:
+# consent flags, HOME mode, item budget and timeout stay per instance, so a
+# public call cannot inherit an authenticated adapter's reach.
+
+_REGISTRY_CACHE: "OrderedDict[tuple[Any, ...], ReachRegistry]" = OrderedDict()
+_REGISTRY_CACHE_LOCK = threading.Lock()
+
+
+def _env_identity(env: Mapping[str, str] | None) -> str:
+    """Digest of the caller's env override, for use *in* a cache key.
+
+    The override can carry an upstream credential on the authenticated path,
+    and a cache key is exactly the sort of value that ends up in a repr or a
+    debug log.  A digest identifies the configuration without echoing it.
+    """
+    if not env:
+        return ""
+    pairs = "\0".join(f"{key}={value}" for key, value in sorted((str(k), str(v)) for k, v in env.items()))
+    return hashlib.sha256(pairs.encode("utf-8", "replace")).hexdigest()[:16]
+
+
+#: Variables ``_child_env`` copies out of the real environment when the caller
+#: supplies no override.  Discovery runs under that derived environment, so it
+#: is part of the "same configuration" test — ``HOME``/``XDG_*`` decide which
+#: upstream config (and therefore which channel set) is read.
+_REGISTRY_ENV_KEYS: tuple[str, ...] = tuple(
+    sorted({*_ENV_PASSTHROUGH, *_ENV_HOME_KEYS, AGENT_REACH_HOME_ENV})
+)
+
+
+def _registry_env_identity(env: Mapping[str, str] | None) -> str:
+    """Identity of the child environment a discovery read would run in.
+
+    ``None`` means "inherit this process's environment" while ``{}`` means an
+    empty child environment: two materially different configurations whose
+    digests both came out empty, so one could read the inventory the other
+    produced.  Inherit mode therefore fingerprints the variables ``_child_env``
+    actually forwards; an operator who moves ``HOME`` or
+    ``TRAILHEAD_AGENT_REACH_HOME`` gets a fresh discovery instead of the old
+    configuration's channel set.  Both branches return a digest, never the
+    values, because a key can end up in a repr or a debug log.
+    """
+    if env is not None:
+        return "override:" + _env_identity(env)
+    inherited = {
+        key: value
+        for key in _REGISTRY_ENV_KEYS
+        if (value := os.environ.get(key))
+    }
+    return "inherit:" + _env_identity(inherited)
+
+
+def registry_cache_key(
+    executable: str,
+    *,
+    public: bool,
+    env: Mapping[str, str] | None,
+    runner: Runner | None,
+) -> tuple[Any, ...]:
+    """Identity of one discovery result.
+
+    ``channels`` answers the same inventory for the same executable, config
+    identity and HOME mode, so those three are the key.  ``runner`` is part of
+    it because it *is* the discovery seam: an injected runner must never read a
+    registry another runner produced.  Public and authenticated discovery never
+    share an entry either — the child runs with a different ``HOME`` and may
+    legitimately list a different channel set.
+    """
+    return (
+        os.path.abspath(executable),
+        bool(public),
+        _registry_env_identity(env),
+        runner,
+    )
+
+
+def _cache_key_usable(key: tuple[Any, ...]) -> bool:
+    """Can this key index the process-wide cache at all?
+
+    The key holds the injected ``runner`` object, and a callable need not be
+    hashable — a ``@dataclass`` runner defines ``__eq__`` and therefore loses
+    ``__hash__``.  Such a runner is simply not shareable: discovery still runs
+    and the per-instance registry still caches the result, but the process-wide
+    lookup is skipped instead of raising ``TypeError`` out of ``registry()``.
+    """
+    try:
+        hash(key)
+    except TypeError:
+        return False
+    return True
+
+
+def _cached_registry(key: tuple[Any, ...]) -> ReachRegistry | None:
+    with _REGISTRY_CACHE_LOCK:
+        found = _REGISTRY_CACHE.get(key)
+        if found is not None:
+            _REGISTRY_CACHE.move_to_end(key)
+        return found
+
+
+def _store_registry(key: tuple[Any, ...], registry: ReachRegistry) -> None:
+    with _REGISTRY_CACHE_LOCK:
+        _REGISTRY_CACHE[key] = registry
+        _REGISTRY_CACHE.move_to_end(key)
+        while len(_REGISTRY_CACHE) > REGISTRY_CACHE_ENTRIES:
+            _REGISTRY_CACHE.popitem(last=False)
+
+
+def clear_registry_cache() -> int:
+    """Drop every process-wide entry; returns how many were held.
+
+    Only failures and ``refresh=True`` bypass the cache on their own; this is
+    for a caller that knows the upstream channel set changed under it.
+    """
+    with _REGISTRY_CACHE_LOCK:
+        count = len(_REGISTRY_CACHE)
+        _REGISTRY_CACHE.clear()
+    return count
+
+
 class AgentReachBackend:
     """Thin, safety-bounded forwarding layer over an existing Agent Reach CLI."""
 
@@ -1626,6 +1874,21 @@ class AgentReachBackend:
         self._max_items = _constructor_items(max_items)
         self._registry: ReachRegistry | None = None
         self._availability: ReachAvailability | None = None
+        #: Absolute ``time.monotonic()`` deadline of the action call in flight;
+        #: set only by :meth:`_registry_for_action`.  Held per thread: two
+        #: threads sharing one adapter would otherwise charge each other's
+        #: remaining budget, and the documented "a read outside a call is not
+        #: bounded by a stale deadline" only held single-threaded.
+        self._call_state = threading.local()
+        self._call_state.deadline = None
+
+    @property
+    def _call_deadline(self) -> float | None:
+        return getattr(self._call_state, "deadline", None)
+
+    @_call_deadline.setter
+    def _call_deadline(self, value: float | None) -> None:
+        self._call_state.deadline = value
 
     # -- discovery / registry ------------------------------------------------
 
@@ -1638,6 +1901,19 @@ class AgentReachBackend:
         return self.availability().found
 
     def registry(self, *, refresh: bool = False) -> ReachRegistry:
+        """The validated upstream inventory, from cache when one is warm.
+
+        During an action call, :meth:`_registry_for_action` sets the shared wall
+        clock; discovery is then capped at whatever that deadline has left (and
+        never more than ``timeout_grace + REGISTRY_DISCOVERY_BUDGET``), so a
+        slow ``agent-reach channels`` can never outlive the action it belongs
+        to.  Outside a call the ceiling applies on its own (CLI/doctor reads,
+        which have no action to share the budget with).
+
+        The parsed inventory is cached process-wide by
+        :func:`registry_cache_key`; ``refresh=True`` re-runs discovery and
+        replaces the entry.  A failed or malformed discovery is never cached.
+        """
         if self._registry is not None and not refresh:
             return self._registry
         availability = self.availability()
@@ -1646,17 +1922,28 @@ class AgentReachBackend:
                 "agent-reach executable not found; set "
                 f"{AGENT_REACH_ENV} or install it yourself (this backend never installs)"
             )
+        public = not self._allow_authenticated
+        key = registry_cache_key(
+            availability.path, public=public, env=self._env_override, runner=self._runner
+        )
+        cacheable = _cache_key_usable(key)
+        if cacheable and not refresh:
+            cached = _cached_registry(key)
+            if cached is not None:
+                self._registry = cached
+                return cached
+        budget = self._discovery_budget(self._call_deadline)
         argv = [availability.path, "channels"]
         try:
-            if self._allow_authenticated:
+            if not public:
                 env = _child_env(self._env_override, availability.path, public=False)
-                completed = self._runner(argv, timeout=self.timeout_grace + 30.0, env=env)
+                completed = self._runner(argv, timeout=budget, env=env)
             else:
                 with _isolated_home() as home:
                     env = _child_env(
                         self._env_override, availability.path, public=True, home=home
                     )
-                    completed = self._runner(argv, timeout=self.timeout_grace + 30.0, env=env)
+                    completed = self._runner(argv, timeout=budget, env=env)
         except subprocess.TimeoutExpired as exc:
             raise RegistryError("agent-reach channels timed out") from exc
         except OSError as exc:
@@ -1675,8 +1962,41 @@ class AgentReachBackend:
             payload = json.loads(stdout)
         except (ValueError, TypeError) as exc:
             raise RegistryError(f"agent-reach channels returned malformed JSON: {exc}") from exc
-        self._registry = parse_registry(payload)
-        return self._registry
+        registry = parse_registry(payload)
+        self._registry = registry
+        if cacheable:
+            _store_registry(key, registry)
+        return registry
+
+    def _discovery_budget(self, deadline: float | None) -> float:
+        """Seconds the ``channels`` read may take, never past ``deadline``."""
+        ceiling = self.timeout_grace + REGISTRY_DISCOVERY_BUDGET
+        if deadline is None:
+            return ceiling
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise RegistryError(
+                "agent-reach channels was not started: the caller's wall-clock "
+                "budget is already spent"
+            )
+        return min(ceiling, remaining)
+
+    def _registry_for_action(self, deadline: float) -> ReachRegistry:
+        """``registry()`` bounded by this action call's wall clock.
+
+        The deadline travels through an instance field instead of the public
+        ``registry()`` signature on purpose: a wrapper that overrides
+        ``registry(refresh=...)`` (a test double, the doctor probe) then still
+        gets a bounded discovery read, and the signature stays as documented.
+        The previous value is restored, so a read outside a call is unbounded
+        by a stale deadline.
+        """
+        previous = self._call_deadline
+        self._call_deadline = deadline
+        try:
+            return self.registry()
+        finally:
+            self._call_deadline = previous
 
     # -- capability surface --------------------------------------------------
 
@@ -1877,10 +2197,17 @@ class AgentReachBackend:
             "reported_backend": None,
             "forced_backend": None,
         }
+        # One wall clock for the whole call: registry discovery and the action
+        # share ``effective_timeout + timeout_grace`` instead of the discovery
+        # read getting its own unrelated budget.
+        effective_timeout = self._timeout
+        started = time.monotonic()
+        deadline: float | None = None
 
         try:
             effective_timeout = _bounded_timeout(self._timeout if timeout is None else timeout)
             limit = _bounded_items(max_items, self._max_items)
+            deadline = started + effective_timeout + self.timeout_grace
             self._check_names(channel, action)
             quota_action = self.is_quota_action(channel, action)
             if quota_action:
@@ -1915,7 +2242,7 @@ class AgentReachBackend:
                     f"{AGENT_REACH_ENV} or install it yourself",
                 )
             provenance["executable"] = availability.path
-            registry = self.registry()
+            registry = self._registry_for_action(deadline)
             provenance["schema_version"] = registry.schema_version
             upstream_channel = registry.channels.get(channel)
             if upstream_channel is None:
@@ -1977,12 +2304,26 @@ class AgentReachBackend:
                 backend=backend,
                 timeout=effective_timeout,
             )
-            started = time.monotonic()
+            # The action gets what discovery left of the shared wall clock, so
+            # a slow ``channels`` read cannot push the call past its deadline.
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return self._fail(
+                    channel,
+                    action,
+                    "timeout",
+                    f"agent-reach {channel} {action} exceeded {effective_timeout:g}s "
+                    "while discovering upstream channels; the action was not started",
+                    provenance=provenance,
+                    limitations=limitations,
+                    elapsed_ms=int((time.monotonic() - started) * 1000),
+                    timed_out=True,
+                )
             try:
                 with self._process_env(availability.path, public=not consent) as env:
                     completed = self._runner(
                         argv,
-                        timeout=effective_timeout + self.timeout_grace,
+                        timeout=remaining,
                         env=env,
                     )
             except subprocess.TimeoutExpired:
@@ -2041,6 +2382,20 @@ class AgentReachBackend:
                 limitations=limitations,
             )
         except RegistryError as exc:
+            # Discovery shares this call's wall clock, so a discovery read that
+            # ran out of time is the action's timeout — not a broken registry.
+            if deadline is not None and time.monotonic() >= deadline:
+                return self._fail(
+                    channel,
+                    action,
+                    "timeout",
+                    f"agent-reach {channel} {action} exceeded {effective_timeout:g}s "
+                    f"while discovering upstream channels ({exc})",
+                    provenance=provenance,
+                    limitations=limitations,
+                    elapsed_ms=int((time.monotonic() - started) * 1000),
+                    timed_out=True,
+                )
             return self._fail(
                 channel,
                 action,
@@ -2551,6 +2906,8 @@ __all__ = [
     "PUBLIC_API_BACKENDS",
     "QUOTA_ACTION_ALLOWLIST",
     "READ_ONLY_ACTION_ALLOWLIST",
+    "REGISTRY_CACHE_ENTRIES",
+    "REGISTRY_DISCOVERY_BUDGET",
     "ParityAction",
     "ReachAction",
     "ReachAvailability",
@@ -2565,6 +2922,7 @@ __all__ = [
     "InvalidRequest",
     "asr_disabled",
     "build_argv",
+    "clear_registry_cache",
     "discover_agent_reach",
     "parity_inventory",
     "parse_registry",
