@@ -1,0 +1,686 @@
+{
+  "artifact": "clean-linux-final",
+  "schema_version": 1,
+  "generated_at_utc": "2026-10-28T15:49:52Z",
+  "verdict": {
+    "acceptance_passed": 10,
+    "acceptance_total": 11,
+    "all_pass": false,
+    "failed_checks": [
+      "A7-github-honest-failure"
+    ],
+    "summary": "Install, version/help, public read, pagination reconstruction and optional-backend gates pass. Native GitHub 404 failure honesty fails: a missing issue is returned as ok/usable generic GitHub chrome via the Jina tier."
+  },
+  "source": {
+    "git_head": "d40c784f4761d96eb7df9d686b9e043aceb6790d",
+    "archive_sha256": "079b41bfad61e292228404377f290e4479e071eb52837242449f8cd8a6f98c36",
+    "archive_entries": 160,
+    "excludes_untracked_o_txt": true,
+    "archive_format": "git archive --format=tar <commit>",
+    "archive_file": "<scratch>/source.tar",
+    "archive_sha256_verified_against_file": true,
+    "o_txt_in_archive": false,
+    "project_files": 147,
+    "project_has_git": false,
+    "commit_subject": "test: repeat matched resource campaign on committed implementation"
+  },
+  "environment": {
+    "image_ref": "ubuntu:24.04",
+    "image_digest": "sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90",
+    "docker_server": "29.1.3",
+    "container_hostname": "8c41ca052760",
+    "os_pretty_name": "Ubuntu 24.04.4 LTS",
+    "os_version_id": "24.04",
+    "kernel": "7.0.0-1013-oracle",
+    "arch": "aarch64",
+    "python": "3.12.3",
+    "host_kernel_shared": true,
+    "note": "clean userspace on the host kernel; this is Linux arm64, not macOS or Windows",
+    "docker_limits": "--cpus 2 --memory 2g --memory-swap 2g --pids-limit 256",
+    "capabilities": "cap-drop ALL + SETUID,SETGID,CHOWN,DAC_OVERRIDE,FOWNER; no-new-privileges",
+    "mounts": "only /src/source.tar:ro",
+    "host_home_or_config_mounted": false,
+    "cli_env": "env -i with PATH, HOME=/work/home, LC_ALL=C.UTF-8, TRAILHEAD_DISABLE_ASR=1",
+    "host_tools_used": false,
+    "setup_seconds": 21,
+    "utc_start": "2026-10-28T15:49:25Z",
+    "utc_end": "2026-10-28T15:49:52Z",
+    "image_ships_python": false,
+    "python_install": "apt: python3, python3-venv, python3-pip, ca-certificates (container-local, ephemeral)"
+  },
+  "install": {
+    "pip_install_rc": 0,
+    "installed_dist_count": 2,
+    "declared_runtime_dependencies": 0,
+    "build_backend": "hatchling (isolated build env, not installed into runtime venv)",
+    "installed_cli_sha256": "5bd66478fec93990fa107449f29cabff70a77fc89b30b0c906680ef20b4f9fa9",
+    "archive_cli_sha256": "5bd66478fec93990fa107449f29cabff70a77fc89b30b0c906680ef20b4f9fa9",
+    "installed_files_match_archive": true,
+    "python": "3.12.3"
+  },
+  "runtime": {
+    "pip_freeze": [
+      "hermes-trailhead @ file:///work/project"
+    ],
+    "third_party_runtime_packages": 0,
+    "installed_distributions": [
+      "hermes-trailhead 1.1.0",
+      "pip 24.0"
+    ],
+    "wheel": "hermes_trailhead-1.1.0-py3-none-any.whl",
+    "wheel_bytes": 208127,
+    "wheel_sha256": "e9f74836b50e625ab47a022f5decb707531318ff5fc82a429b0c0bc95b58e197"
+  },
+  "read_public": {
+    "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+    "ok": true,
+    "source_type": "docs",
+    "extraction_status": "ok",
+    "content_length": 78047,
+    "returned_chars": 78047,
+    "document_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+    "content_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+    "markers": [
+      "typing",
+      "泛型",
+      "PEP 673"
+    ],
+    "asr": {
+      "enabled": false,
+      "env": "TRAILHEAD_DISABLE_ASR",
+      "note": "read never invokes paid ASR"
+    },
+    "policy": {
+      "agent_reach": "not_used",
+      "asr": "disabled",
+      "hermes_web_extract": "disabled",
+      "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+    },
+    "evidence": {
+      "usable": true,
+      "transport_ok": true,
+      "quality": "canonical",
+      "score": 80
+    }
+  },
+  "pagination": {
+    "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+    "chunk": 20000,
+    "window_count": 4,
+    "windows": [
+      {
+        "requested_offset": 0,
+        "rc": 0,
+        "start": 0,
+        "end": 20000,
+        "returned_chars": 20000,
+        "next_offset": 20000,
+        "more": true,
+        "total_available_chars": 78047,
+        "document_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+        "content_sha256": "5c764991dab177844ee09b0e7be89f628249bc77425e9ffa88b8cbccd3f3d2c3"
+      },
+      {
+        "requested_offset": 20000,
+        "rc": 0,
+        "start": 20000,
+        "end": 40000,
+        "returned_chars": 20000,
+        "next_offset": 40000,
+        "more": true,
+        "total_available_chars": 78047,
+        "document_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+        "content_sha256": "63222002bc6a2408eb31f42f94ed7a03682ca2f8dc742cb77b6d37a0002a4d27"
+      },
+      {
+        "requested_offset": 40000,
+        "rc": 0,
+        "start": 40000,
+        "end": 60000,
+        "returned_chars": 20000,
+        "next_offset": 60000,
+        "more": true,
+        "total_available_chars": 78047,
+        "document_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+        "content_sha256": "9f5d1a1f6e793d14e0e12748087cb4a02d7a3eab7d86ae90d0bcc0cc89b4f7db"
+      },
+      {
+        "requested_offset": 60000,
+        "rc": 0,
+        "start": 60000,
+        "end": 78047,
+        "returned_chars": 18047,
+        "next_offset": null,
+        "more": false,
+        "total_available_chars": 78047,
+        "document_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+        "content_sha256": "b04da5ac09911b62fde0b713d2ccfbc89fd56a6dc53b843b0c0055271efab165"
+      }
+    ],
+    "reconstruction": {
+      "windows": 4,
+      "spans": [
+        [
+          0,
+          20000
+        ],
+        [
+          20000,
+          40000
+        ],
+        [
+          40000,
+          60000
+        ],
+        [
+          60000,
+          78047
+        ]
+      ],
+      "sum_chars": 78047,
+      "concat_chars": 78047,
+      "total_available_chars": 78047,
+      "per_window_digest": [
+        "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+        "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+        "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+        "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+      ],
+      "full_read_digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+      "concat_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+      "all_window_digests_equal": true,
+      "digest_equals_full_read": true,
+      "full_content_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+      "reconstruction_matches_full_single_window": true,
+      "contiguous_no_gaps": true,
+      "refetch_caveat": "read refetches; windows from different upstream versions are rejected by digest comparison",
+      "window_detail": [
+        {
+          "req_offset": 0,
+          "rc": 0,
+          "start": 0,
+          "end": 20000,
+          "returned": 20000,
+          "more": true,
+          "next_offset": 20000,
+          "total": 78047,
+          "digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+        },
+        {
+          "req_offset": 20000,
+          "rc": 0,
+          "start": 20000,
+          "end": 40000,
+          "returned": 20000,
+          "more": true,
+          "next_offset": 40000,
+          "total": 78047,
+          "digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+        },
+        {
+          "req_offset": 40000,
+          "rc": 0,
+          "start": 40000,
+          "end": 60000,
+          "returned": 20000,
+          "more": true,
+          "next_offset": 60000,
+          "total": 78047,
+          "digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+        },
+        {
+          "req_offset": 60000,
+          "rc": 0,
+          "start": 60000,
+          "end": 78047,
+          "returned": 18047,
+          "more": false,
+          "next_offset": null,
+          "total": 78047,
+          "digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+        }
+      ]
+    }
+  },
+  "github_failure_analysis": {
+    "gate": "A7-github-honest-failure",
+    "result": "FAIL",
+    "url": "https://github.com/pallets/flask/issues/999999999",
+    "final_run": {
+      "exit_code": 0,
+      "ok": true,
+      "content_length": 6041,
+      "error": null,
+      "source_type": "github",
+      "extraction_status": "ok",
+      "evidence_usable": true,
+      "evidence_quality": "technical"
+    },
+    "probe": {
+      "container": "trailhead-clean-probe-20261028",
+      "attempts": 3,
+      "all_three_identical": true,
+      "each_attempt": {
+        "exit_code": 0,
+        "ok": true,
+        "content_length": 6041,
+        "error": null
+      },
+      "upstream_status": {
+        "api.github.com/repos/pallets/flask/issues/999999999": 404,
+        "github.com/pallets/flask/issues/999999999": 404,
+        "r.jina.ai/https://github.com/pallets/flask/issues/999999999": 200
+      },
+      "jina_warning": "Warning: Target URL returned error 404: Not Found",
+      "content_title": "Build software better, together",
+      "content_head": "Title: Build software better, together\n\nURL Source: https://github.com/pallets/flask/issues/999999999\n\nWarning: Target URL returned error 404: Not Found\n\nMarkdown Content:\n[Skip to content](https://github.com/pallets/flask/issues/999999999#start-of-content)\n\n## Navigation Menu\n\n[](https://github.com/)\n\n[Sign in](https://github.com/login?return_to=https%3A%2F%2Fgithub.com%2Fpallets%2Fflask%2Fissues%2F999999999)\n\n*   \n    *   \nAI CODE CREATION\n\n        *   [GitHub Copilot Write better code with AI\"\n}\n=== attempt 2 ===\n{\n \"rc_ok\": true,\n \"source_type\": \"github",
+      "verdict": "Jina returned HTTP 200 wrapping the upstream 404 page; read accepted the generic GitHub navigation chrome as usable evidence instead of returning extraction_error."
+    },
+    "prior_attempt_observation": {
+      "container": "trailhead-clean-final-20261028 (attempt 1)",
+      "exit_code": 1,
+      "ok": false,
+      "error_code": "extraction_error",
+      "content_chars": 0,
+      "evidence_usable": false,
+      "note": "Same harness minutes earlier failed closed when the Jina tier failed, so the defect is tier-dependent: honesty is not stable across extraction tiers."
+    },
+    "impact": "A caller asking for a missing issue/PR can receive ok:true and unrelated GitHub chrome; the payload never identifies the requested artifact. This contradicts the documented number-shaped issue/PR contract that a failed primary endpoint must raise rather than return repository/page chrome.",
+    "no_fabrication_note": "No issue body, title or comment was invented; the returned text is the upstream 404 wrapper itself. The failure is mislabelled usability, not fabricated content."
+  },
+  "reach_optional_backend": {
+    "found": false,
+    "reason": "not_installed",
+    "error": {
+      "code": "not_configured",
+      "message": "agent-reach is not installed or not discoverable"
+    },
+    "asr_disabled": true,
+    "asr_vetoed": true,
+    "parity_counts": {
+      "channels": 14,
+      "actions": 40,
+      "surfaced": 40,
+      "surfaced_ratio": 1.0,
+      "native": 8,
+      "native_partial": 4,
+      "upstream_only": 28,
+      "public": 26,
+      "gated_auth": 12,
+      "gated_quota": 2,
+      "live_verified": 5,
+      "fixture_only": 35
+    },
+    "parity_reference": {
+      "project": "Panniantong/Agent-Reach",
+      "url": "https://github.com/Panniantong/Agent-Reach",
+      "version": "1.6.0",
+      "commit": "14c213405669414492bda0f8d52cc6531d062c45",
+      "channels": 14,
+      "actions": 40,
+      "measured": "2026-10-28"
+    },
+    "parity_action_count": 40,
+    "gate_errors": {
+      "json": "found=false, error.code=not_configured, exit 0 with 40-action inventory",
+      "text": "actionable not-installed message, exit 0",
+      "reach_call": "exit 1, error.code=not_configured, items=[] (fail closed)"
+    },
+    "installed": false,
+    "read_only": true
+  },
+  "acceptance": {
+    "schema_version": 1,
+    "checks": [
+      {
+        "id": "A1-install",
+        "requirement": "pip install into fresh venv succeeds; zero runtime deps; installed bytes match pinned archive",
+        "pass": true,
+        "detail": {
+          "pip_install_rc": 0,
+          "installed_dist_count": 2,
+          "declared_runtime_dependencies": 0,
+          "build_backend": "hatchling (isolated build env, not installed into runtime venv)",
+          "installed_cli_sha256": "5bd66478fec93990fa107449f29cabff70a77fc89b30b0c906680ef20b4f9fa9",
+          "archive_cli_sha256": "5bd66478fec93990fa107449f29cabff70a77fc89b30b0c906680ef20b4f9fa9",
+          "installed_files_match_archive": true,
+          "python": "3.12.3"
+        }
+      },
+      {
+        "id": "A2-version",
+        "requirement": "--version prints hermes-trailhead 1.1.0 and exits 0",
+        "pass": true,
+        "detail": "hermes-trailhead 1.1.0"
+      },
+      {
+        "id": "A3-help",
+        "requirement": "--help exposes documented surfaces",
+        "pass": true,
+        "detail": {
+          "rc": 0,
+          "missing": [],
+          "bytes": 2437
+        }
+      },
+      {
+        "id": "A4-read-public",
+        "requirement": "read official public docs page -> usable evidence, ASR disabled, no Agent Reach/model fallback, full-window digest matches content",
+        "pass": true,
+        "detail": {
+          "rc": 0,
+          "ok": true,
+          "asr": {
+            "enabled": false,
+            "env": "TRAILHEAD_DISABLE_ASR",
+            "note": "read never invokes paid ASR"
+          },
+          "policy": {
+            "agent_reach": "not_used",
+            "asr": "disabled",
+            "hermes_web_extract": "disabled",
+            "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+          },
+          "usable": true,
+          "transport_ok": true,
+          "content_length": 78047,
+          "chars_checked": 78047,
+          "markers": [
+            "typing",
+            "泛型",
+            "PEP 673"
+          ],
+          "document_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+          "content_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+          "extraction_status": "ok",
+          "error": null
+        }
+      },
+      {
+        "id": "A5-pagination",
+        "requirement": "successive --offset/--max-chars windows are contiguous, complete, and reconstruct the full document digest",
+        "pass": true,
+        "detail": {
+          "windows": 4,
+          "spans": [
+            [
+              0,
+              20000
+            ],
+            [
+              20000,
+              40000
+            ],
+            [
+              40000,
+              60000
+            ],
+            [
+              60000,
+              78047
+            ]
+          ],
+          "sum_chars": 78047,
+          "concat_chars": 78047,
+          "total_available_chars": 78047,
+          "per_window_digest": [
+            "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+            "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+            "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+            "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+          ],
+          "full_read_digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+          "concat_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+          "all_window_digests_equal": true,
+          "digest_equals_full_read": true,
+          "full_content_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+          "reconstruction_matches_full_single_window": true,
+          "contiguous_no_gaps": true,
+          "refetch_caveat": "read refetches; windows from different upstream versions are rejected by digest comparison",
+          "window_detail": [
+            {
+              "req_offset": 0,
+              "rc": 0,
+              "start": 0,
+              "end": 20000,
+              "returned": 20000,
+              "more": true,
+              "next_offset": 20000,
+              "total": 78047,
+              "digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+            },
+            {
+              "req_offset": 20000,
+              "rc": 0,
+              "start": 20000,
+              "end": 40000,
+              "returned": 20000,
+              "more": true,
+              "next_offset": 40000,
+              "total": 78047,
+              "digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+            },
+            {
+              "req_offset": 40000,
+              "rc": 0,
+              "start": 40000,
+              "end": 60000,
+              "returned": 20000,
+              "more": true,
+              "next_offset": 60000,
+              "total": 78047,
+              "digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+            },
+            {
+              "req_offset": 60000,
+              "rc": 0,
+              "start": 60000,
+              "end": 78047,
+              "returned": 18047,
+              "more": false,
+              "next_offset": null,
+              "total": 78047,
+              "digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+            }
+          ]
+        }
+      },
+      {
+        "id": "A6-read-text",
+        "requirement": "read human text mode reports usable evidence",
+        "pass": true,
+        "detail": {
+          "rc": 0,
+          "bytes": 20759,
+          "head": "URL: https://docs.python.org/zh-cn/3/library/typing.html\nStatus: ok | source type: docs | timeout: 15s\nEvidence: usable=yes | quality: canonical (80/100) | relevance: unknown\nContent: 20000 chars retu"
+        }
+      },
+      {
+        "id": "A7-github-honest-failure",
+        "requirement": "anonymous GitHub nonexistent issue -> honest coded failure, empty content, no repository-metadata substitution",
+        "pass": false,
+        "detail": {
+          "rc": 0,
+          "ok": true,
+          "error": {},
+          "content_chars": 6041,
+          "usable": true,
+          "policy": {
+            "agent_reach": "not_used",
+            "asr": "disabled",
+            "hermes_web_extract": "disabled",
+            "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+          }
+        }
+      },
+      {
+        "id": "A8-reach-inventory",
+        "requirement": "missing optional Agent Reach -> 40-action inventory + not_configured, read-only, no install",
+        "pass": true,
+        "detail": {
+          "rc": 0,
+          "found": false,
+          "reason": "not_installed",
+          "error": {
+            "code": "not_configured",
+            "message": "agent-reach is not installed or not discoverable"
+          },
+          "parity_actions": 40,
+          "counts": {
+            "channels": 14,
+            "actions": 40,
+            "surfaced": 40,
+            "surfaced_ratio": 1.0,
+            "native": 8,
+            "native_partial": 4,
+            "upstream_only": 28,
+            "public": 26,
+            "gated_auth": 12,
+            "gated_quota": 2,
+            "live_verified": 5,
+            "fixture_only": 35
+          },
+          "reference": {
+            "project": "Panniantong/Agent-Reach",
+            "url": "https://github.com/Panniantong/Agent-Reach",
+            "version": "1.6.0",
+            "commit": "14c213405669414492bda0f8d52cc6531d062c45",
+            "channels": 14,
+            "actions": 40,
+            "measured": "2026-10-28"
+          },
+          "asr_vetoed": true
+        }
+      },
+      {
+        "id": "A9-reach-text",
+        "requirement": "reach text mode states the missing dependency actionably",
+        "pass": true,
+        "detail": {
+          "rc": 0,
+          "bytes": 3912,
+          "head": "Agent Reach forwarding layer (optional, read-only, attributed)\n\n  Executable: (not found)\n  Status:     unavailable (not_installed)\n  Mode:       public-only (no browser fallback, no credentials)\n  Quota:      not consented (--allow-quota-consuming) | auth consent: not consented | ASR veto (TRAILHEAD_DISABLE_ASR): on\n  Quota now:  not ready — a quota call needs quota consent AND auth consent AND n"
+        }
+      },
+      {
+        "id": "A10-reach-call-gate",
+        "requirement": "reach-call without Agent Reach fails closed with coded error, no items",
+        "pass": true,
+        "detail": {
+          "rc": 1,
+          "error": {
+            "code": "not_configured",
+            "message": "agent-reach executable not found; set TRAILHEAD_AGENT_REACH_BIN or install it yourself"
+          },
+          "items": [],
+          "top_keys": [
+            "action",
+            "argv",
+            "attempts",
+            "backend",
+            "channel",
+            "elapsed_ms",
+            "engine",
+            "error",
+            "exit_code",
+            "items",
+            "limitations",
+            "ok",
+            "provenance",
+            "timed_out"
+          ]
+        }
+      },
+      {
+        "id": "A11-no-ar-asr",
+        "requirement": "runtime venv has only project + pip; no Agent Reach installed; all reads report ASR disabled",
+        "pass": true,
+        "detail": {
+          "freeze": [
+            "hermes-trailhead @ file:///work/project"
+          ],
+          "declared_runtime_dependencies": 0
+        }
+      }
+    ],
+    "passed": 10,
+    "total": 11,
+    "all_pass": false
+  },
+  "policy": {
+    "credentials_used": false,
+    "auth_configured": false,
+    "agent_reach_installed_or_invoked": false,
+    "asr_calls": 0,
+    "model_or_web_extract_fallback_used_for_read": false,
+    "paid_calls": 0,
+    "purchases": 0,
+    "host_installs": 0,
+    "workspace_source_edits": 0,
+    "commits_or_pushes": 0,
+    "publication": false,
+    "container_installs": "apt python3 toolchain + project wheel inside disposable container only"
+  },
+  "scope": {
+    "claim": "clean userspace install and CLI acceptance on Linux arm64 with the host kernel shared",
+    "shared_kernel": true,
+    "kernel": "7.0.0-1013-oracle",
+    "arch": "aarch64",
+    "not_claimed": [
+      "native macOS",
+      "native Windows",
+      "native arm64 hardware other than this host",
+      "raw HTML byte-identical completeness",
+      "upstream page immutability",
+      "complete GitHub PR conversation",
+      "host-wide installation"
+    ]
+  },
+  "raw_artifacts": {
+    "scratch_dir": "<scratch>",
+    "source_archive": {
+      "path": "<scratch>/source.tar",
+      "sha256": "079b41bfad61e292228404377f290e4479e071eb52837242449f8cd8a6f98c36",
+      "entries": 160
+    },
+    "run_final_log": {
+      "path": "<scratch>/run-final.log",
+      "sha256": "1fac39ae84487b1041ac7050f44d616ed2193c13fe53984d026d67ce527f4e0e"
+    },
+    "run_attempt1_log": {
+      "path": "<scratch>/run-attempt1-harvest-missing.log",
+      "sha256": "3a794fdf6d7b5094d65d2fc017f360b125ae5bf1d5f5ff243ae5e365223043a6"
+    },
+    "github_probe_log": {
+      "path": "<scratch>/probe-github.log",
+      "sha256": "59eeafbcede9bb869b35231e8e84b0e738e2ccc27ade92aa4be3479e7cbef57d"
+    },
+    "harness": {
+      "path": "<scratch>/harness3.sh",
+      "sha256": "3b633540a664f0cb159fe150d67c74bb3b23270e5d82e07f30a24d309f4a85e2"
+    },
+    "probe_script": {
+      "path": "<scratch>/probe-github.sh",
+      "sha256": "4cc8a9b6464cc32a91c533c4dd7b311ca345beffc75e0f41e2e74817e4e844ec"
+    },
+    "host_meta": {
+      "path": "<scratch>/host-meta-rerun.txt"
+    }
+  },
+  "verification": {
+    "archive_sha256_matches_source_tar": true,
+    "untracked_o_txt_excluded": true,
+    "installed_cli_sha256_equals_archive_cli_sha256": true,
+    "installed_files_match_archive": true,
+    "acceptance_counts_from_raw_log": {
+      "passed": 10,
+      "total": 11
+    },
+    "failed_gate_reproduced_3_of_3_in_separate_container": true
+  },
+  "not_claimed": [
+    "That 10/11 is a product pass: the one failed gate is a real GitHub failure-honesty defect.",
+    "That extraction sees the whole upstream page: completeness.raw_page_complete is false by contract.",
+    "That the measured document digest is stable upstream; read refetches on every call."
+  ]
+}
