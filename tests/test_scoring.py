@@ -28,10 +28,20 @@ def test_scored_hit_to_dict():
         scoring=SourceScore(quality=SourceQuality.CANONICAL, score=70, reasons=("GitHub repo root",), label="GitHub repo root"),
     )
     d = hit.to_dict()
-    assert set(d) == {"title", "url", "snippet", "summary", "extraction_status", "extraction_length", "scoring", "transcript_status", "description_available", "summary_available"}
+    # Legacy keys stay stable for existing consumers.
+    legacy = {
+        "title", "url", "snippet", "summary", "extraction_status",
+        "extraction_length", "scoring", "transcript_status",
+        "description_available", "summary_available",
+    }
+    assert legacy <= set(d)
+    # New honesty/usability fields are additive.
+    assert {"query", "evidence_usable", "evidence_relevance", "evidence_reasons",
+            "transport_ok", "visual_analysis_status"} <= set(d)
     assert d["summary"] == "A repo"
     assert d["summary_available"] is True
     assert d["scoring"]["score"] == 70
+    assert d["evidence_usable"] is False  # unassessed by default
 
 
 def test_github_issue_scores_high():

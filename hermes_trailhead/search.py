@@ -64,9 +64,13 @@ class SearchHit:
     title: str
     url: str
     snippet: str = ""
+    # Query this hit was retrieved for.  Carried internally so extraction and
+    # scoring can judge relevance without a signature change in callers; the
+    # public hit dict stays {title, url, snippet} for backwards compatibility.
+    query: str = ""
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        return {"title": self.title, "url": self.url, "snippet": self.snippet}
 
 
 @dataclass(frozen=True)
@@ -391,14 +395,20 @@ def execute_action(action: SearchAction, *, limit: int = 5, fetch: Fetch | None 
     backend_result = backends.execute_backend_chain(action.platform, action.query, limit=limit, fetch=fetcher, allow_native=allow_native)
     status: ExecutionStatus = "ok" if backend_result.hits else ("gap" if backend_result.saw_response else "blocked")
     error = "" if backend_result.hits else backend_result.error
+    # Stamp the query onto each hit so downstream extraction/scoring can judge
+    # evidence relevance without changing their signatures.
+    hits = tuple(
+        SearchHit(title=hit.title, url=hit.url, snippet=hit.snippet, query=action.query)
+        for hit in backend_result.hits
+    )
     return SearchExecution(
         platform=action.platform,
         status=status,
         query=action.query,
         executed_query=executed_query,
         engine=backend_result.engine,
-        result_count=len(backend_result.hits),
-        hits=backend_result.hits,
+        result_count=len(hits),
+        hits=hits,
         action_status=action.status,
         approval_required=action.approval_required,
         evidence_state=evidence_state,

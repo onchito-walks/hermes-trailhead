@@ -41,6 +41,13 @@ class VideoEvidence:
     caption/description we actually retrieved; ``caption_transcript_status`` reports a
     real spoken/auto transcript.  Conflating them let a caption be reported as a
     successful transcript.
+
+    ``visual_analysis_status`` follows the same rule: it is ``"available"`` only when a
+    caller actually inspected video frames (``visual_analysis_frames > 0``) and has a
+    frame-derived summary.  Page text, captions, titles, descriptions and other
+    metadata are *not* visual analysis — reporting them as such claimed evidence the
+    extractor never had.  ``__post_init__`` enforces both invariants so no construction
+    path can report a status better than its payload.
     """
     caption_status: TranscriptAttemptStatus = "not_attempted"
     caption_text: str = ""
@@ -50,10 +57,29 @@ class VideoEvidence:
     caption_transcript_error: str = ""
     visual_analysis_status: str = "not_attempted"
     visual_analysis_summary: str = ""
+    visual_analysis_frames: int = 0
     audio_transcript_status: str = "not_configured"
     audio_transcript: str = ""
     metadata_url: str = ""
     metadata_title: str = ""
+
+    def __post_init__(self) -> None:
+        # A status is never better than the payload behind it.
+        if self.visual_analysis_status == "available" and (
+            (self.visual_analysis_frames or 0) <= 0
+            or not (self.visual_analysis_summary or "").strip()
+        ):
+            object.__setattr__(self, "visual_analysis_status", "not_attempted")
+            object.__setattr__(self, "visual_analysis_summary", "")
+        if self.visual_analysis_status != "available" and self.visual_analysis_summary:
+            # Never smuggle caption/page text into the visual-analysis slot.
+            object.__setattr__(self, "visual_analysis_summary", "")
+        if self.caption_transcript_status == "ok" and not self.caption_transcript.strip():
+            object.__setattr__(self, "caption_transcript_status", "not_available")
+        if self.audio_transcript_status == "ok" and not self.audio_transcript.strip():
+            object.__setattr__(self, "audio_transcript_status", "not_configured")
+        if self.caption_transcript_status == "ok" and not self.caption_transcript_length:
+            object.__setattr__(self, "caption_transcript_length", len(self.caption_transcript))
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -70,6 +96,15 @@ class VideoEvidence:
 
 @dataclass(frozen=True)
 class ExtractionResult:
+    """Result of one extraction attempt.
+
+    ``status == "ok"`` means *transport succeeded* — a page body was retrieved.
+    It does not by itself mean the retrieved text is usable evidence for the
+    caller's query: an empty social profile, chrome text, or an off-query page can
+    transport cleanly and still be worthless.  Evidence usability is judged
+    separately in :mod:`hermes_trailhead.scoring` (``evidence_usable``), so the two
+    axes are never conflated.
+    """
     status: ExtractionStatus
     content: str = ""
     content_length: int = 0
@@ -99,6 +134,9 @@ class ExtractedHit:
     url: str
     snippet: str = ""
     extraction: ExtractionResult = ExtractionResult(status="not_attempted")
+    # The query this hit was retrieved for, carried through from SearchHit so
+    # relevance can be judged without changing the public dict contract.
+    query: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -110,7 +148,7 @@ class ExtractedHit:
 
     @classmethod
     def from_search_hit(cls, hit: SearchHit) -> ExtractedHit:
-        return cls(title=hit.title, url=hit.url, snippet=hit.snippet)
+        return cls(title=hit.title, url=hit.url, snippet=hit.snippet, query=getattr(hit, "query", ""))
 
 
 def _classify_source_type(url: str) -> SourceType:
@@ -2322,8 +2360,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                         caption_status="ok",
                         caption_text=content[:2000],
                         caption_transcript_status="not_attempted",
-                        visual_analysis_status="available",
-                        visual_analysis_summary=content[:2000],
+                        visual_analysis_status="not_attempted",
                         metadata_url=url,
                         metadata_title=title,
                     ),
@@ -2346,11 +2383,18 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                     transcript, tr_status, tr_error = "", "not_available", ""
                     for _tier, _fn in (("captions", _fetch_tiktok_captions), ("asr", _fetch_tiktok_transcript)):
                         try:
-                            transcript = _fn(url, timeout=max(timeout, 60))
-                            tr_status = "ok"
-                            break
+                            candidate = _fn(url, timeout=max(timeout, 60))
                         except Exception as exc:
                             tr_error = f"{_tier}: {str(exc)[:120]}"
+                            continue
+                        # Degraded tiers can return an empty payload without
+                        # raising.  An empty payload is not a successful
+                        # transcript — keep trying the next tier.
+                        if candidate and candidate.strip():
+                            transcript = candidate
+                            tr_status = "ok"
+                            break
+                        tr_error = f"{_tier}: empty transcript payload"
                     full = content + (f"\n\n{transcript}" if transcript else "")
                     return ExtractionResult(
                         status="ok",
@@ -2364,8 +2408,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                             caption_transcript=transcript[:4000],
                             caption_transcript_length=len(transcript),
                             caption_transcript_error=tr_error if tr_status != "ok" else "",
-                            visual_analysis_status="available",
-                            visual_analysis_summary=content[:2000],
+                            visual_analysis_status="not_attempted",
                             metadata_url=url,
                             metadata_title=title,
                         ),
@@ -2387,8 +2430,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                             caption_status="ok",
                             caption_text=content[:2000],
                             caption_transcript_status="not_attempted",
-                            visual_analysis_status="available",
-                            visual_analysis_summary=content[:2000],
+                            visual_analysis_status="not_attempted",
                             metadata_url=url,
                             metadata_title=title,
                         ),
@@ -2419,7 +2461,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                                     caption_status="ok",
                                     caption_text=desc[:2000],
                                     caption_transcript_status="not_attempted",
-                                    visual_analysis_status="available",
+                                    visual_analysis_status="not_attempted",
                                     metadata_url=url,
                                     metadata_title=desc[:200],
                                 ),
@@ -2445,8 +2487,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                             caption_status="ok",
                             caption_text=content[:2000],
                             caption_transcript_status="not_attempted",
-                            visual_analysis_status="available",
-                            visual_analysis_summary=content[:2000],
+                            visual_analysis_status="not_attempted",
                             metadata_url=url,
                             metadata_title=title,
                         ),
@@ -2470,8 +2511,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                             caption_status="ok",
                             caption_text=content[:2000],
                             caption_transcript_status="not_attempted",
-                            visual_analysis_status="available",
-                            visual_analysis_summary=content[:2000],
+                            visual_analysis_status="not_attempted",
                             metadata_url=url,
                             metadata_title=title,
                         ),
@@ -2495,8 +2535,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                         caption_status="ok",
                         caption_text=content[:2000],
                         caption_transcript_status="not_attempted",
-                        visual_analysis_status="available",
-                        visual_analysis_summary=content[:2000],
+                        visual_analysis_status="not_attempted",
                         metadata_url=url,
                         metadata_title=title,
                     ),
@@ -2516,8 +2555,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                     source_type=source_type,
                     video_evidence=VideoEvidence(
                         caption_transcript_status="not_available",
-                        visual_analysis_status="available",
-                        visual_analysis_summary=content[:2000],
+                        visual_analysis_status="not_attempted",
                         metadata_url=url,
                         metadata_title=title,
                     ),
@@ -2537,8 +2575,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                         source_type=source_type,
                         video_evidence=VideoEvidence(
                             caption_transcript_status="not_available",
-                            visual_analysis_status="available",
-                            visual_analysis_summary=content[:2000],
+                            visual_analysis_status="not_attempted",
                             metadata_url=url,
                             metadata_title=title,
                         ),
@@ -2556,8 +2593,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
             ),
             video_evidence=VideoEvidence(
                 caption_transcript_status="not_attempted" if source_type == "tiktok" else "not_available",
-                visual_analysis_status="available",
-                visual_analysis_summary="Title, snippet, and video URL preserved as discovery evidence; call video_analyze() for visual summary.",
+                visual_analysis_status="not_attempted",
                 audio_transcript_status="not_configured",
                 metadata_url=url,
                 metadata_title=title,
@@ -2572,8 +2608,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
         video_ev = VideoEvidence(
             metadata_url=url,
             metadata_title=title,
-            visual_analysis_status="available",
-            visual_analysis_summary="Title, snippet, and video URL preserved; call video_analyze() for visual summary.",
+            visual_analysis_status="not_attempted",
         )
 
         # Primary: yt-dlp auto-generated subtitles
@@ -2591,8 +2626,8 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                         caption_transcript_status="ok",
                         caption_transcript=content,
                         caption_transcript_length=len(content),
-                        visual_analysis_status="available",
-                        audio_transcript_status="ok",
+                        visual_analysis_status="not_attempted",
+                        audio_transcript_status="not_configured",
                         metadata_url=url,
                         metadata_title=title,
                     ),
@@ -2616,8 +2651,8 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                             caption_transcript_status="ok",
                             caption_transcript=content,
                             caption_transcript_length=len(content),
-                            visual_analysis_status="available",
-                            audio_transcript_status="ok",
+                            visual_analysis_status="not_attempted",
+                            audio_transcript_status="not_configured",
                             metadata_url=url,
                             metadata_title=title,
                         ),
@@ -2638,11 +2673,10 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                         source_type=source_type,
                         transcript_attempted=True,
                         video_evidence=VideoEvidence(
-                            caption_transcript_status="ok",
-                            caption_transcript=content,
-                            caption_transcript_length=len(content),
-                            visual_analysis_status="available",
+                            caption_transcript_status="not_available",
                             audio_transcript_status="ok",
+                            audio_transcript=content,
+                            visual_analysis_status="not_attempted",
                             metadata_url=url,
                             metadata_title=title,
                         ),
@@ -2665,7 +2699,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                         video_evidence=VideoEvidence(
                             caption_transcript_status="blocked",
                             caption_transcript_error=transcript_error,
-                            visual_analysis_status="available",
+                            visual_analysis_status="not_attempted",
                             audio_transcript_status="not_configured",
                             metadata_url=url,
                             metadata_title=title,
@@ -2856,6 +2890,7 @@ def extract_hits(
             url=hit.url,
             snippet=hit.snippet,
             extraction=result,
+            query=getattr(hit, "query", ""),
         )
         extracted.append(eh)
     return tuple(extracted)
