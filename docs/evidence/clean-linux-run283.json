@@ -1,0 +1,635 @@
+{
+  "artifact": "clean-linux-run283",
+  "schema_version": 1,
+  "generated_at_utc": "2026-10-28T16:21:42Z",
+  "verdict": {
+    "acceptance_passed": 11,
+    "acceptance_total": 11,
+    "all_pass": true,
+    "failed_checks": [],
+    "summary": "Committed db6adc1 installs from a pinned archive into a clean Ubuntu 24.04 arm64 userspace and passes all 11 acceptance gates. The previously failing GitHub missing-issue gate (A7) now fails closed: rc 1, extraction_error, empty content, usable false."
+  },
+  "source": {
+    "git_head": "db6adc1a68f0792ef4270576c8ecd171c03cca3a",
+    "commit_subject": "fix: preserve bounded full bodies from maintained read backends",
+    "archive_sha256": "48ffdc2de6cc879cabf53f7788a0e0257f4008b1f76810dbc78adc94ce8bc58d",
+    "archive_entries": 169,
+    "archive_format": "git archive --format=tar db6adc1a68f0792ef4270576c8ecd171c03cca3a",
+    "archive_file": "<scratch>/source.tar",
+    "archive_sha256_verified_against_file": true,
+    "o_txt_in_archive": false,
+    "project_files": 156,
+    "project_has_git": false,
+    "excludes_untracked_o_txt": true
+  },
+  "environment": {
+    "image_ref": "ubuntu:24.04",
+    "image_digest": "sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90",
+    "docker_server": "29.1.3",
+    "container_hostname": "76b867caa9b9",
+    "os_pretty_name": "Ubuntu 24.04.4 LTS",
+    "os_version_id": "24.04",
+    "kernel": "7.0.0-1013-oracle",
+    "arch": "aarch64",
+    "python": "3.12.3",
+    "host_kernel_shared": true,
+    "note": "clean userspace on the host kernel; this is Linux arm64, not macOS or Windows",
+    "docker_limits": "--cpus 2 --memory 2g --memory-swap 2g --pids-limit 256",
+    "capabilities": "cap-drop ALL + SETUID,SETGID,CHOWN,DAC_OVERRIDE,FOWNER; no-new-privileges",
+    "mounts": "/src/source.tar:ro, /src/harness3.sh:ro, /work/results:rw (results only); no host home/config/tool mounts",
+    "host_home_or_config_mounted": false,
+    "host_tools_used": false,
+    "cli_env": "env -i with PATH, HOME=/work/home, LC_ALL=C.UTF-8, TRAILHEAD_DISABLE_ASR=1",
+    "env_secrets": "PYTHONPATH, VIRTUAL_ENV, GITHUB_TOKEN, GH_TOKEN all unset",
+    "setup_seconds": 20,
+    "utc_start": "2026-10-28T16:21:16Z",
+    "utc_end": "2026-10-28T16:21:42Z",
+    "wall_seconds": 27,
+    "image_ships_python": false,
+    "python_install": "apt: python3, python3-venv, python3-pip, ca-certificates (container-local, ephemeral)"
+  },
+  "install": {
+    "pip_install_rc": 0,
+    "installed_dist_count": 2,
+    "declared_runtime_dependencies": 0,
+    "build_backend": "hatchling (isolated build env, not installed into runtime venv)",
+    "installed_cli_sha256": "267fa25f3bbae3544bb6802ffbb62e45f0d323d7da4f4bbc7fcbd9d2dacab4b7",
+    "archive_cli_sha256": "267fa25f3bbae3544bb6802ffbb62e45f0d323d7da4f4bbc7fcbd9d2dacab4b7",
+    "installed_files_match_archive": true,
+    "python": "3.12.3",
+    "entry_point": "/work/venv/bin/hermes-trailhead",
+    "entry_point_present": true,
+    "version_output": "hermes-trailhead 1.1.0",
+    "version_rc": 0,
+    "installed_distributions": [
+      "hermes-trailhead 1.1.0",
+      "pip 24.0"
+    ]
+  },
+  "runtime": {
+    "pip_freeze": [
+      "hermes-trailhead @ file:///work/project"
+    ],
+    "third_party_runtime_packages": 0,
+    "wheel": "hermes_trailhead-1.1.0-py3-none-any.whl",
+    "wheel_bytes": 212132,
+    "wheel_sha256": "12aca965948fd8f89d18a7738f5d22e21d7fe142f464b825fcc20590817c4867",
+    "entry_point": "/work/venv/bin/hermes-trailhead",
+    "help_rc": 0,
+    "help_bytes": 2437
+  },
+  "read_public": {
+    "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+    "ok": true,
+    "source_type": "docs",
+    "extraction_status": "ok",
+    "content_length": 78047,
+    "returned_chars": 78047,
+    "document_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+    "content_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+    "markers": [
+      "typing",
+      "泛型",
+      "PEP 673"
+    ],
+    "asr": {
+      "enabled": false,
+      "env": "TRAILHEAD_DISABLE_ASR",
+      "note": "read never invokes paid ASR"
+    },
+    "policy": {
+      "agent_reach": "not_used",
+      "asr": "disabled",
+      "hermes_web_extract": "disabled",
+      "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+    },
+    "evidence": {
+      "usable": true,
+      "transport_ok": true,
+      "quality": "canonical",
+      "score": 80
+    },
+    "completeness": {
+      "extracted_document_complete": true,
+      "raw_page_complete": false,
+      "note": "content is readable text extracted from the page, not the raw HTML; markup, scripts and repeated chrome are removed, so completeness never means a byte-identical copy of the fetched page, and a later read may refetch a changed version — compare pagination.document_sha256 before chaining offsets across calls"
+    }
+  },
+  "pagination": {
+    "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+    "chunk": 20000,
+    "window_count": 4,
+    "windows": [
+      {
+        "requested_offset": 0,
+        "rc": 0,
+        "start": 0,
+        "end": 20000,
+        "returned_chars": 20000,
+        "next_offset": 20000,
+        "more": true,
+        "total_available_chars": 78047,
+        "document_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+        "content_sha256": "5c764991dab177844ee09b0e7be89f628249bc77425e9ffa88b8cbccd3f3d2c3"
+      },
+      {
+        "requested_offset": 20000,
+        "rc": 0,
+        "start": 20000,
+        "end": 40000,
+        "returned_chars": 20000,
+        "next_offset": 40000,
+        "more": true,
+        "total_available_chars": 78047,
+        "document_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+        "content_sha256": "63222002bc6a2408eb31f42f94ed7a03682ca2f8dc742cb77b6d37a0002a4d27"
+      },
+      {
+        "requested_offset": 40000,
+        "rc": 0,
+        "start": 40000,
+        "end": 60000,
+        "returned_chars": 20000,
+        "next_offset": 60000,
+        "more": true,
+        "total_available_chars": 78047,
+        "document_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+        "content_sha256": "9f5d1a1f6e793d14e0e12748087cb4a02d7a3eab7d86ae90d0bcc0cc89b4f7db"
+      },
+      {
+        "requested_offset": 60000,
+        "rc": 0,
+        "start": 60000,
+        "end": 78047,
+        "returned_chars": 18047,
+        "next_offset": null,
+        "more": false,
+        "total_available_chars": 78047,
+        "document_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+        "content_sha256": "b04da5ac09911b62fde0b713d2ccfbc89fd56a6dc53b843b0c0055271efab165"
+      }
+    ],
+    "reconstruction_verified_on_host": {
+      "concat_bytes": 117334,
+      "concat_chars": 78047,
+      "concat_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+      "equals_document_sha256": true,
+      "contiguous_spans": true,
+      "sum_window_chars": 78047,
+      "all_window_digests_equal": true,
+      "more_false_on_last_window": true
+    }
+  },
+  "missing_page_failclosed": {
+    "github_issue": {
+      "url": "https://github.com/pallets/flask/issues/999999999",
+      "rc": 1,
+      "ok": false,
+      "error": {
+        "code": "extraction_error",
+        "message": "Could not extract content from https://github.com/pallets/flask/issues/999999999 via Hermes web_extract, direct fetch, or Jina fetch (Hermes web_extract tier disabled for read)"
+      },
+      "content_chars": 0,
+      "evidence_usable": false,
+      "transport_ok": false,
+      "quality": "dead",
+      "policy": {
+        "agent_reach": "not_used",
+        "asr": "disabled",
+        "hermes_web_extract": "disabled",
+        "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+      },
+      "chrome_substitution": "absent (0 content chars)"
+    },
+    "unreachable_offline_url": {
+      "url": "http://127.0.0.1:9/",
+      "rc": 1,
+      "ok": false,
+      "error": {
+        "code": "extraction_error",
+        "message": "Could not extract content from http://127.0.0.1:9/ via Hermes web_extract, direct fetch, or Jina fetch (Hermes web_extract tier disabled for read)"
+      },
+      "content_chars": 0
+    }
+  },
+  "reach_optional_backend": {
+    "found": false,
+    "reason": "not_installed",
+    "error": {
+      "code": "not_configured",
+      "message": "agent-reach is not installed or not discoverable"
+    },
+    "asr_disabled": true,
+    "asr_vetoed": true,
+    "parity_counts": {
+      "channels": 14,
+      "actions": 40,
+      "surfaced": 40,
+      "surfaced_ratio": 1.0,
+      "native": 8,
+      "native_partial": 4,
+      "upstream_only": 28,
+      "public": 26,
+      "gated_auth": 12,
+      "gated_quota": 2,
+      "live_verified": 5,
+      "fixture_only": 35
+    },
+    "parity_reference": {
+      "project": "Panniantong/Agent-Reach",
+      "url": "https://github.com/Panniantong/Agent-Reach",
+      "version": "1.6.0",
+      "commit": "14c213405669414492bda0f8d52cc6531d062c45",
+      "channels": 14,
+      "actions": 40,
+      "measured": "2026-10-28"
+    },
+    "parity_action_count": 40
+  },
+  "acceptance": {
+    "schema_version": 1,
+    "checks": [
+      {
+        "id": "A1-install",
+        "requirement": "pip install into fresh venv succeeds; zero runtime deps; installed bytes match pinned archive",
+        "pass": true,
+        "detail": {
+          "pip_install_rc": 0,
+          "installed_dist_count": 2,
+          "declared_runtime_dependencies": 0,
+          "build_backend": "hatchling (isolated build env, not installed into runtime venv)",
+          "installed_cli_sha256": "267fa25f3bbae3544bb6802ffbb62e45f0d323d7da4f4bbc7fcbd9d2dacab4b7",
+          "archive_cli_sha256": "267fa25f3bbae3544bb6802ffbb62e45f0d323d7da4f4bbc7fcbd9d2dacab4b7",
+          "installed_files_match_archive": true,
+          "python": "3.12.3"
+        }
+      },
+      {
+        "id": "A2-version",
+        "requirement": "--version prints hermes-trailhead 1.1.0 and exits 0",
+        "pass": true,
+        "detail": "hermes-trailhead 1.1.0"
+      },
+      {
+        "id": "A3-help",
+        "requirement": "--help exposes documented surfaces",
+        "pass": true,
+        "detail": {
+          "rc": 0,
+          "missing": [],
+          "bytes": 2437
+        }
+      },
+      {
+        "id": "A4-read-public",
+        "requirement": "read official public docs page -> usable evidence, ASR disabled, no Agent Reach/model fallback, full-window digest matches content",
+        "pass": true,
+        "detail": {
+          "rc": 0,
+          "ok": true,
+          "asr": {
+            "enabled": false,
+            "env": "TRAILHEAD_DISABLE_ASR",
+            "note": "read never invokes paid ASR"
+          },
+          "policy": {
+            "agent_reach": "not_used",
+            "asr": "disabled",
+            "hermes_web_extract": "disabled",
+            "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+          },
+          "usable": true,
+          "transport_ok": true,
+          "content_length": 78047,
+          "chars_checked": 78047,
+          "markers": [
+            "typing",
+            "泛型",
+            "PEP 673"
+          ],
+          "document_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+          "content_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+          "extraction_status": "ok",
+          "error": null
+        }
+      },
+      {
+        "id": "A5-pagination",
+        "requirement": "successive --offset/--max-chars windows are contiguous, complete, and reconstruct the full document digest",
+        "pass": true,
+        "detail": {
+          "windows": 4,
+          "spans": [
+            [
+              0,
+              20000
+            ],
+            [
+              20000,
+              40000
+            ],
+            [
+              40000,
+              60000
+            ],
+            [
+              60000,
+              78047
+            ]
+          ],
+          "sum_chars": 78047,
+          "concat_chars": 78047,
+          "total_available_chars": 78047,
+          "per_window_digest": [
+            "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+            "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+            "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+            "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+          ],
+          "full_read_digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+          "concat_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+          "all_window_digests_equal": true,
+          "digest_equals_full_read": true,
+          "full_content_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+          "reconstruction_matches_full_single_window": true,
+          "contiguous_no_gaps": true,
+          "refetch_caveat": "read refetches; windows from different upstream versions are rejected by digest comparison",
+          "window_detail": [
+            {
+              "req_offset": 0,
+              "rc": 0,
+              "start": 0,
+              "end": 20000,
+              "returned": 20000,
+              "more": true,
+              "next_offset": 20000,
+              "total": 78047,
+              "digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+            },
+            {
+              "req_offset": 20000,
+              "rc": 0,
+              "start": 20000,
+              "end": 40000,
+              "returned": 20000,
+              "more": true,
+              "next_offset": 40000,
+              "total": 78047,
+              "digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+            },
+            {
+              "req_offset": 40000,
+              "rc": 0,
+              "start": 40000,
+              "end": 60000,
+              "returned": 20000,
+              "more": true,
+              "next_offset": 60000,
+              "total": 78047,
+              "digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+            },
+            {
+              "req_offset": 60000,
+              "rc": 0,
+              "start": 60000,
+              "end": 78047,
+              "returned": 18047,
+              "more": false,
+              "next_offset": null,
+              "total": 78047,
+              "digest": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+            }
+          ]
+        }
+      },
+      {
+        "id": "A6-read-text",
+        "requirement": "read human text mode reports usable evidence",
+        "pass": true,
+        "detail": {
+          "rc": 0,
+          "bytes": 20759,
+          "head": "URL: https://docs.python.org/zh-cn/3/library/typing.html\nStatus: ok | source type: docs | timeout: 15s\nEvidence: usable=yes | quality: canonical (80/100) | relevance: unknown\nContent: 20000 chars retu"
+        }
+      },
+      {
+        "id": "A7-github-honest-failure",
+        "requirement": "anonymous GitHub nonexistent issue -> honest coded failure, empty content, no repository-metadata substitution",
+        "pass": true,
+        "detail": {
+          "rc": 1,
+          "ok": false,
+          "error": {
+            "code": "extraction_error",
+            "message": "Could not extract content from https://github.com/pallets/flask/issues/999999999 via Hermes web_extract, direct fetch, or Jina fetch (Hermes web_extract tier disabled for read)"
+          },
+          "content_chars": 0,
+          "usable": false,
+          "policy": {
+            "agent_reach": "not_used",
+            "asr": "disabled",
+            "hermes_web_extract": "disabled",
+            "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+          }
+        }
+      },
+      {
+        "id": "A8-reach-inventory",
+        "requirement": "missing optional Agent Reach -> 40-action inventory + not_configured, read-only, no install",
+        "pass": true,
+        "detail": {
+          "rc": 0,
+          "found": false,
+          "reason": "not_installed",
+          "error": {
+            "code": "not_configured",
+            "message": "agent-reach is not installed or not discoverable"
+          },
+          "parity_actions": 40,
+          "counts": {
+            "channels": 14,
+            "actions": 40,
+            "surfaced": 40,
+            "surfaced_ratio": 1.0,
+            "native": 8,
+            "native_partial": 4,
+            "upstream_only": 28,
+            "public": 26,
+            "gated_auth": 12,
+            "gated_quota": 2,
+            "live_verified": 5,
+            "fixture_only": 35
+          },
+          "reference": {
+            "project": "Panniantong/Agent-Reach",
+            "url": "https://github.com/Panniantong/Agent-Reach",
+            "version": "1.6.0",
+            "commit": "14c213405669414492bda0f8d52cc6531d062c45",
+            "channels": 14,
+            "actions": 40,
+            "measured": "2026-10-28"
+          },
+          "asr_vetoed": true
+        }
+      },
+      {
+        "id": "A9-reach-text",
+        "requirement": "reach text mode states the missing dependency actionably",
+        "pass": true,
+        "detail": {
+          "rc": 0,
+          "bytes": 3912,
+          "head": "Agent Reach forwarding layer (optional, read-only, attributed)\n\n  Executable: (not found)\n  Status:     unavailable (not_installed)\n  Mode:       public-only (no browser fallback, no credentials)\n  Quota:      not consented (--allow-quota-consuming) | auth consent: not consented | ASR veto (TRAILHEAD_DISABLE_ASR): on\n  Quota now:  not ready — a quota call needs quota consent AND auth consent AND n"
+        }
+      },
+      {
+        "id": "A10-reach-call-gate",
+        "requirement": "reach-call without Agent Reach fails closed with coded error, no items",
+        "pass": true,
+        "detail": {
+          "rc": 1,
+          "error": {
+            "code": "not_configured",
+            "message": "agent-reach executable not found; set TRAILHEAD_AGENT_REACH_BIN or install it yourself"
+          },
+          "items": [],
+          "top_keys": [
+            "action",
+            "argv",
+            "attempts",
+            "backend",
+            "channel",
+            "elapsed_ms",
+            "engine",
+            "error",
+            "exit_code",
+            "items",
+            "limitations",
+            "ok",
+            "provenance",
+            "timed_out",
+            "upstream"
+          ]
+        }
+      },
+      {
+        "id": "A11-no-ar-asr",
+        "requirement": "runtime venv has only project + pip; no Agent Reach installed; all reads report ASR disabled",
+        "pass": true,
+        "detail": {
+          "freeze": [
+            "hermes-trailhead @ file:///work/project"
+          ],
+          "declared_runtime_dependencies": 0
+        }
+      }
+    ],
+    "passed": 11,
+    "total": 11,
+    "all_pass": true
+  },
+  "policy": {
+    "credentials_used": false,
+    "auth_configured": false,
+    "agent_reach_installed_or_invoked": false,
+    "asr_calls": 0,
+    "model_or_web_extract_fallback_used_for_read": false,
+    "paid_calls": 0,
+    "purchases": 0,
+    "host_installs": 0,
+    "workspace_source_edits": 0,
+    "commits_or_pushes": 0,
+    "publication": false,
+    "container_installs": "apt python3 toolchain + project wheel inside disposable container only",
+    "github_calls": "one missing-issue read from the existing harness only; no extra GitHub probing"
+  },
+  "scope": {
+    "claim": "clean userspace install and CLI acceptance on Linux arm64 with the host kernel shared",
+    "shared_kernel": true,
+    "kernel": "7.0.0-1013-oracle",
+    "arch": "aarch64",
+    "not_claimed": [
+      "native macOS",
+      "native Windows",
+      "native arm64 hardware other than this host",
+      "raw HTML byte-identical completeness",
+      "upstream page immutability",
+      "complete GitHub PR conversation",
+      "host-wide installation"
+    ]
+  },
+  "raw_artifacts": {
+    "scratch_dir": "<scratch>",
+    "source_archive": {
+      "path": "<scratch>/source.tar",
+      "sha256": "48ffdc2de6cc879cabf53f7788a0e0257f4008b1f76810dbc78adc94ce8bc58d",
+      "entries": 169,
+      "mode": "0444"
+    },
+    "harness": {
+      "path": "<scratch>/harness3.sh",
+      "sha256": "3b633540a664f0cb159fe150d67c74bb3b23270e5d82e07f30a24d309f4a85e2",
+      "mode": "0444",
+      "source": "existing harness from trailhead-clean-final-20261028, unmodified"
+    },
+    "raw_run_log": {
+      "path": "<scratch>/results/run283-raw.log",
+      "sha256": "7dfa686864638b002839f69307ed471c33ca9f9d575a96680ea43e6b32e9f463",
+      "bytes": 35924
+    },
+    "acceptance_json": {
+      "path": "<scratch>/results/acceptance.json",
+      "sha256": "3a537f930225fcaff7485880c079e3f34221a2c841978bdd2cef169f38f7a089"
+    },
+    "final_facts_json": {
+      "path": "<scratch>/results/final_facts.json",
+      "sha256": "99e2e394a17a016a5782c918795eacc92ddb5c648cd661302805f2d581567539"
+    },
+    "pagination_concat": {
+      "path": "<scratch>/results/pagination_concat.txt",
+      "sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea"
+    },
+    "inputs_sha256": {
+      "path": "<scratch>/inputs-sha256.txt",
+      "sha256": "1e72f1adcc223832335605e1498664fe03eb003133858e7e19d16157e4aefe81"
+    }
+  },
+  "verification": {
+    "acceptance_counts_from_acceptance_json": {
+      "passed": 11,
+      "total": 11,
+      "all_pass": true
+    },
+    "acceptance_counts_from_raw_log": {
+      "pass_lines": 11,
+      "fail_lines": 0,
+      "reported": "acceptance: 11/11 pass"
+    },
+    "installed_cli_sha256_equals_archive_cli_sha256": true,
+    "entry_point_executed": true,
+    "version_output_verified": true,
+    "untracked_o_txt_excluded_from_archive": true,
+    "concat_digest_recomputed_on_host": true,
+    "container_removed": {
+      "docker_inspect": "no such object",
+      "present_after_run": false
+    },
+    "o_txt_untouched": {
+      "sha256": "1d3e2496f6911856b8abce624935e7c7c045b0ec54b4d3f3f4734f09abf26595",
+      "unchanged": true
+    },
+    "source_head_unchanged": {
+      "head": "db6adc1a68f0792ef4270576c8ecd171c03cca3a",
+      "git_status": "only untracked o.txt"
+    }
+  },
+  "reproduce": {
+    "command": "docker run --rm --name trailhead-clean-run283 --cpus 2 --memory 2g --memory-swap 2g --pids-limit 256 --cap-drop ALL --cap-add SETUID --cap-add SETGID --cap-add CHOWN --cap-add DAC_OVERRIDE --cap-add FOWNER --security-opt no-new-privileges -e GIT_HEAD=db6adc1a68f0792ef4270576c8ecd171c03cca3a -e IMAGE_REF=ubuntu:24.04 -e IMAGE_DIGEST=sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90 -e DOCKER_SERVER=29.1.3 -v \"$S/source.tar:/src/source.tar:ro\" -v \"$S/harness3.sh:/src/harness3.sh:ro\" -v \"$S/results:/work/results\" ubuntu:24.04 /bin/bash /src/harness3.sh",
+    "harness_report_generator": "built into harness3.sh (accept.py + facts.py); no additional wrapper"
+  },
+  "not_claimed": [
+    "That A7 fail-closed behavior is stable across every upstream/CDN variant; it is verified for this run's single anonymous missing-issue read.",
+    "That extraction sees the whole upstream page: completeness.raw_page_complete is false by contract.",
+    "That the measured document digest is stable upstream; read refetches on every call."
+  ]
+}

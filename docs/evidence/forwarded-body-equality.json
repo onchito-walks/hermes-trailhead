@@ -1,0 +1,493 @@
+{
+  "schema": "trailhead.forwarded-body-equality/1",
+  "title": "Exact-body preservation: forwarded body text vs the raw upstream text of the same call",
+  "captured_utc": "2026-10-28T16:22:15Z",
+  "repo_head": "db6adc1a68f0792ef4270576c8ecd171c03cca3a",
+  "repo_head_short": "db6adc1",
+  "pinned_upstream": {
+    "project": "Panniantong/Agent-Reach",
+    "url": "https://github.com/Panniantong/Agent-Reach",
+    "version": "1.6.0",
+    "commit": "14c213405669414492bda0f8d52cc6531d062c45",
+    "channels": 14,
+    "actions": 40,
+    "measured": "2026-10-28"
+  },
+  "bounds": {
+    "max_text_chars": 4000,
+    "max_total_body_chars": 250000,
+    "max_output_bytes": 4000000
+  },
+  "method": {
+    "backend": "hermes_trailhead.reach_backend.AgentReachBackend (maintained, unmodified)",
+    "runner": "scratch wrapper that calls the existing _default_runner and retains the raw JSON envelope of the action subprocess",
+    "action_calls": 2,
+    "retries": 0,
+    "comparison_basis": "same call only: raw stdout JSON item text vs Trailhead-normalised item text; no second timestamp, no re-fetch, no cached copy",
+    "public_route": "allow_authenticated=False -> registry-selected public backend forced with --backend <label>; isolated empty HOME for the child",
+    "quota": "allow_quota_consuming=False and TRAILHEAD_DISABLE_ASR=1; neither action is a quota action",
+    "not_stored_here": "raw upstream envelopes (176 KB v2ex / 3.7 KB web) and full page text stay in scratch; this ledger keeps hashes, lengths and <=120-char previews"
+  },
+  "controls_observed": {
+    "allow_authenticated": false,
+    "allow_quota_consuming": false,
+    "TRAILHEAD_DISABLE_ASR_parent": "1",
+    "asr_veto_active_in_process": true,
+    "asr_forwarded_to_child": false,
+    "child_env_allowlist": [
+      "PATH",
+      "LANG",
+      "LC_ALL",
+      "LC_CTYPE",
+      "TMPDIR",
+      "TMP",
+      "TEMP",
+      "SYSTEMROOT",
+      "PATHEXT"
+    ],
+    "child_home": "isolated temporary directory (path not recorded), distinct from the operator home",
+    "child_agent_reach_home_override": "not set",
+    "operator_credentials_used": false
+  },
+  "rows": [
+    {
+      "channel": "v2ex",
+      "action": "read",
+      "target": "https://www.v2ex.com/t/1",
+      "ok": true,
+      "error": null,
+      "reported_backend": "v2ex-api",
+      "route": "public_api",
+      "forced_backend": "v2ex-api",
+      "public_only": true,
+      "home_mode": "isolated-temp",
+      "quota_consuming": false,
+      "elapsed_ms": 841,
+      "argv": [
+        "agent-reach",
+        "v2ex",
+        "read",
+        "--backend",
+        "v2ex-api",
+        "--timeout",
+        "90",
+        "--",
+        "https://www.v2ex.com/t/1"
+      ],
+      "exit_code": 0,
+      "env": {
+        "child_env_TRAILHEAD_DISABLE_ASR": null,
+        "child_env_note": "child env is a strict allowlist; the ASR veto is evaluated in the parent process before the subprocess is spawned, so absence here is by design, not a disabled veto",
+        "HOME_set": true,
+        "HOME_is_operator_home": false,
+        "HOME_is_isolated_temp": true,
+        "AGENT_REACH_HOME_set": false
+      },
+      "raw_envelope": {
+        "parse_error": null,
+        "schema_version": 1,
+        "ok": true,
+        "channel": "v2ex",
+        "action": "read",
+        "backend": "v2ex-api",
+        "top_level_keys": [
+          "action",
+          "backend",
+          "channel",
+          "error",
+          "items",
+          "meta",
+          "ok",
+          "schema_version"
+        ],
+        "item_keys": [
+          "author",
+          "published_at",
+          "raw",
+          "text",
+          "title",
+          "url"
+        ],
+        "item_count": 1,
+        "stdout_bytes": 176766,
+        "stdout_sha256": "8cc893228bd41b6422dab29cf8f28d601e0f43edb6ce038138a0e28f8d487107",
+        "has_truncated_field": false,
+        "has_continuation_field": false,
+        "upstream_text_chars": 7956,
+        "upstream_text_sha256": "1c868f594b1c427eb014f77c1c0c8de55fbc0a435785cbe10c912ecd1b055e6f",
+        "upstream_tail_chars": 200,
+        "upstream_tail_sha256": "e0c5a0891747e9923baea7b257f485dd61062d319c0b4579465db4d6b7d22514",
+        "upstream_tail_preview": "里，小透明 -在对的方向上，坚持长期主义，藐视一切暂时性的困难。人生没有过不去的坎 和不可战胜的困难! @ovtfkw: 打卡留恋 @FawkesV: 果然好多人 打卡 @Slarda: 2026 考古 @meetxie: 打卡",
+        "upstream_head_preview": "Project Babel 2.0 is here. 你可能会觉得眼前的这个网站实在太简陋，你的感觉是对的，因为这个网站的 Mobile 版本先上线了，这个版本为所有的 iDevice 优化。接下来我会从各方面来给网站一个尽量详尽的解",
+        "raw_dump_basename": "v2ex-read.raw.json"
+      },
+      "forwarded": {
+        "item_count": 1,
+        "text_chars": 7956,
+        "text_sha256": "1c868f594b1c427eb014f77c1c0c8de55fbc0a435785cbe10c912ecd1b055e6f",
+        "text_truncated": false,
+        "body": {
+          "upstream_chars": 7956,
+          "returned_chars": 7956,
+          "local_truncated": false,
+          "upstream_truncated": null,
+          "upstream_complete": null
+        },
+        "tail_chars": 200,
+        "tail_sha256": "e0c5a0891747e9923baea7b257f485dd61062d319c0b4579465db4d6b7d22514",
+        "tail_nonempty": true,
+        "tail_preview": "里，小透明 -在对的方向上，坚持长期主义，藐视一切暂时性的困难。人生没有过不去的坎 和不可战胜的困难! @ovtfkw: 打卡留恋 @FawkesV: 果然好多人 打卡 @Slarda: 2026 考古 @meetxie: 打卡"
+      },
+      "comparison": {
+        "exact_equal": true,
+        "length_equal": true,
+        "sha256_equal": true,
+        "first_mismatch_index": null,
+        "whitespace_normalized_equal": true,
+        "trailing_text_present_upstream": true
+      },
+      "shell_check": {
+        "upstream_full_text_reason": null,
+        "forwarded_text_reason": null,
+        "old_4000_prefix_reason": null,
+        "withheld_items": false
+      },
+      "counterfactual_old_bound": {
+        "label": "counterfactual_deterministic_slice_of_same_payload_not_historical_live",
+        "bound_chars": 4000,
+        "slice_chars": 4000,
+        "slice_sha256": "5ef62ecdde29b8b811b75241b1cc81f0c700f8ae69a0010ebb116d9359b55ea4",
+        "would_flag_text_truncated": true,
+        "chars_the_old_bound_would_discard": 3956,
+        "slice_equals_forwarded": false,
+        "slice_is_prefix_of_upstream": true
+      },
+      "upstream_signals": {
+        "truncated": null,
+        "continuation": {
+          "state": "unknown",
+          "source": "absent",
+          "next_offset": null
+        },
+        "note": "Pinned Agent Reach 1.6.0 (schema_version 1) carries no continuation, truncation or page-cursor field. Continuation is therefore unknown, not complete, and there is no cursor to follow."
+      },
+      "limitations": [
+        "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+        "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+        "Public-only mode: no authenticated session and no browser fallback were used.",
+        "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+        "Some upstream raw payloads were dropped to keep output bounded."
+      ],
+      "attempts": [
+        {
+          "backend": "v2ex-api",
+          "result": "ok",
+          "message": null
+        }
+      ]
+    },
+    {
+      "channel": "web",
+      "action": "read",
+      "target": "https://docs.python.org/3/library/asyncio.html",
+      "ok": true,
+      "error": null,
+      "reported_backend": "jina",
+      "route": "public_api",
+      "forced_backend": null,
+      "public_only": true,
+      "home_mode": "isolated-temp",
+      "quota_consuming": false,
+      "elapsed_ms": 717,
+      "argv": [
+        "agent-reach",
+        "web",
+        "read",
+        "--timeout",
+        "90",
+        "--",
+        "https://docs.python.org/3/library/asyncio.html"
+      ],
+      "exit_code": 0,
+      "env": {
+        "child_env_TRAILHEAD_DISABLE_ASR": null,
+        "child_env_note": "child env is a strict allowlist; the ASR veto is evaluated in the parent process before the subprocess is spawned, so absence here is by design, not a disabled veto",
+        "HOME_set": true,
+        "HOME_is_operator_home": false,
+        "HOME_is_isolated_temp": true,
+        "AGENT_REACH_HOME_set": false
+      },
+      "raw_envelope": {
+        "parse_error": null,
+        "schema_version": 1,
+        "ok": true,
+        "channel": "web",
+        "action": "read",
+        "backend": "jina",
+        "top_level_keys": [
+          "action",
+          "backend",
+          "channel",
+          "error",
+          "items",
+          "meta",
+          "ok",
+          "schema_version"
+        ],
+        "item_keys": [
+          "author",
+          "published_at",
+          "raw",
+          "text",
+          "title",
+          "url"
+        ],
+        "item_count": 1,
+        "stdout_bytes": 3767,
+        "stdout_sha256": "58009d7c246dc9be81f948f779dbd7664ffee12b756bf3771a8d86b542c9d029",
+        "has_truncated_field": false,
+        "has_continuation_field": false,
+        "upstream_text_chars": 3312,
+        "upstream_text_sha256": "3828fca9e4da0ca77f4e01449968fa0b388fea08364779254f2238c88d516ebb",
+        "upstream_tail_chars": 200,
+        "upstream_tail_sha256": "f52f17ff1a4195d22b714a893fea466f1da039af514b8e2f7a024dc5e174d021",
+        "upstream_tail_preview": "e The source code for asyncio can be found in [Lib/asyncio/](https://github.com/python/cpython/tree/3.15/Lib/asyncio/).",
+        "upstream_head_preview": "* * * asyncio is a library to write **concurrent** code using the **async/await** syntax. asyncio is used as a foundat",
+        "raw_dump_basename": "web-read.raw.json"
+      },
+      "forwarded": {
+        "item_count": 1,
+        "text_chars": 3312,
+        "text_sha256": "3828fca9e4da0ca77f4e01449968fa0b388fea08364779254f2238c88d516ebb",
+        "text_truncated": false,
+        "body": {
+          "upstream_chars": 3312,
+          "returned_chars": 3312,
+          "local_truncated": false,
+          "upstream_truncated": null,
+          "upstream_complete": null
+        },
+        "tail_chars": 200,
+        "tail_sha256": "f52f17ff1a4195d22b714a893fea466f1da039af514b8e2f7a024dc5e174d021",
+        "tail_nonempty": true,
+        "tail_preview": "e The source code for asyncio can be found in [Lib/asyncio/](https://github.com/python/cpython/tree/3.15/Lib/asyncio/)."
+      },
+      "comparison": {
+        "exact_equal": true,
+        "length_equal": true,
+        "sha256_equal": true,
+        "first_mismatch_index": null,
+        "whitespace_normalized_equal": true,
+        "trailing_text_present_upstream": true
+      },
+      "shell_check": {
+        "upstream_full_text_reason": null,
+        "forwarded_text_reason": null,
+        "old_4000_prefix_reason": null,
+        "withheld_items": false
+      },
+      "counterfactual_old_bound": {
+        "label": "counterfactual_deterministic_slice_of_same_payload_not_historical_live",
+        "bound_chars": 4000,
+        "slice_chars": 3312,
+        "slice_sha256": "3828fca9e4da0ca77f4e01449968fa0b388fea08364779254f2238c88d516ebb",
+        "would_flag_text_truncated": false,
+        "chars_the_old_bound_would_discard": 0,
+        "slice_equals_forwarded": true,
+        "slice_is_prefix_of_upstream": true
+      },
+      "upstream_signals": {
+        "truncated": null,
+        "continuation": {
+          "state": "unknown",
+          "source": "absent",
+          "next_offset": null
+        },
+        "note": "Pinned Agent Reach 1.6.0 (schema_version 1) carries no continuation, truncation or page-cursor field. Continuation is therefore unknown, not complete, and there is no cursor to follow."
+      },
+      "limitations": [
+        "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+        "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+        "Public-only mode: no authenticated session and no browser fallback were used.",
+        "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+      ],
+      "attempts": [
+        {
+          "backend": "jina",
+          "result": "ok",
+          "message": null
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "raw_vs_forwarded_exact",
+      "check": "forwarded text equals the raw upstream text of the same call, character for character",
+      "applies_to": "both",
+      "results": {
+        "v2ex read": true,
+        "web read": true
+      },
+      "pass": true
+    },
+    {
+      "id": "length_equal",
+      "check": "character length identical (no silent clip on either side)",
+      "applies_to": "both",
+      "results": {
+        "v2ex read": true,
+        "web read": true
+      },
+      "pass": true
+    },
+    {
+      "id": "sha256_equal",
+      "check": "sha256(forwarded text) == sha256(raw upstream text)",
+      "applies_to": "both",
+      "results": {
+        "v2ex read": true,
+        "web read": true
+      },
+      "pass": true
+    },
+    {
+      "id": "no_whitespace_only_difference",
+      "check": "equality survives whitespace normalisation (not a re-rendered near-match)",
+      "applies_to": "both",
+      "results": {
+        "v2ex read": true,
+        "web read": true
+      },
+      "pass": true
+    },
+    {
+      "id": "tail_present_and_equal",
+      "check": "final 200 chars exist, are non-empty, and hash-match upstream",
+      "applies_to": "both",
+      "results": {
+        "v2ex read": true,
+        "web read": true
+      },
+      "pass": true
+    },
+    {
+      "id": "no_local_cut",
+      "check": "text_truncated is false and body.local_truncated is false",
+      "applies_to": "both",
+      "results": {
+        "v2ex read": true,
+        "web read": true
+      },
+      "pass": true
+    },
+    {
+      "id": "body_accounting_consistent",
+      "check": "body.upstream_chars == body.returned_chars == len(text) == raw upstream chars",
+      "applies_to": "both",
+      "results": {
+        "v2ex read": true,
+        "web read": true
+      },
+      "pass": true
+    },
+    {
+      "id": "no_completeness_claim",
+      "check": "body.upstream_complete is null (unknown, never true)",
+      "applies_to": "both",
+      "results": {
+        "v2ex read": true,
+        "web read": true
+      },
+      "pass": true
+    },
+    {
+      "id": "no_inferred_truncation",
+      "check": "body.upstream_truncated is null and result.upstream.truncated is null",
+      "applies_to": "both",
+      "results": {
+        "v2ex read": true,
+        "web read": true
+      },
+      "pass": true
+    },
+    {
+      "id": "continuation_unknown",
+      "check": "continuation state is 'unknown' with source 'absent' and next_offset null",
+      "applies_to": "both",
+      "results": {
+        "v2ex read": true,
+        "web read": true
+      },
+      "pass": true
+    },
+    {
+      "id": "pinned_envelope_shape",
+      "check": "raw envelope carries schema_version 1 and no 'truncated'/'continuation' field",
+      "applies_to": "both",
+      "results": {
+        "v2ex read": true,
+        "web read": true
+      },
+      "pass": true
+    },
+    {
+      "id": "shell_not_misclassified",
+      "check": "classify_page_shell returns None for the whole upstream body and the forwarded body",
+      "applies_to": "both",
+      "results": {
+        "v2ex read": true,
+        "web read": true
+      },
+      "pass": true
+    },
+    {
+      "id": "no_items_withheld",
+      "check": "every upstream item was forwarded (no blocked/missing/empty withdrawal)",
+      "applies_to": "both",
+      "results": {
+        "v2ex read": true,
+        "web read": true
+      },
+      "pass": true
+    },
+    {
+      "id": "old_bound_counterfactual_differs",
+      "check": "the old 4000-char slice of the SAME payload differs from what was forwarded (the bound would have cut this artifact)",
+      "applies_to": "v2ex read (artifact > 4000 chars); web read is 3312 chars, so this check is reported as not exercised rather than passed",
+      "results": {
+        "v2ex read": true,
+        "web read": false
+      },
+      "pass": false
+    }
+  ],
+  "verdict": {
+    "all_applicable_checks_pass": true,
+    "applicable_checks": [
+      "raw_vs_forwarded_exact",
+      "length_equal",
+      "sha256_equal",
+      "no_whitespace_only_difference",
+      "tail_present_and_equal",
+      "no_local_cut",
+      "body_accounting_consistent",
+      "no_completeness_claim",
+      "no_inferred_truncation",
+      "continuation_unknown",
+      "pinned_envelope_shape",
+      "shell_not_misclassified",
+      "no_items_withheld"
+    ],
+    "not_exercised": {
+      "old_bound_counterfactual_differs": "web read returned 3312 chars, below the old 4000 bound"
+    }
+  },
+  "not_established": [
+    "Whole-artifact completeness for either read: body.upstream_complete is null and the pinned envelope carries no end-of-artifact or continuation field to validate.",
+    "That the upstream text equals the live page: both are upstream renderings (v2ex API model, jina reader for the asyncio page); the comparison is Trailhead forwarding vs upstream output, one hop.",
+    "Behaviour above MAX_TOTAL_BODY_CHARS (250000): both artifacts are far below the shared budget, so the mid-body cut and body_budget_exhausted paths are not exercised here.",
+    "Parity, freshness or reliability across hosts: one capture per action, one machine, no retry.",
+    "That the old 4000-char result would equal the labelled counterfactual slice in a historical run: the slice is derived deterministically from today's payload and is labelled counterfactual, not historical live."
+  ]
+}
