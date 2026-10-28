@@ -64,6 +64,7 @@ class VideoEvidence:
     visual_analysis_frames: int = 0
     audio_transcript_status: str = "not_configured"
     audio_transcript: str = ""
+    audio_transcript_error: str = ""
     metadata_url: str = ""
     metadata_title: str = ""
 
@@ -407,6 +408,11 @@ def _transcribe_audio_groq(audio_path: str, api_key: str, timeout: int = 150) ->
     NOTE: api.groq.com is behind Cloudflare — the default urllib UA gets a
     403 (error code 1010).  A browser UA + Origin/Referer passes (same
     signature as the opencode.ai GO tier); keep them on every request.
+
+    Consent is enforced by the calling helpers (``_fetch_youtube_asr`` /
+    ``_fetch_tiktok_transcript``) before any key lookup or media download;
+    this low-level uploader takes an already-consented key and must not be
+    wired into an automatic extraction path.
     """
     with open(audio_path, "rb") as f:
         audio = f.read()
@@ -433,30 +439,80 @@ def _transcribe_audio_groq(audio_path: str, api_key: str, timeout: int = 150) ->
 
 ASR_DISABLE_ENV = "TRAILHEAD_DISABLE_ASR"
 
+#: Shown when an ordinary extraction could not obtain captions.  Audio ASR is
+#: never automatic: the honest answer is "not attempted, opt-in only" plus the
+#: one existing consented path, not a silent quota/key spend.
+_YOUTUBE_ASR_OPT_IN_NOTE = (
+    "ASR is opt-in and never runs during automatic extraction (no audio "
+    "download, no transcription-key/quota spend). For a consented transcript "
+    "use 'reach-call youtube transcribe <url> --allow-authenticated "
+    "--allow-quota-consuming'."
+)
+_TIKTOK_ASR_OPT_IN_NOTE = (
+    "ASR is opt-in and never runs during automatic extraction (no media "
+    "download, no transcription-key/quota spend); TikTok extraction uses "
+    "public captions only. Consented, quota-gated transcription exists only "
+    "for supported channels via 'reach-call youtube transcribe' / 'reach-call "
+    "xiaoyuzhou transcribe --allow-authenticated --allow-quota-consuming', "
+    "not through automatic extraction."
+)
+
 
 def _asr_disabled() -> bool:
     """``TRAILHEAD_DISABLE_ASR=1`` disables media-download ASR for this process.
 
     Isolated benchmark/comparison runs set it so a case never spends minutes
-    downloading audio; ordinary runtime is unchanged (unset ⇒ enabled).
+    downloading audio.  The veto always wins, including for a caller that
+    explicitly consented to one transcription call.
     """
     return (os.environ.get(ASR_DISABLE_ENV) or "").strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _ensure_asr_enabled() -> None:
+def _ensure_asr_enabled(
+    *,
+    allow_authenticated: bool = False,
+    allow_quota_consuming: bool = False,
+) -> None:
+    """Refuse ASR unless the process veto is clear *and* consent is explicit.
+
+    Order matters: the ``TRAILHEAD_DISABLE_ASR`` veto is checked first, so it
+    wins even when a caller passes full consent.  Consent defaults to absent —
+    ordinary extraction/research must never download media, look up a key, or
+    spend transcription quota on its own.
+    """
     if _asr_disabled():
         raise RuntimeError(
             f"ASR disabled for this run ({ASR_DISABLE_ENV}=1) — skipping media download/transcription"
         )
+    if not (allow_authenticated and allow_quota_consuming):
+        raise RuntimeError(
+            "ASR is opt-in: pass allow_authenticated=True and "
+            "allow_quota_consuming=True for one explicit consented call; "
+            "automatic extraction never downloads media or spends transcription "
+            "quota (CLI equivalent for supported channels: 'reach-call youtube "
+            "transcribe' or 'reach-call xiaoyuzhou transcribe' with "
+            "--allow-authenticated --allow-quota-consuming)"
+        )
 
 
-def _fetch_youtube_asr(url: str, timeout: int = 30) -> str:
-    """ASR fallback for videos without captions (Groq Whisper, free tier).
+def _fetch_youtube_asr(
+    url: str,
+    timeout: int = 30,
+    *,
+    allow_authenticated: bool = False,
+    allow_quota_consuming: bool = False,
+) -> str:
+    """Consented-only ASR for videos without captions (Groq Whisper).
 
-    Downloads bestaudio (m4a) through the proxy pool and transcribes it.
-    Cached with a separate ``.asr.txt`` key so repeats are instant.
+    Refuses before key lookup, cache read, download or provider request unless
+    the caller passes both consent keywords for this one invocation.  Ordinary
+    extraction never calls this helper.  Downloads bestaudio (m4a) through the
+    proxy pool and caches with a separate ``.asr.txt`` key.
     """
-    _ensure_asr_enabled()
+    _ensure_asr_enabled(
+        allow_authenticated=allow_authenticated,
+        allow_quota_consuming=allow_quota_consuming,
+    )
     import glob as _glob
     import os as _os
 
@@ -849,14 +905,25 @@ def _download_small_media(url: str, out_base: str, timeout: int = 45, max_bytes:
     raise RuntimeError(f"media download failed: {last_error or 'no route'}")
 
 
-def _fetch_tiktok_transcript(url: str, timeout: int = 60) -> str:
-    """ASR transcript for a TikTok video (Groq Whisper, free tier).
+def _fetch_tiktok_transcript(
+    url: str,
+    timeout: int = 60,
+    *,
+    allow_authenticated: bool = False,
+    allow_quota_consuming: bool = False,
+) -> str:
+    """Consented-only ASR transcript for a TikTok video (Groq Whisper).
 
-    Downloads the no-watermark MP4 via TikWM's ``play`` URL (proxy-pool
-    fallback; whisper accepts mp4 directly) and caches per video id.
-    Verified 2026-10-14; honest failure on music-only / photo posts.
+    Refuses before key lookup, cache read, download or provider request unless
+    the caller passes both consent keywords for this one invocation.  Ordinary
+    TikTok extraction uses public captions only.  Downloads the no-watermark
+    MP4 via TikWM's ``play`` URL (proxy-pool fallback; whisper accepts mp4
+    directly) and caches per video id.
     """
-    _ensure_asr_enabled()
+    _ensure_asr_enabled(
+        allow_authenticated=allow_authenticated,
+        allow_quota_consuming=allow_quota_consuming,
+    )
     vid = _tiktok_video_id(url)
     if not vid:
         raise RuntimeError("Could not parse TikTok video id")
@@ -4077,25 +4144,24 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
             try:
                 content = _fetch_tikwm(url, timeout=max(timeout, 20))
                 if content and len(content) > 200:
-                    # Transcript tiers: TikTok's own caption track first (tiny
-                    # VTT, no media download), then ASR (Groq Whisper) for
-                    # captionless videos. Best-effort — metadata/comments never
-                    # fail because of it.
+                    # Transcript tier: TikTok's own public caption track only
+                    # (tiny VTT, no media download).  ASR is opt-in and never
+                    # auto-runs, so a captionless video keeps metadata/comments
+                    # and reports the audio lane honestly as not attempted.
                     transcript, tr_status, tr_error = "", "not_available", ""
-                    for _tier, _fn in (("captions", _fetch_tiktok_captions), ("asr", _fetch_tiktok_transcript)):
-                        try:
-                            candidate = _fn(url, timeout=max(timeout, 60))
-                        except Exception as exc:
-                            tr_error = f"{_tier}: {str(exc)[:120]}"
-                            continue
+                    try:
+                        candidate = _fetch_tiktok_captions(url, timeout=max(timeout, 60))
+                    except Exception as exc:
+                        tr_error = f"captions: {str(exc)[:120]}"
+                    else:
                         # Degraded tiers can return an empty payload without
                         # raising.  An empty payload is not a successful
-                        # transcript — keep trying the next tier.
+                        # transcript.
                         if candidate and candidate.strip():
                             transcript = candidate
                             tr_status = "ok"
-                            break
-                        tr_error = f"{_tier}: empty transcript payload"
+                        else:
+                            tr_error = "captions: empty transcript payload"
                     full = content + (f"\n\n{transcript}" if transcript else "")
                     return ExtractionResult(
                         status="ok",
@@ -4110,6 +4176,9 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                             caption_transcript_length=len(transcript),
                             caption_transcript_error=tr_error if tr_status != "ok" else "",
                             visual_analysis_status="not_attempted",
+                            audio_transcript_error=(
+                                _TIKTOK_ASR_OPT_IN_NOTE if tr_status != "ok" else ""
+                            ),
                             metadata_url=url,
                             metadata_title=title,
                         ),
@@ -4301,8 +4370,10 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
             ),
         )
 
-    # YouTube: try yt-dlp captions first (primary transcript path), fall
-    # back to youtube-transcript-api, then stealth Chrome for page content.
+    # YouTube: try yt-dlp captions first (primary transcript path), then
+    # youtube-transcript-api, then stealth Chrome for page content.  Audio ASR
+    # is NOT a fallback here: it is opt-in only and never spends the
+    # transcription key/quota during ordinary extraction.
     if source_type == "youtube":
         transcript_attempted = True
         transcript_error = ""
@@ -4310,6 +4381,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
             metadata_url=url,
             metadata_title=title,
             visual_analysis_status="not_attempted",
+            audio_transcript_error=_YOUTUBE_ASR_OPT_IN_NOTE,
         )
 
         # Primary: yt-dlp auto-generated subtitles
@@ -4361,30 +4433,6 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
             except Exception as exc2:
                 transcript_error = f"All transcript methods failed: yt-dlp: {_exception_summary(ytdlp_exc or exc2)}, api: {_exception_summary(exc2)}"
 
-        # Fallback 1.5: ASR (Groq Whisper) — covers videos with no captions at
-        # all and caption-endpoint windows.  Cached separately (.asr.txt).
-        if transcript_error:
-            try:
-                content = _fetch_youtube_asr(url, timeout=max(timeout, 60))
-                if content and len(content) > 50:
-                    return ExtractionResult(
-                        status="ok",
-                        content=content,
-                        content_length=len(content),
-                        source_type=source_type,
-                        transcript_attempted=True,
-                        video_evidence=VideoEvidence(
-                            caption_transcript_status="not_available",
-                            audio_transcript_status="ok",
-                            audio_transcript=content,
-                            visual_analysis_status="not_attempted",
-                            metadata_url=url,
-                            metadata_title=title,
-                        ),
-                    )
-            except Exception as exc_asr:
-                transcript_error += f"; asr: {_exception_summary(exc_asr)}"
-
         # Fallback 2: stealth Chrome for page content + captions
         if transcript_error:
             try:
@@ -4402,6 +4450,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
                             caption_transcript_error=transcript_error,
                             visual_analysis_status="not_attempted",
                             audio_transcript_status="not_configured",
+                            audio_transcript_error=_YOUTUBE_ASR_OPT_IN_NOTE,
                             metadata_url=url,
                             metadata_title=title,
                         ),

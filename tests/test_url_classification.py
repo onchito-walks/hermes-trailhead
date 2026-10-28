@@ -294,26 +294,47 @@ def _forbid_external_calls(monkeypatch):
     monkeypatch.setattr(extract_mod, "_get_groq_key", boom)
 
 
-def test_youtube_asr_disabled_raises_before_any_external_call(monkeypatch):
+def test_youtube_asr_veto_wins_over_full_consent_before_external_call(monkeypatch):
     monkeypatch.setenv("TRAILHEAD_DISABLE_ASR", "1")
     _forbid_external_calls(monkeypatch)
 
     with pytest.raises(RuntimeError, match="ASR disabled for this run"):
-        extract_mod._fetch_youtube_asr("https://www.youtube.com/watch?v=abc123")
+        extract_mod._fetch_youtube_asr(
+            "https://www.youtube.com/watch?v=abc123",
+            allow_authenticated=True,
+            allow_quota_consuming=True,
+        )
 
 
-def test_tiktok_asr_disabled_raises_before_any_external_call(monkeypatch):
+def test_tiktok_asr_veto_wins_over_full_consent_before_external_call(monkeypatch):
     monkeypatch.setenv("TRAILHEAD_DISABLE_ASR", "1")
     _forbid_external_calls(monkeypatch)
 
     with pytest.raises(RuntimeError, match="ASR disabled for this run"):
-        extract_mod._fetch_tiktok_transcript("https://www.tiktok.com/@user/video/123")
+        extract_mod._fetch_tiktok_transcript(
+            "https://www.tiktok.com/@user/video/123",
+            allow_authenticated=True,
+            allow_quota_consuming=True,
+        )
 
 
-def test_asr_gate_defaults_to_enabled(monkeypatch):
+def test_asr_gate_defaults_to_refusing_consent(monkeypatch):
     monkeypatch.delenv("TRAILHEAD_DISABLE_ASR", raising=False)
     assert extract_mod._asr_disabled() is False
-    extract_mod._ensure_asr_enabled()  # no raise
+
+    with pytest.raises(RuntimeError, match="ASR is opt-in"):
+        extract_mod._ensure_asr_enabled()
+
+    # Both consent keywords are required; one is not enough.
+    with pytest.raises(RuntimeError, match="ASR is opt-in"):
+        extract_mod._ensure_asr_enabled(allow_authenticated=True)
+    with pytest.raises(RuntimeError, match="ASR is opt-in"):
+        extract_mod._ensure_asr_enabled(allow_quota_consuming=True)
+
+    extract_mod._ensure_asr_enabled(
+        allow_authenticated=True,
+        allow_quota_consuming=True,
+    )  # no raise
 
     monkeypatch.setenv("TRAILHEAD_DISABLE_ASR", "0")
     assert extract_mod._asr_disabled() is False

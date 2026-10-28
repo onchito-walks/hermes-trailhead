@@ -506,7 +506,11 @@ def test_fetch_youtube_asr_requires_groq_key(tmp_path, monkeypatch):
     monkeypatch.setattr(extract_mod, "resolve_hermes_home", lambda home=None: tmp_path)
 
     try:
-        extract_mod._fetch_youtube_asr("https://www.youtube.com/watch?v=abc123XYZ")
+        extract_mod._fetch_youtube_asr(
+            "https://www.youtube.com/watch?v=abc123XYZ",
+            allow_authenticated=True,
+            allow_quota_consuming=True,
+        )
         raise AssertionError("expected RuntimeError for missing key")
     except RuntimeError as exc:
         assert "GROQ_API_KEY" in str(exc)
@@ -539,7 +543,11 @@ def test_fetch_youtube_asr_downloads_transcribes_and_caches(tmp_path, monkeypatc
     monkeypatch.setattr(extract_mod.subprocess, "run", fake_run)
     monkeypatch.setattr(extract_mod, "_transcribe_audio_groq", fake_transcribe)
 
-    out = extract_mod._fetch_youtube_asr("https://www.youtube.com/watch?v=abc123XYZ")
+    out = extract_mod._fetch_youtube_asr(
+        "https://www.youtube.com/watch?v=abc123XYZ",
+        allow_authenticated=True,
+        allow_quota_consuming=True,
+    )
     assert "YouTube ASR transcript for abc123XYZ" in out
     assert calls["key"] == "test-key"
     cache = tmp_path / "hermes" / "state" / "trailhead-transcripts" / "abc123XYZ.asr.txt"
@@ -549,26 +557,65 @@ def test_fetch_youtube_asr_downloads_transcribes_and_caches(tmp_path, monkeypatc
         raise AssertionError("no download on cache hit")
 
     monkeypatch.setattr(extract_mod.subprocess, "run", explode)
-    out2 = extract_mod._fetch_youtube_asr("https://www.youtube.com/watch?v=abc123XYZ")
+    out2 = extract_mod._fetch_youtube_asr(
+        "https://www.youtube.com/watch?v=abc123XYZ",
+        allow_authenticated=True,
+        allow_quota_consuming=True,
+    )
     assert out2 == out
 
 
-def test_youtube_extraction_falls_back_to_asr(monkeypatch):
+def test_youtube_extraction_never_falls_back_to_asr(monkeypatch):
+    """Caption failure must not spend the configured key/quota automatically."""
     import hermes_trailhead.extract as extract_mod
 
-    def dead(*a, **k):
+    calls = {"key": 0, "download": 0, "provider": 0, "helper": 0}
+
+    def dead_captions(*a, **k):
         raise RuntimeError("no captions")
 
-    monkeypatch.setattr(extract_mod, "_fetch_ytdlp_transcript", dead)
-    monkeypatch.setattr(extract_mod, "_fetch_youtube_transcript", dead)
+    def forbidden_asr(*a, **k):
+        calls["helper"] += 1
+        raise AssertionError("automatic extraction must not invoke ASR")
+
+    def configured_key():
+        calls["key"] += 1
+        return "gsk_configured"
+
+    def forbidden_download(*a, **k):
+        calls["download"] += 1
+        raise AssertionError("automatic extraction must not download media")
+
+    def forbidden_provider(*a, **k):
+        calls["provider"] += 1
+        raise AssertionError("automatic extraction must not contact the provider")
+
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_configured")
+    monkeypatch.setattr(extract_mod, "_fetch_ytdlp_transcript", dead_captions)
+    monkeypatch.setattr(extract_mod, "_fetch_youtube_transcript", dead_captions)
+    monkeypatch.setattr(extract_mod, "_fetch_youtube_asr", forbidden_asr)
+    monkeypatch.setattr(extract_mod, "_get_groq_key", configured_key)
+    monkeypatch.setattr(extract_mod.subprocess, "run", forbidden_download)
+    monkeypatch.setattr(extract_mod, "_transcribe_audio_groq", forbidden_provider)
     monkeypatch.setattr(
-        extract_mod,
-        "_fetch_youtube_asr",
-        lambda url, timeout=30: "YouTube ASR transcript for X\n\n" + "asr words " * 30,
+        extract_mod, "_fetch_stealth_chrome",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("chrome unavailable")),
     )
-    result = extract_mod.extract_one("https://www.youtube.com/watch?v=abc123XYZ")
+
+    result = extract_mod.extract_one(
+        "https://www.youtube.com/watch?v=abc123XYZ",
+        fetch=lambda url, timeout: "YouTube page body with description " * 20,
+    )
     assert result.status == "ok"
-    assert "ASR" in result.content
+    assert "page body" in result.content
+    assert calls == {"key": 0, "download": 0, "provider": 0, "helper": 0}
+    ve = result.video_evidence
+    assert ve is not None
+    assert ve.audio_transcript_status == "not_configured"
+    assert "opt-in" in ve.audio_transcript_error
+    assert "reach-call youtube transcribe" in ve.audio_transcript_error
+    assert "allow-quota-consuming" in ve.audio_transcript_error
+    assert "no captions" in result.transcript_error
 
 
 def test_reddit_frontend_url_preserves_path():

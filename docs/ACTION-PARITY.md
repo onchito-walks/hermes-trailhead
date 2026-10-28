@@ -82,7 +82,7 @@ ratio can never be inflated by a surfaced pair the table does not list.
 | 7 | `youtube` | `read` | native | public | fixture |  |
 | 8 | `youtube` | `search` | native | public | fixture |  |
 | 9 | `youtube` | `subtitle` | native | public | fixture, native-tests |  |
-| 10 | `youtube` | `transcribe` | native-partial | quota | fixture, native-tests | A native caption/ASR fallback exists in extract.py, but it is key-gated and not this forwarding path. |
+| 10 | `youtube` | `transcribe` | native-partial | quota | fixture, native-tests | Native public captions plus opt-in-only ASR helpers in extract.py; automatic extraction never spends the transcription key/quota, and this is not the forwarding path. |
 | 11 | `reddit` | `search` | native | public | fixture, native-tests, live |  |
 | 12 | `reddit` | `read` | native-partial | public | fixture | Trailhead extracts public page text; exhaustive reply capture is upstream's. |
 | 13 | `reddit` | `subreddit` | native-partial | consent | fixture | Trailhead lists posts via public search; upstream's node listing is the fuller artifact. |

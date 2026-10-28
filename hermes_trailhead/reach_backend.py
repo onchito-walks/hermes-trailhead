@@ -698,7 +698,7 @@ PARITY_ACTIONS: tuple[ParityAction, ...] = (
     ParityAction("youtube", "read", "native", ("fixture",),),
     ParityAction("youtube", "search", "native", ("fixture",),),
     ParityAction("youtube", "subtitle", "native", ("fixture", "native-tests"),),
-    ParityAction("youtube", "transcribe", "native-partial", ("fixture", "native-tests"), "A native caption/ASR fallback exists in extract.py, but it is key-gated and not this forwarding path."),
+    ParityAction("youtube", "transcribe", "native-partial", ("fixture", "native-tests"), "A native public-caption path plus opt-in-only ASR helpers exist in extract.py; automatic extraction never spends the transcription key/quota, and this is not the forwarding path."),
     ParityAction("reddit", "search", "native", ("fixture", "native-tests", "live"),),
     ParityAction("reddit", "read", "native-partial", ("fixture",), "Trailhead extracts public page text; exhaustive reply capture is upstream's."),
     ParityAction("reddit", "subreddit", "native-partial", ("fixture",), "Trailhead lists posts via public search; upstream's node listing is the fuller artifact."),

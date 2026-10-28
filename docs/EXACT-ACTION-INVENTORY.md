@@ -58,7 +58,7 @@ rows for this three-state classification; native depth has also improved.
 | 7 | youtube | read | native | native | P | Native video extraction/metadata lane; metadata is not a speech transcript. |
 | 8 | youtube | search | native | native | P | Native `search youtube`; ranking parity unproved. |
 | 9 | youtube | subtitle | native | native | P | Native caption extraction; can be blocked or captions absent. Not ASR. |
-| 10 | youtube | transcribe | absent | attributed | Q | Speech-to-text; absent from baseline adapter, now explicit gated forwarding. Native extraction's separate ASR fallback is not this action or evidence of live parity. |
+| 10 | youtube | transcribe | absent | attributed | Q | Speech-to-text; absent from baseline adapter, now explicit gated forwarding. Native extraction keeps only opt-in-only ASR helpers that refuse without both consent keywords, so it never substitutes for this action and is not evidence of live parity. |
 | 11 | reddit | search | native | native | P | Native `search reddit`, including configured Redlib/search routes. |
 | 12 | reddit | read | attributed | attributed | P | Post/thread artifact. Native public page extraction is not exhaustive reply capture. |
 | 13 | reddit | subreddit | attributed | attributed | A | Subreddit listing; native search for posts is not the same listing artifact. |

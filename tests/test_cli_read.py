@@ -298,6 +298,39 @@ def test_read_surfaces_transcript_evidence_fields(monkeypatch, capsys):
     assert payload["video_evidence"]["audio_transcript_status"] == "not_configured"
 
 
+def test_read_text_surfaces_asr_opt_in_explanation(monkeypatch, capsys):
+    video = VideoEvidence(
+        caption_status="ok",
+        caption_text="A public caption",
+        caption_transcript_status="not_available",
+        audio_transcript_status="not_configured",
+        audio_transcript_error=(
+            "ASR is opt-in and never runs during automatic extraction. "
+            "Use 'reach-call youtube transcribe <url> --allow-authenticated "
+            "--allow-quota-consuming'."
+        ),
+        metadata_url=URL,
+    )
+    extraction = ExtractionResult(
+        status="ok",
+        content="YouTube page body " * 10,
+        content_length=len("YouTube page body " * 10),
+        source_type="youtube",
+        transcript_attempted=True,
+        video_evidence=video,
+    )
+    _fake_extract(monkeypatch, extraction)
+
+    rc = main(["read", URL])
+    captured = capsys.readouterr()
+
+    assert rc == 0
+    assert "Transcript: caption=ok" in captured.out
+    assert "audio=not_configured" in captured.out
+    assert "Audio: ASR is opt-in" in captured.out
+    assert "reach-call youtube transcribe" in captured.out
+
+
 def test_read_timeout_is_passed_through(monkeypatch, capsys):
     calls: list[dict] = []
     _fake_extract(monkeypatch, _ok_result("Readable page body. " * 20), calls)

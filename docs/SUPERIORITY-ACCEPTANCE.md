@@ -109,6 +109,13 @@ No task is marked complete merely because this document or a benchmark exists.
 - Optional maintained public backend fallback now participates in normal research,
   retaining attribution in text/JSON/reports. Native known-URL `read` command has
   a stable JSON/error contract, ASR/model fallback disabled and redacted invalid URLs.
+- Native extraction no longer starts key/quota-consuming ASR on its own: the
+  automatic YouTube ASR fallback and the TikTok ASR tier were removed, and the two
+  legacy helpers now default to refusal unless a single call passes both consent
+  keywords, with `TRAILHEAD_DISABLE_ASR=1` winning even over full consent.
+  [NATIVE-ASR-CONSENT.md](NATIVE-ASR-CONSENT.md) records the exact default
+  behavior, the hermetic zero-effect sentinels (1145 tests) and the live public CLI
+  smoke where the only media-process invocation was a caption-only `yt-dlp` call.
 - Native repo-root reads fetch full public README plus labeled repo metadata;
   HTML reading retains actionable topic links. These fix measured artifact gaps,
   not merely increase response length.

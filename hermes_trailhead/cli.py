@@ -948,10 +948,12 @@ _READ_POLICY: dict[str, str] = {
 def _asr_forced_off():
     """Force ``TRAILHEAD_DISABLE_ASR=1`` for the duration of one extraction.
 
-    ``extract._ensure_asr_enabled`` reads the variable at call time, so both the
-    YouTube and TikTok ASR tiers refuse before downloading media or contacting a
-    transcription API.  The previous value is restored exactly, including the
-    unset case, so `read` never changes process-wide behavior for later calls.
+    ``extract._ensure_asr_enabled`` reads the variable at call time, so even a
+    consented helper call refuses before downloading media or contacting a
+    transcription API during this read.  Automatic extraction no longer invokes
+    ASR at all; this stays as a hard veto for any nested path.  The previous
+    value is restored exactly, including the unset case, so `read` never
+    changes process-wide behavior for later calls.
     """
     previous = os.environ.get(READ_ASR_ENV)
     os.environ[READ_ASR_ENV] = "1"
@@ -1317,6 +1319,8 @@ def _read_text(payload: dict) -> str:
                 video.get("audio_transcript_status", "not_configured"),
             )
         )
+        if video.get("audio_transcript_error"):
+            lines.append(f"Audio: {video['audio_transcript_error']}")
     error = payload.get("error")
     if error:
         lines.append(f"Error: {error['code']}: {error['message']}")
