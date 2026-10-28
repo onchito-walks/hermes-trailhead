@@ -10,10 +10,57 @@ It was inspired by prior work in agent reach, MCP, browser automation, crawl/ext
 
 - Repository: https://github.com/Panniantong/Agent-Reach
 - License: MIT
-- Copyright notice in upstream license: Copyright (c) 2025 Agent Eyes
+- Copyright: Copyright (c) 2025 Agent Eyes
 - Upstream commit inspected during creation: `71b85f8 docs(readme): clarify browser action boundary`
+- Pinned version used in the public acceptance runs: `1.6.0` (`14c2134`)
 
-Hermes Trailhead does **not** vendor Agent-Reach code. It reimplements the useful pattern for Hermes:
+**How Trailhead uses it.** Trailhead does **not** vendor Agent-Reach code and does
+not re-license any of it. What it does is execute the upstream CLI as an optional
+external dependency. Of the 40 reach actions Trailhead surfaces, **28 are Agent
+Reach's own actions**, **4 are native actions that fall back to it**, and **8 are
+fully native**. Delegated actions are invoked over `subprocess` with argument
+arrays, no shell, in an isolated home for public calls. That code runs exactly as
+its authors wrote it. The capability credit for those actions belongs to the Agent
+Reach project and its contributors, not to Trailhead.
+
+Trailhead originally adopted the doctrine and now delegates most of the surface.
+Either way the debt is the same and it is recorded here: channel registry, probe
+discipline, upstream-tool realism, and the insistence on teaching agents which
+path to take.
+
+Agent Reach is optional and is never installed, configured, or authenticated by
+Trailhead automatically. Without it, the eight native actions and every
+non-reach lane still work; `reach` reports a coded setup requirement instead of
+pretending the action succeeded.
+
+Because Agent Reach is MIT-licensed and its code is executed, its permission
+notice is reproduced in full below and travels with this file:
+
+```
+MIT License
+
+Copyright (c) 2025 Agent Eyes
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+The doctrine Trailhead reimplemented in its own code:
 
 1. Maintain a registry of internet reach channels.
 2. Provide doctor checks.
@@ -21,7 +68,9 @@ Hermes Trailhead does **not** vendor Agent-Reach code. It reimplements the usefu
 4. Prefer mature upstream tools over bespoke scraping.
 5. Keep agent-facing instructions durable.
 
-Hermes Trailhead differs by making local coverage state, approval boundaries, and evidence requirements first-class.
+Hermes Trailhead differs by making local coverage state, approval boundaries, and
+evidence requirements first-class — and by refusing to report success when only
+transport succeeded.
 
 ## Adjacent agent capability systems
 

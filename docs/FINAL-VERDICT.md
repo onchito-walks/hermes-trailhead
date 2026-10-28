@@ -2,8 +2,8 @@
 
 **Bottom line: the engineering program is complete; the "better in every way"
 claim is not established and is withdrawn.** Trailhead now reaches the same
-40 actions across 14 channels, but 32 of them execute Agent Reach's own code
-through Trailhead's adapter. A wrapper cannot beat the tool it wraps on that
+40 actions across 14 channels, but 28 of them execute Agent Reach's own code
+through Trailhead's adapter, 4 more use it as a fallback, and only 8 are native. A wrapper cannot beat the tool it wraps on that
 tool's own capability — so "exceed in every way" was the wrong target, and
 chasing it further would only add code without adding capability.
 
@@ -12,7 +12,7 @@ chasing it further would only add code without adding capability.
 | Fact | Evidence |
 |---|---|
 | 40 actions / 14 channels surfaced, no omissions or duplicates | `docs/EXACT-ACTION-INVENTORY.md`, asserted against the live registry |
-| 8 native, 32 attributed (2 of those quota-gated) | same |
+| Coverage: 8 native, 4 native-with-upstream-fallback, 28 upstream (2 quota-gated) | `parity_inventory()` counts |
 | Gates: 26 public / 12 auth / 2 quota | same |
 | Test suite green, host-independent | 1145 passed in an ambient operator environment after `tests/conftest.py` isolated circuit + paid-key state |
 | Clean Linux install, zero runtime dependencies | `docs/CLEAN-LINUX-RUN283.md` (11/11 on that revision) |
@@ -38,7 +38,7 @@ chasing it further would only add code without adding capability.
 
 ## Where Trailhead is not better, and why
 
-- **Capability depth on 32 of 40 actions is borrowed.** Post reads, thread
+- **Capability depth on 28 of 40 actions is borrowed outright, and 4 more fall back to the same code.** Post reads, thread
   replies, subreddit listings, Instagram/Facebook/Bilibili/Xiaohongshu/LinkedIn/
   Boss/Xueqiu/V2EX actions all run upstream. Equal at best, never ahead.
 - **Content completeness is unproved.** Forwarded bodies are bounded at 250k

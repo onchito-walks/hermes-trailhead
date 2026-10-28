@@ -284,7 +284,7 @@ See `docs/HERMES-INTEGRATION.md` for the full new-machine install flow (clone �
 
 ## Prior art
 
-- **[Agent-Reach](https://github.com/Panniantong/Agent-Reach)** — the direct launchpad for the access doctrine: channel registry, probes, upstream-tool realism
+- **[Agent-Reach](https://github.com/Panniantong/Agent-Reach) (MIT, © 2025 Agent Eyes)** — the direct launchpad for the access doctrine, and at runtime the engine behind 28 of Trailhead's 40 reach actions (with 4 more native actions falling back to it): channel registry, probes, upstream-tool realism
 - **Jina Reader, yt-dlp, Tavily, old.reddit.com, local Redlib** — pragmatic access paths for current social/practitioner signal.
   (The local self-hosted Redlib instance serves search and thread pages for the Reddit lane's discovery and extraction fallback; public remote Redlib instances and Reddit OAuth remain blocked. `social-search` is an optional composite tool that is not installed on the current fleet — the Reddit lane does not require it.)
 - **Firecrawl, Crawl4AI, Puppeteer** — mature extraction primitives Trailhead routes to, not replaces
@@ -292,6 +292,8 @@ See `docs/HERMES-INTEGRATION.md` for the full new-machine install flow (clone �
 ## Launchpad
 
 Hermes Trailhead was launched from **[Panniantong/Agent-Reach](https://github.com/Panniantong/Agent-Reach)**. Agent-Reach showed the access doctrine worth keeping: use mature upstream tools, probe what is installed, keep fallback routes, and teach agents which path to take. Trailhead gives that doctrine a narrower product mission: better Hermes research through better source terrain.
+
+Credit where the capability actually comes from: of Trailhead's 40 reach actions, **28 execute Agent Reach's own CLI**, **4 are native with Agent Reach as their fallback**, and only **8 are fully native**. Where Trailhead delegates, that code runs as its authors wrote it, under their MIT license — Trailhead invokes it, never vendors and never re-licenses it. The evidence judgment, safety gates and doctor are ours; the reach surface is substantially theirs. See [`NOTICE.md`](NOTICE.md).
 
 ## License
 
