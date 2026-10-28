@@ -116,9 +116,11 @@ No task is marked complete merely because this document or a benchmark exists.
   ordering criteria, exposed on the CLI as `--prefer-language` / `--prefer-source`
   ([SEARCH-CLI-PREFERENCES.md](SEARCH-CLI-PREFERENCES.md)). Bounded observations
   on three queries; they do not establish relevance quality.
-- A native GitHub issue/PR lane is being implemented **concurrently** in this
-  tree. It is not integrated into this checkpoint and no acceptance result for it
-  is recorded here; its cases must be added to the frozen manifest and run, not
+- Native GitHub issue/PR reads are integrated (`6100815`, `d6f5029`) and were
+  independently exercised on `pallets/flask#5` and PR `#112`
+  ([evidence/parent-github-artifact-verification.json](evidence/parent-github-artifact-verification.json)).
+  That lane has not been walked through the frozen public manifest, so no
+  acceptance result for it is recorded here; its cases must be added and run, not
   inferred from the forwarding surface.
 - Parent independently verified **928 tests passing** (2026-10-28 whole-tree run:
   928 passed; run with `TRAILHEAD_DISABLE_ASR` unset — with it exported, 15
@@ -130,13 +132,25 @@ Still open: authenticated artifacts and account lifecycle (specific consent need
 quota-backed live transcription/podcast (separate explicit budget needed), real
 clean-machine macOS/Windows onboarding, human-reviewed multilingual SEARCH
 relevance beyond these URL markers, multi-day reliability/freshness, comparable
-per-tool runtime resource accounting and all-artifact pagination/completeness.
+per-tool runtime resource accounting beyond one window and all-artifact pagination/completeness.
 Linux isolated-wheel verification is useful but is not clean-machine/cross-OS proof.
 The forwarding surface borrows upstream implementation; it is not a superiority win.
 
 Concrete, frozen procedures for the remaining work — artifact completeness,
 repeated multi-day public runs, per-tool resource accounting, and the
 public/consent/quota lane split — are in
-[PUBLIC-REMAINING-ACCEPTANCE.md](PUBLIC-REMAINING-ACCEPTANCE.md). That document
-defines how to run them and what may be claimed; **none of it is executed yet**,
-and it does not mark this plan complete or public work exhausted.
+[PUBLIC-REMAINING-ACCEPTANCE.md](PUBLIC-REMAINING-ACCEPTANCE.md). **Their first
+executions are now recorded**: P1 (single-day artifact completeness) and P3
+(per-tool resources) in [PUBLIC-RESOURCE-EVIDENCE.md](PUBLIC-RESOURCE-EVIDENCE.md)
+— 60 invocations, 225 required units present of 236 assessed, corrected offline
+reassessment in
+[evidence/public-resource-reassessment.json](evidence/public-resource-reassessment.json)
+— and the 40-action artifact campaign in
+[ACTION-ARTIFACT-EVIDENCE.md](ACTION-ARTIFACT-EVIDENCE.md) (26 public actions
+executed, 14 gated, whole-artifact completeness 0 of 3). The `boss read`
+loading-gate false success those records disclosed was fixed at `4ce43ce`
+([evidence/loading-shell-fix.json](evidence/loading-shell-fix.json)) and verified by
+one live capture plus exact-body replay, not by a new campaign. Multi-day
+reliability, the consent/quota lanes, and the GitHub issue/PR cases under the frozen
+manifest remain unrun. None of this marks the plan complete, superior, or public
+work exhausted.

@@ -1,0 +1,273 @@
+{
+  "schema": "trailhead.public-remaining-manifest/1",
+  "frozen_at": "2026-10-28T14:54:37Z",
+  "frozen_by": "independent reviewer (monchobotjr subagent; not an author of the harness or the tools under test)",
+  "campaign": {
+    "rounds_per_case_tool_state": 5,
+    "states": [
+      "cold",
+      "warm"
+    ],
+    "timeout_s": 25.0,
+    "tools": [
+      "trailhead",
+      "agent_reach"
+    ],
+    "interleaved": true,
+    "asr_disabled": true,
+    "credentials": "none (public lane)"
+  },
+  "rules": {
+    "artifact_units": "requested outcomes; immutable after the first measured run",
+    "verdict_vocabulary": [
+      "markers_present",
+      "incomplete",
+      "unverified"
+    ],
+    "completeness_claim": "none — marker presence is never called completeness",
+    "pagination_unknown": "counts as not exhausted"
+  },
+  "cases": [
+    {
+      "case_id": "public-docs-python-typing",
+      "compare_case": "docs-python-typing",
+      "lane": "public",
+      "language": "en",
+      "family": "docs",
+      "url_or_action": "https://docs.python.org/3/library/typing.html",
+      "url": "https://docs.python.org/3/library/typing.html",
+      "requested_outcome": "the typing module reference page for an API consumer: page identity plus the Protocol / TypeVar / Generic / TypeAlias entries",
+      "tool_argv": {
+        "trailhead": [
+          "python",
+          "-m",
+          "hermes_trailhead",
+          "read",
+          "https://docs.python.org/3/library/typing.html",
+          "--format",
+          "json",
+          "--timeout",
+          "25"
+        ],
+        "agent_reach": [
+          "<agent-reach>",
+          "read",
+          "https://docs.python.org/3/library/typing.html",
+          "--timeout",
+          "25"
+        ]
+      },
+      "artifact_units": [
+        {
+          "id": "page_identity",
+          "kind": "text_any_of",
+          "values": [
+            "Support for type hints"
+          ],
+          "required": true,
+          "whole_artifact": true
+        },
+        {
+          "id": "entry_Protocol",
+          "kind": "text_any_of",
+          "values": [
+            "Protocol"
+          ],
+          "required": true,
+          "whole_artifact": false
+        },
+        {
+          "id": "entry_TypeVar",
+          "kind": "text_any_of",
+          "values": [
+            "TypeVar"
+          ],
+          "required": true,
+          "whole_artifact": false
+        },
+        {
+          "id": "entry_Generic",
+          "kind": "text_any_of",
+          "values": [
+            "Generic"
+          ],
+          "required": true,
+          "whole_artifact": false
+        },
+        {
+          "id": "special_form_TypeAlias",
+          "kind": "text_any_of",
+          "values": [
+            "TypeAlias"
+          ],
+          "required": true,
+          "whole_artifact": false
+        }
+      ],
+      "pagination_expectation": {
+        "whole_artifact": true,
+        "continuation": "none",
+        "max_units_known": null
+      },
+      "truncation_matters": true
+    },
+    {
+      "case_id": "public-github-requests-readme",
+      "compare_case": "github-requests-readme",
+      "lane": "public",
+      "language": "en",
+      "family": "github",
+      "url_or_action": "https://github.com/psf/requests",
+      "url": "https://github.com/psf/requests",
+      "requested_outcome": "psf/requests repository README: identity, the install command, one usage call, the opening description and the license it states",
+      "tool_argv": {
+        "trailhead": [
+          "python",
+          "-m",
+          "hermes_trailhead",
+          "read",
+          "https://github.com/psf/requests",
+          "--format",
+          "json",
+          "--timeout",
+          "25"
+        ],
+        "agent_reach": [
+          "<agent-reach>",
+          "github",
+          "read",
+          "https://github.com/psf/requests",
+          "--timeout",
+          "25"
+        ]
+      },
+      "artifact_units": [
+        {
+          "id": "repo_identity",
+          "kind": "text_any_of",
+          "values": [
+            "psf/requests"
+          ],
+          "required": true,
+          "whole_artifact": true
+        },
+        {
+          "id": "readme_install",
+          "kind": "text_any_of",
+          "values": [
+            "pip install requests"
+          ],
+          "required": true,
+          "whole_artifact": false
+        },
+        {
+          "id": "readme_usage",
+          "kind": "text_any_of",
+          "values": [
+            "requests.get("
+          ],
+          "required": true,
+          "whole_artifact": false
+        },
+        {
+          "id": "readme_intro",
+          "kind": "text_any_of",
+          "values": [
+            "A simple, yet elegant, HTTP library"
+          ],
+          "required": true,
+          "whole_artifact": false
+        },
+        {
+          "id": "license_mentioned",
+          "kind": "text_any_of",
+          "values": [
+            "Apache License",
+            "Apache-2.0"
+          ],
+          "required": false,
+          "whole_artifact": false
+        },
+        {
+          "id": "identity_url_field",
+          "kind": "field_present",
+          "field": "url",
+          "required": false,
+          "whole_artifact": false
+        }
+      ],
+      "pagination_expectation": {
+        "whole_artifact": true,
+        "continuation": "none",
+        "max_units_known": null
+      },
+      "truncation_matters": true
+    },
+    {
+      "case_id": "public-v2ex-node-python-zh",
+      "compare_case": "forum-v2ex-node",
+      "lane": "public",
+      "language": "zh-Hans",
+      "family": "v2ex",
+      "url_or_action": "https://www.v2ex.com/go/python (agent-reach: v2ex node python)",
+      "url": "https://www.v2ex.com/go/python",
+      "requested_outcome": "the V2EX Python node listing (Chinese): node identity plus the titles and links of the listed topics",
+      "tool_argv": {
+        "trailhead": [
+          "python",
+          "-m",
+          "hermes_trailhead",
+          "read",
+          "https://www.v2ex.com/go/python",
+          "--format",
+          "json",
+          "--timeout",
+          "25"
+        ],
+        "agent_reach": [
+          "<agent-reach>",
+          "v2ex",
+          "node",
+          "python",
+          "--timeout",
+          "25"
+        ]
+      },
+      "artifact_units": [
+        {
+          "id": "node_identity",
+          "kind": "text_any_of",
+          "values": [
+            "Python",
+            "python"
+          ],
+          "required": true,
+          "whole_artifact": true
+        },
+        {
+          "id": "chinese_topic_prose",
+          "kind": "regex_distinct",
+          "pattern": "[\\u4e00-\\u9fff]{8,}",
+          "min_distinct": 3,
+          "required": true,
+          "whole_artifact": false
+        },
+        {
+          "id": "topic_urls",
+          "kind": "regex_distinct",
+          "pattern": "v2ex\\.com/t/\\d+",
+          "min_distinct": 3,
+          "required": true,
+          "whole_artifact": true
+        }
+      ],
+      "pagination_expectation": {
+        "whole_artifact": true,
+        "continuation": "page",
+        "max_units_known": null
+      },
+      "truncation_matters": true
+    }
+  ],
+  "manifest_sha256": "f92830f49ba591839cc98eddb5a1a7cbaeace57e1f9d502790532fab5f3e89ea"
+}

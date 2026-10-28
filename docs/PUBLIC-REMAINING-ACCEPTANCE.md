@@ -1,10 +1,18 @@
-# Public remaining acceptance — frozen procedures (procedures only, not results)
+# Public remaining acceptance — frozen procedures, first executions recorded
 
-Status: **procedures frozen 2026-10-28. Nothing in this document has been run as
-a campaign, and no completion, coverage or superiority claim is made.** It exists
-so the remaining public work can be executed and reviewed without re-deciding the
-rules after seeing output. It does not mark the [superiority plan](SUPERIORITY-ACCEPTANCE.md)
-done and it does not claim public work is exhausted.
+Status: **procedures frozen 2026-10-28; the first bounded executions are now
+recorded.** P1 (single-day artifact completeness) and P3 (per-tool resources) were
+run once each — 60 invocations on the three frozen cases
+([PUBLIC-RESOURCE-EVIDENCE.md](PUBLIC-RESOURCE-EVIDENCE.md); corrected offline
+reassessment
+[`evidence/public-resource-reassessment.json`](evidence/public-resource-reassessment.json))
+— and the 40-action artifact campaign ran seven rounds
+([ACTION-ARTIFACT-EVIDENCE.md](ACTION-ARTIFACT-EVIDENCE.md)). Still unrun: P2
+multi-day reliability, the P4 consent/quota lanes, and the P5 GitHub issue/PR cases
+under this runbook. No completion, coverage or superiority claim is made. The page
+still exists so the rest can be executed without re-deciding the rules after seeing
+output. It does not mark the [superiority plan](SUPERIORITY-ACCEPTANCE.md) done and
+it does not claim public work is exhausted.
 
 Machine-readable inputs referenced here already exist:
 [`evidence/public-acceptance.json`](evidence/public-acceptance.json),
@@ -21,20 +29,21 @@ tests are contract evidence, not live evidence.
 
 | Lane | Count | Current evidence | Can be run without asking anyone? |
 | --- | --- | --- | --- |
-| Public actions | 26 | 5 have a dated live row (`github search`, `reddit search`, `bilibili hot`, `v2ex hot`, `xueqiu quote`); the other 21 are fixture/native-test only | Yes — public routes, no login, no quota |
-| Public artifact cases | 3 pages × 6 matched runs | 18 paired executions, one host, one day ([PUBLIC-ACCEPTANCE-EVIDENCE.md](PUBLIC-ACCEPTANCE-EVIDENCE.md)) | Yes |
+| Public actions | 26 | all 26 attempted once on 2026-10-28T15:13Z: 17 inspected, 9 preserved upstream failures ([ACTION-ARTIFACT-EVIDENCE.md](ACTION-ARTIFACT-EVIDENCE.md) §3–§5) | Yes — public routes, no login, no quota |
+| Public artifact cases | 3 pages, 60 per-tool invocations | 18 paired executions earlier; then 3 cases × 2 tools × 2 states × 5 rounds in one 36 s window ([PUBLIC-RESOURCE-EVIDENCE.md](PUBLIC-RESOURCE-EVIDENCE.md)) | Yes |
 | Public multilingual search rows | 3 queries × 3 hits | Agent-reviewed relevance; 9 snippets recovered later ([SEARCH-RELEVANCE-EVIDENCE.md](SEARCH-RELEVANCE-EVIDENCE.md), [SEARCH-FOLLOWUP.md](SEARCH-FOLLOWUP.md)) | Yes |
 | Consent actions | 12 | None run; route needs an existing upstream login (`--allow-authenticated`) | **No** — explicit operator consent and an existing login state |
 | Quota actions | 2 (`youtube transcribe`, `xiaoyuzhou transcribe`) | None run; double consent + ASR veto; zero quota spent | **No** — quota budget and auth consent are separate decisions |
 
-What the table does **not** say: 21 public actions have no live run, three pages
-are not "the public web", one day is not reliability, and 18 paired runs are not
-artifact completeness. A `public` gate says a call is allowed; it does not say the
-call was made.
+What the table does **not** say: one live attempt per public action is still one
+attempt on one host, three pages are not "the public web", one day is not
+reliability, and 17 inspected artifacts are not completeness (whole-artifact
+completeness: 0 of 3). A `public` gate says a call is allowed; it does not say the
+call succeeded.
 
-A native GitHub **issue/PR** lane is being implemented concurrently in this tree
-(see §7). It is not part of the counts above and no result for it is recorded
-anywhere in this document.
+A native GitHub **issue/PR** lane is integrated in this tree (§7). It has no frozen
+manifest case and no result under these procedures, so it is not in the counts
+above.
 
 ## 2. Frozen manifest (shared by P1–P3)
 
@@ -42,6 +51,13 @@ Before any measured run, an **independent reviewer** — not the person who wrot
 the change under test — writes and hashes one manifest:
 
 `docs/evidence/public-remaining-manifest.json`
+
+The campaign actually run did **not** satisfy that: the manifest was frozen by the
+engineer who wrote the harness (`--frozen-by` pre-filled "independent reviewer"
+before that default was removed). Independence from the two tools under test holds;
+independent review of the manifest is **not** established. The frozen file was left
+byte-identical rather than edited to say so — the correction is in
+[PUBLIC-RESOURCE-EVIDENCE.md](PUBLIC-RESOURCE-EVIDENCE.md) §1.
 
 ```json
 {
@@ -203,22 +219,24 @@ Rules for these lanes:
 - A refused or unavailable lane is `not_run`, not a failure of the product and
   not a pass.
 
-## 7. P5 — GitHub issue/PR lane (pending integration)
+## 7. P5 — GitHub issue/PR lane (integrated; not yet run under this runbook)
 
-A native GitHub **issue/PR** reading lane is being implemented concurrently in
-this tree. At this freeze it has no integrated manifest case and no live result;
-nothing in this document should be read as its acceptance.
+A native GitHub **issue/PR** reading lane is integrated (`6100815`, `d6f5029`) and
+was independently exercised on `pallets/flask#5` and PR `#112`
+([`evidence/parent-github-artifact-verification.json`](evidence/parent-github-artifact-verification.json)).
+It has no frozen manifest case and no P1/P2/P3 result, so nothing in this document
+is its acceptance.
 
-When it is integrated:
+To accept it:
 
 1. Add manifest cases whose `requested_outcome` is the complete issue/PR body,
    all comments/review comments (pagination included), and the state/metadata
    fields the caller asked for.
 2. Run P1 (completeness), P2 (multi-day) and P3 (per-tool resources) unchanged;
    record the commit that introduced the lane.
-3. Until then, record `pending_integration`. Do not infer issue/PR completeness
-   from `agent-reach github read` forwarding — it is `native-partial` and its
-   comment coverage is not established.
+3. Until that manifest exists, record `integrated_unmeasured`. Do not infer issue/PR
+   completeness from `agent-reach github read` forwarding — it is `native-partial`
+   and its comment coverage is not established.
 
 ## 8. Recording and claim rules
 
@@ -241,7 +259,7 @@ Required in every report: dates and UTC window, counts with denominators, failur
 reasons, truncation/pagination state, consent status, and a plain statement of
 what was not measured.
 
-## 9. Reproduce (procedures, not yet run)
+## 9. Reproduce (procedures and what has been run)
 
 ```bash
 cd <repo>
@@ -263,5 +281,7 @@ export TRAILHEAD_DISABLE_ASR=1         # no media/paid path in a public campaign
 ```
 
 The harness above covers the three existing public cases; new cases require their
-own frozen manifest per §2. No command in this section has been run as the
-multi-day or per-tool campaign described here.
+own frozen manifest per §2. No multi-day campaign has been run. The single-day
+P1/P3 campaign and the 40-action campaign are recorded in
+[PUBLIC-RESOURCE-EVIDENCE.md](PUBLIC-RESOURCE-EVIDENCE.md) and
+[ACTION-ARTIFACT-EVIDENCE.md](ACTION-ARTIFACT-EVIDENCE.md).

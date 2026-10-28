@@ -1,0 +1,4901 @@
+{
+ "schema": "trailhead.action-artifacts/1",
+ "generated_at": "2026-10-28T15:13:52Z",
+ "reference": {
+  "version": "1.6.0",
+  "pinned_commit_recorded": true,
+  "direct_url_is_pinned_archive": true,
+  "executable_kind": "pinned eval virtualenv (absolute path withheld)",
+  "interpreter": "python",
+  "project": "Panniantong/Agent-Reach",
+  "commit": "14c213405669414492bda0f8d52cc6531d062c45",
+  "registry_schema_version": 1,
+  "registry_channels": 14,
+  "registry_actions": 40,
+  "registry_validated_against_pinned_inventory": true
+ },
+ "conditions": {
+  "auth_consent": false,
+  "quota_consent": false,
+  "asr_disabled": true,
+  "home": "isolated-temp (empty throwaway HOME, redirected XDG/APPDATA)",
+  "forced_public_routes": true,
+  "sandbox": false,
+  "per_action_timeout_seconds": 20.0,
+  "whole_run_deadline_seconds": 720.0,
+  "concurrency": 2,
+  "limit": 2,
+  "started_at": "2026-10-28T15:13:33Z",
+  "isolation_note": "environment isolation only, not a filesystem or process sandbox",
+  "finished_at": "2026-10-28T15:13:52Z"
+ },
+ "manifest": {
+  "version": 1,
+  "sha256": "19cf1ba40334f017b8c851a5f6e266b94cdb88c67ec1e0dc42d055ebec279144",
+  "frozen_at": "2026-10-28T15:13:33Z",
+  "frozen_before_calls": true,
+  "rows": 40,
+  "source": "scripts/evaluate_action_artifacts.py:build_manifest()"
+ },
+ "host": {
+  "platform": "Linux-7.0.0-1013-oracle-aarch64-with-glibc2.43",
+  "machine": "aarch64",
+  "cpus": 4,
+  "python": "3.11.15"
+ },
+ "ledger": {
+  "actions_total": 40,
+  "channels": 14,
+  "public": 26,
+  "consent": 12,
+  "quota": 2,
+  "executed_public": 26,
+  "gated_not_run": 14,
+  "deadline_exhausted": 0,
+  "failed": 9,
+  "inspected": 17,
+  "status_counts": {
+   "failed": 9,
+   "gated_not_run": 14,
+   "inspected": 17
+  }
+ },
+ "artifact_summary": {
+  "rows_with_artifact": 17,
+  "artifact_kinds": {
+   "body": 15,
+   "metadata_only": 2,
+   "none": 23
+  },
+  "verdicts": {
+   "complete": 14,
+   "incomplete": 3,
+   "not_run": 14,
+   "unverified": 9
+  },
+  "units_total": 151,
+  "units_required": 134,
+  "units_present_required": 53,
+  "rows_inspected": 17,
+  "units_required_inspected": 53,
+  "units_present_required_inspected": 53,
+  "units_by_status": {
+   "not_run": 47,
+   "present": 64,
+   "unverified": 40
+  },
+  "units_by_region": {
+   "body": {
+    "not_run": 8,
+    "present": 16,
+    "unverified": 16
+   },
+   "list": {
+    "not_run": 11,
+    "present": 14,
+    "unverified": 2
+   },
+   "metadata": {
+    "not_run": 28,
+    "present": 29,
+    "unverified": 20
+   },
+   "structured_field": {
+    "present": 5,
+    "unverified": 2
+   }
+  },
+  "whole_artifact_rows_inspected": 3,
+  "whole_artifact_rows_not_run_or_failed": 12,
+  "whole_artifact_proven": 0,
+  "truncated_rows": [
+   {
+    "channel": "v2ex",
+    "action": "read",
+    "items": 1,
+    "max_body_chars": 4000
+   }
+  ],
+  "failure_codes": {
+   "NEED_SETUP": 1,
+   "PLATFORM_BLOCKED": 2,
+   "RATE_LIMITED": 1,
+   "UPSTREAM_BROKEN": 3,
+   "content_unusable": 2
+  },
+  "gated_rows_probed": 14,
+  "gated_rows_refused_without_action_process": 14
+ },
+ "attempt_accounting": {
+  "authenticated_calls": 0,
+  "quota_consuming_calls": 0,
+  "asr_calls": 0,
+  "account_or_session_imports": 0
+ },
+ "rows": [
+  {
+   "channel": "github",
+   "action": "search",
+   "gate": "public",
+   "coverage": "native",
+   "whole_artifact": false,
+   "requested_outcome": "Search repositories: up to 2 repository hits, each with identity and URL",
+   "params": {
+    "query": "Panniantong Agent-Reach",
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "github-api",
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 434,
+   "elapsed_ms": 229,
+   "error": null,
+   "items": 2,
+   "artifact": {
+    "items": 2,
+    "items_with_body": 1,
+    "items_with_raw": 2,
+    "body_chars": [
+     61
+    ],
+    "max_body_chars": 61,
+    "body_sha256": "a732118db20c75942c85f2b2f06c9a56121c1baab9acd00a843f399874197ef3",
+    "body_preview": "Fork of Panniantong/Agent-Reach with NotebookLM channel added",
+    "text_truncated_items": 0,
+    "returned_url": "https://github.com/buddybuses-dev/Panniantong-Agent-Reach"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "2 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='buddybuses-dev/Panniantong-Agent-Reach'",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='https://github.com/buddybuses-dev/Panniantong-Agent-Reach'",
+     "note": "",
+     "expected": {
+      "field": "url",
+      "all_items": true
+     }
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "present",
+     "evidence": "61 chars in longest item body",
+     "note": "",
+     "expected": {
+      "non_empty_body": true
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "github-search.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=2",
+     "items_with_body=1",
+     "text_truncated_items=0",
+     "max_body_chars=61",
+     "backend=github-api",
+     "route=public_api"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 2,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "github",
+   "action": "read",
+   "gate": "public",
+   "coverage": "native-partial",
+   "whole_artifact": true,
+   "requested_outcome": "Read a repository (with README): repo-root target, so README text plus repository metadata",
+   "params": {
+    "target": "Panniantong/Agent-Reach"
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "failed",
+   "classification": "failed",
+   "backend": null,
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 245,
+   "elapsed_ms": 31,
+   "error": {
+    "code": "upstream_error",
+    "upstream_code": "RATE_LIMITED",
+    "message": "GitHub API rate limit (60/hour without a token)",
+    "hint": "The platform reported a rate limit. Reach pauses this channel; respect retry_after_seconds and do not switch backends.",
+    "timed_out": false,
+    "attempts": [
+     {
+      "backend": "github-api",
+      "result": "RATE_LIMITED",
+      "message": "GitHub API rate limit (60/hour without a token)"
+     }
+    ],
+    "exit_code": 1,
+    "details": {}
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "requested_target",
+     "kind": "target_match",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_text",
+     "kind": "body_text",
+     "required": true,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_not_error_shell",
+     "kind": "no_shell_marker",
+     "required": true,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "structured_fields",
+     "kind": "raw_fields",
+     "required": true,
+     "region": "structured_field",
+     "status": "unverified",
+     "evidence": "",
+     "note": "",
+     "expected": [
+      "license"
+     ]
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": "github-read.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+   ],
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=public_api"
+    ],
+    "unknown": [
+     "readme_end_not_proven",
+     "issue_or_pr_comments_not_requested_for_repo_root"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "unverified",
+   "verdict_reason": "no artifact: upstream/harness error upstream_error"
+  },
+  {
+   "channel": "twitter",
+   "action": "search",
+   "gate": "public",
+   "coverage": "native",
+   "whole_artifact": false,
+   "requested_outcome": "Search tweets: up to 2 tweet hits, each with identity and URL",
+   "params": {
+    "query": "NousResearch Hermes",
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "failed",
+   "classification": "failed",
+   "backend": null,
+   "route": "public_web",
+   "home_mode": "isolated-temp",
+   "wall_ms": 2247,
+   "elapsed_ms": 2047,
+   "error": {
+    "code": "upstream_error",
+    "upstream_code": "UPSTREAM_BROKEN",
+    "message": "Public web returned no usable content in the requested scope",
+    "hint": "Try the site tool; this does not establish a login requirement.",
+    "timed_out": false,
+    "attempts": [
+     {
+      "backend": "public-web/exa",
+      "result": "ok",
+      "message": null
+     },
+     {
+      "backend": "public-web/content-check",
+      "result": "INSUFFICIENT_CONTENT",
+      "message": null
+     }
+    ],
+    "exit_code": 1,
+    "details": {}
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": "twitter-search.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+    "Upstream ran with --backend public-web, which forbids browser fallback."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=public_web"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "unverified",
+   "verdict_reason": "no artifact: upstream/harness error upstream_error"
+  },
+  {
+   "channel": "twitter",
+   "action": "profile",
+   "gate": "consent",
+   "coverage": "upstream",
+   "whole_artifact": true,
+   "requested_outcome": "A user's profile: profile fields for one account",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "auth_required",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "auth_required",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "profile_fields_not_assessed"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "twitter",
+   "action": "tweets",
+   "gate": "consent",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "A user's recent tweets: up to 2 tweet rows",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "auth_required",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "auth_required",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "timeline_truncation_not_known"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "twitter",
+   "action": "thread",
+   "gate": "consent",
+   "coverage": "upstream",
+   "whole_artifact": true,
+   "requested_outcome": "A tweet with its replies: tweet body and the reply set",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "auth_required",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "auth_required",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "reply_set_not_exhausted"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "youtube",
+   "action": "read",
+   "gate": "public",
+   "coverage": "native",
+   "whole_artifact": false,
+   "requested_outcome": "Video title, channel, date and description: metadata artifact with description body optional",
+   "params": {
+    "target": "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "failed",
+   "classification": "failed",
+   "backend": null,
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 1715,
+   "elapsed_ms": 1492,
+   "error": {
+    "code": "upstream_error",
+    "upstream_code": "PLATFORM_BLOCKED",
+    "message": "yt-dlp exited 1: ERROR: [youtube] jNQXAC9IVRw: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/y…",
+    "hint": "YouTube returned a verification challenge. Stop this request; this does not establish that the public video requires login.",
+    "timed_out": false,
+    "attempts": [
+     {
+      "backend": "yt-dlp",
+      "result": "PLATFORM_BLOCKED",
+      "message": "yt-dlp exited 1: ERROR: [youtube] jNQXAC9IVRw: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt"
+     }
+    ],
+    "exit_code": 1,
+    "details": {}
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "requested_target",
+     "kind": "target_match",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "author_or_uploader",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_not_error_shell",
+     "kind": "no_shell_marker",
+     "required": true,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": "youtube-read.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=public_api"
+    ],
+    "unknown": [
+     "description_absence_not_distinguished_from_empty_description"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "unverified",
+   "verdict_reason": "no artifact: upstream/harness error upstream_error"
+  },
+  {
+   "channel": "youtube",
+   "action": "search",
+   "gate": "public",
+   "coverage": "native",
+   "whole_artifact": false,
+   "requested_outcome": "Search videos: up to 2 video hits with identity and URL",
+   "params": {
+    "query": "Python asyncio tutorial",
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "yt-dlp",
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 1374,
+   "elapsed_ms": 1187,
+   "error": null,
+   "items": 2,
+   "artifact": {
+    "items": 2,
+    "items_with_body": 2,
+    "items_with_raw": 2,
+    "body_chars": [
+     122,
+     125
+    ],
+    "max_body_chars": 125,
+    "body_sha256": "fc784631fef3686359836b80a6039f6ca0874f24113eaa924b8746aa53a8b696",
+    "body_preview": "In this video, we'll be learning all about AsyncIO in Python and how to write asynchronous code using the async/await syntax.",
+    "text_truncated_items": 0,
+    "returned_url": "https://www.youtube.com/watch?v=Qb9s3UiMSTA"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "2 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='Asyncio in Python - Full Tutorial'",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='https://www.youtube.com/watch?v=Qb9s3UiMSTA'",
+     "note": "",
+     "expected": {
+      "field": "url",
+      "all_items": true
+     }
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "present",
+     "evidence": "125 chars in longest item body",
+     "note": "",
+     "expected": {
+      "non_empty_body": true
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "youtube-search.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=2",
+     "items_with_body=2",
+     "text_truncated_items=0",
+     "max_body_chars=125",
+     "backend=yt-dlp",
+     "route=public_api"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 2,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "youtube",
+   "action": "subtitle",
+   "gate": "public",
+   "coverage": "native",
+   "whole_artifact": true,
+   "requested_outcome": "Full subtitle text of a video (manual or auto captions)",
+   "params": {
+    "target": "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "failed",
+   "classification": "failed",
+   "backend": null,
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 1664,
+   "elapsed_ms": 1458,
+   "error": {
+    "code": "upstream_error",
+    "upstream_code": "PLATFORM_BLOCKED",
+    "message": "yt-dlp exited 1: ERROR: [youtube] jNQXAC9IVRw: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/y…",
+    "hint": "YouTube returned a verification challenge. Stop this request; this does not establish that the public video requires login.",
+    "timed_out": false,
+    "attempts": [
+     {
+      "backend": "yt-dlp",
+      "result": "PLATFORM_BLOCKED",
+      "message": "yt-dlp exited 1: ERROR: [youtube] jNQXAC9IVRw: Sign in to confirm you’re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt"
+     }
+    ],
+    "exit_code": 1,
+    "details": {}
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "requested_target",
+     "kind": "target_match",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_text",
+     "kind": "body_text",
+     "required": true,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_not_error_shell",
+     "kind": "no_shell_marker",
+     "required": true,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": "youtube-subtitle.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+   ],
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=public_api"
+    ],
+    "unknown": [
+     "caption_track_end_not_proven",
+     "auto_caption_quality_not_assessed"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "unverified",
+   "verdict_reason": "no artifact: upstream/harness error upstream_error"
+  },
+  {
+   "channel": "youtube",
+   "action": "transcribe",
+   "gate": "quota",
+   "coverage": "native-partial",
+   "whole_artifact": true,
+   "requested_outcome": "Speech-to-text of a video's audio (quota): full transcript",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "asr_disabled",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "requested_target",
+     "kind": "target_match",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_text",
+     "kind": "body_text",
+     "required": true,
+     "region": "body",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_not_error_shell",
+     "kind": "no_shell_marker",
+     "required": true,
+     "region": "body",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "asr_disabled",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "transcript_end_not_proven"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "reddit",
+   "action": "search",
+   "gate": "public",
+   "coverage": "native",
+   "whole_artifact": false,
+   "requested_outcome": "Search public posts: up to 2 post hits with identity and URL",
+   "params": {
+    "query": "Python asyncio",
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "public-web",
+   "route": "public_web",
+   "home_mode": "isolated-temp",
+   "wall_ms": 1114,
+   "elapsed_ms": 891,
+   "error": null,
+   "items": 2,
+   "artifact": {
+    "items": 2,
+    "items_with_body": 2,
+    "items_with_raw": 2,
+    "body_chars": [
+     520,
+     999
+    ],
+    "max_body_chars": 999,
+    "body_sha256": "6b329cf56166f120bf0dbdd1f0df6b0a30dec6001908f3c9cd6c166a8bb6e4b0",
+    "body_preview": "The code is not myn, but im trying to do something similar with urlib.request / get_code by appending the coroutine function as tasks into the list….  ...  1. …",
+    "text_truncated_items": 0,
+    "returned_url": "https://www.reddit.com/r/Python/comments/1aqm0ht/handling_tasks_in_asyncio_like_a_pro_jacob_padilla/"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "2 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='Handling Tasks in Asyncio Like a Pro | Jacob Padilla : r/Python'",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='https://www.reddit.com/r/Python/comments/1aqm0ht/handling_tasks_in_asyncio_like_a_pro_jacob_padilla/'",
+     "note": "",
+     "expected": {
+      "field": "url",
+      "all_items": true
+     }
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "present",
+     "evidence": "999 chars in longest item body",
+     "note": "",
+     "expected": {
+      "non_empty_body": true
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "reddit-search.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+    "Upstream ran with --backend public-web, which forbids browser fallback."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=2",
+     "items_with_body=2",
+     "text_truncated_items=0",
+     "max_body_chars=999",
+     "backend=public-web",
+     "route=public_web"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 2,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "reddit",
+   "action": "read",
+   "gate": "public",
+   "coverage": "native-partial",
+   "whole_artifact": false,
+   "requested_outcome": "Read public page text first (upstream's public route): page text for one post",
+   "params": {
+    "target": "https://www.reddit.com/r/Python/comments/1aqm0ht/handling_tasks_in_asyncio_like_a_pro_jacob_padilla/"
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "reddit search result"
+   },
+   "status": "failed",
+   "classification": "failed",
+   "backend": "public-web",
+   "route": "public_web",
+   "home_mode": "isolated-temp",
+   "wall_ms": 1661,
+   "elapsed_ms": 1475,
+   "error": {
+    "code": "content_unusable",
+    "upstream_code": null,
+    "message": "agent-reach reddit read returned no readable content: 1 item(s) were blocked or missing-page shells, or carried no body text, not the requested page",
+    "hint": "",
+    "timed_out": false,
+    "attempts": [
+     {
+      "backend": "public-web/jina",
+      "result": "ok",
+      "message": null
+     }
+    ],
+    "exit_code": 0,
+    "details": {
+     "withheld_items": 1,
+     "reasons": [
+      "blocked"
+     ]
+    }
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "requested_target",
+     "kind": "target_match",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_text",
+     "kind": "body_text",
+     "required": true,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_not_error_shell",
+     "kind": "no_shell_marker",
+     "required": true,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": "reddit-read.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+    "Upstream ran with --backend public-web, which forbids browser fallback.",
+    "1 item(s) were withheld: the fetched body was only a blocked or missing-page shell (blocked=1, missing_page=0) or carried no body text at all (empty_body=0), not readable content."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=public-web",
+     "route=public_web"
+    ],
+    "unknown": [
+     "comment_thread_not_requested_on_public_route",
+     "page_text_end_not_proven"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "unverified",
+   "verdict_reason": "no artifact: upstream/harness error content_unusable"
+  },
+  {
+   "channel": "reddit",
+   "action": "subreddit",
+   "gate": "consent",
+   "coverage": "native-partial",
+   "whole_artifact": false,
+   "requested_outcome": "Latest posts in a subreddit: bounded post listing",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "auth_required",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "auth_required",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "facebook",
+   "action": "search",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Search Facebook: up to 2 hits with identity and URL",
+   "params": {
+    "query": "Python programming",
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "public-web",
+   "route": "public_web",
+   "home_mode": "isolated-temp",
+   "wall_ms": 1099,
+   "elapsed_ms": 912,
+   "error": null,
+   "items": 2,
+   "artifact": {
+    "items": 2,
+    "items_with_body": 2,
+    "items_with_raw": 2,
+    "body_chars": [
+     223,
+     131
+    ],
+    "max_body_chars": 223,
+    "body_sha256": "d7a71487c3a40f7a9060319098ee83a1a284d14b93397467ae9696f61b8cd634",
+    "body_preview": "Introduction to Computer Science and Programming Using Python | Want to learn to code? Intro to CS and Programming Using Python from Massachusetts Institute of…",
+    "text_truncated_items": 0,
+    "returned_url": "https://www.facebook.com/edX/videos/introduction-to-computer-science-and-programming-using-python/695603187237713/"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "2 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='Introduction to Computer Science and Programming Using Python | Want to learn to code? Intro to CS and Programming Using Python from Massachusetts Institute of Technology (MIT) kick…",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='https://www.facebook.com/edX/videos/introduction-to-computer-science-and-programming-using-python/695603187237713/'",
+     "note": "",
+     "expected": {
+      "field": "url",
+      "all_items": true
+     }
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "present",
+     "evidence": "223 chars in longest item body",
+     "note": "",
+     "expected": {
+      "non_empty_body": true
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "facebook-search.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+    "Upstream ran with --backend public-web, which forbids browser fallback."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=2",
+     "items_with_body=2",
+     "text_truncated_items=0",
+     "max_body_chars=223",
+     "backend=public-web",
+     "route=public_web"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 2,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "facebook",
+   "action": "profile",
+   "gate": "consent",
+   "coverage": "upstream",
+   "whole_artifact": true,
+   "requested_outcome": "A user's or page's profile: profile fields",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "auth_required",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "auth_required",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "profile_fields_not_assessed"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "instagram",
+   "action": "search",
+   "gate": "consent",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Search users (not posts): up to 2 user hits",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "auth_required",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "auth_required",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "instagram",
+   "action": "profile",
+   "gate": "consent",
+   "coverage": "upstream",
+   "whole_artifact": true,
+   "requested_outcome": "A user's profile: profile fields",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "auth_required",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "auth_required",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "profile_fields_not_assessed"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "instagram",
+   "action": "posts",
+   "gate": "consent",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "A user's recent posts: bounded post listing",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "auth_required",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "auth_required",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "timeline_truncation_not_known"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "bilibili",
+   "action": "search",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Search videos: up to 2 video hits with identity and URL",
+   "params": {
+    "query": "Python 异步编程",
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "failed",
+   "classification": "failed",
+   "backend": null,
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 234,
+   "elapsed_ms": 20,
+   "error": {
+    "code": "upstream_error",
+    "upstream_code": "NEED_SETUP",
+    "message": "bili is not installed",
+    "hint": "This backend is not installed. Ask the user to run `agent-reach doctor` for setup steps.",
+    "timed_out": false,
+    "attempts": [
+     {
+      "backend": "bili-cli",
+      "result": "NEED_SETUP",
+      "message": "bili is not installed"
+     }
+    ],
+    "exit_code": 1,
+    "details": {}
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": "bilibili-search.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=public_api"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "unverified",
+   "verdict_reason": "no artifact: upstream/harness error upstream_error"
+  },
+  {
+   "channel": "bilibili",
+   "action": "read",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Video title, uploader, description and stats",
+   "params": {
+    "target": "https://www.bilibili.com/video/BV1chxT6xEyo"
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "bilibili hot result"
+   },
+   "status": "failed",
+   "classification": "failed",
+   "backend": null,
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 668,
+   "elapsed_ms": 463,
+   "error": {
+    "code": "upstream_error",
+    "upstream_code": "UPSTREAM_BROKEN",
+    "message": "HTTP 412: Precondition Failed",
+    "hint": "This channel is temporarily not working; `message` is what was reported. Tell the user in plain words which platform has a problem, without naming tools; suggest `agent-reach update` only if the mess…",
+    "timed_out": false,
+    "attempts": [
+     {
+      "backend": "bilibili-api",
+      "result": "UPSTREAM_BROKEN",
+      "message": "HTTP 412: Precondition Failed"
+     }
+    ],
+    "exit_code": 1,
+    "details": {}
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "requested_target",
+     "kind": "target_match",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "author_or_uploader",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_not_error_shell",
+     "kind": "no_shell_marker",
+     "required": true,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "structured_fields",
+     "kind": "raw_fields",
+     "required": true,
+     "region": "structured_field",
+     "status": "unverified",
+     "evidence": "",
+     "note": "",
+     "expected": [
+      "stat"
+     ]
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": "bilibili-read.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=public_api"
+    ],
+    "unknown": [
+     "description_absence_not_distinguished_from_empty_description"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "unverified",
+   "verdict_reason": "no artifact: upstream/harness error upstream_error"
+  },
+  {
+   "channel": "bilibili",
+   "action": "hot",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Trending videos: up to 2 rows with identity, URL and video id",
+   "params": {
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "bilibili-api",
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 580,
+   "elapsed_ms": 392,
+   "error": null,
+   "items": 2,
+   "artifact": {
+    "items": 2,
+    "items_with_body": 1,
+    "items_with_raw": 2,
+    "body_chars": [
+     61
+    ],
+    "max_body_chars": 61,
+    "body_sha256": "56078f219f1b1f278c2d22fb1aa04c6735a0070731871e3734dbab350ba7a8cd",
+    "body_preview": "《异环》1.5版本「致电，空想迷数」将于11月5日版本更新后开启！ 1.5版本前瞻特别节目现已结束，感谢各位鉴定师的收看~",
+    "text_truncated_items": 0,
+    "returned_url": "https://www.bilibili.com/video/BV1AtxT6tETW"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "2 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='《异环》1.5版本前瞻特别节目回顾'",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='https://www.bilibili.com/video/BV1AtxT6tETW'",
+     "note": "",
+     "expected": {
+      "field": "url",
+      "all_items": true
+     }
+    },
+    {
+     "id": "structured_fields",
+     "kind": "raw_fields",
+     "required": true,
+     "region": "structured_field",
+     "status": "present",
+     "evidence": "found ['bvid'] of ['bvid']",
+     "note": "",
+     "expected": {
+      "fields": [
+       "bvid"
+      ],
+      "mode": "all"
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "bilibili-hot.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=2",
+     "items_with_body=1",
+     "text_truncated_items=0",
+     "max_body_chars=61",
+     "backend=bilibili-api",
+     "route=public_api"
+    ],
+    "unknown": [
+     "trending_list_beyond_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 2,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "bilibili",
+   "action": "subtitle",
+   "gate": "consent",
+   "coverage": "upstream",
+   "whole_artifact": true,
+   "requested_outcome": "Subtitle text of the first video part, when available",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "auth_required",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "requested_target",
+     "kind": "target_match",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_text",
+     "kind": "body_text",
+     "required": true,
+     "region": "body",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_not_error_shell",
+     "kind": "no_shell_marker",
+     "required": true,
+     "region": "body",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "auth_required",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "first_part_only",
+     "caption_track_end_not_proven"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "xiaohongshu",
+   "action": "search",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Search notes: up to 2 note hits with identity and URL",
+   "params": {
+    "query": "咖啡",
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "public-web",
+   "route": "public_web",
+   "home_mode": "isolated-temp",
+   "wall_ms": 1375,
+   "elapsed_ms": 1154,
+   "error": null,
+   "items": 2,
+   "artifact": {
+    "items": 2,
+    "items_with_body": 2,
+    "items_with_raw": 2,
+    "body_chars": [
+     920,
+     324
+    ],
+    "max_body_chars": 920,
+    "body_sha256": "6d417806451318093633f6b56b09f30dda7e3f3046ccb604c4bb4f0ca44966d8",
+    "body_preview": "Kenangan Coffee - 小红书  地址：上海市黄浦区马当路388号C座  电话：9501-3888  行吟信息科技（上海）有限公司  地址：上海市黄浦区马当路388号C座  电话：9501-3888  Kenangan Coffee  Kenangan Coffee官方小红书账号 以真心煮咖啡，以余温暖心…",
+    "text_truncated_items": 0,
+    "returned_url": "https://xhslink.com/m/AJp68XgYriT"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "2 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='Kenangan Coffee - 小红书'",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='https://xhslink.com/m/AJp68XgYriT'",
+     "note": "",
+     "expected": {
+      "field": "url",
+      "all_items": true
+     }
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "present",
+     "evidence": "920 chars in longest item body",
+     "note": "",
+     "expected": {
+      "non_empty_body": true
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "xiaohongshu-search.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+    "Upstream ran with --backend public-web, which forbids browser fallback."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=2",
+     "items_with_body=2",
+     "text_truncated_items=0",
+     "max_body_chars=920",
+     "backend=public-web",
+     "route=public_web"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 2,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "xiaohongshu",
+   "action": "read",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": true,
+   "requested_outcome": "Read a note (full link including xsec_token, as returned by search)",
+   "params": {
+    "target": "https://xhslink.com/m/AJp68XgYriT"
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "xiaohongshu search result"
+   },
+   "status": "failed",
+   "classification": "failed",
+   "backend": "public-web",
+   "route": "public_web",
+   "home_mode": "isolated-temp",
+   "wall_ms": 6955,
+   "elapsed_ms": 6745,
+   "error": {
+    "code": "content_unusable",
+    "upstream_code": null,
+    "message": "agent-reach xiaohongshu read returned no readable content: 1 item(s) were blocked or missing-page shells, or carried no body text, not the requested page",
+    "hint": "",
+    "timed_out": false,
+    "attempts": [
+     {
+      "backend": "public-web/jina",
+      "result": "ok",
+      "message": null
+     }
+    ],
+    "exit_code": 0,
+    "details": {
+     "withheld_items": 1,
+     "reasons": [
+      "missing_page"
+     ]
+    }
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "requested_target",
+     "kind": "target_match",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_text",
+     "kind": "body_text",
+     "required": true,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_not_error_shell",
+     "kind": "no_shell_marker",
+     "required": true,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": "xiaohongshu-read.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+    "Upstream ran with --backend public-web, which forbids browser fallback.",
+    "1 item(s) were withheld: the fetched body was only a blocked or missing-page shell (blocked=0, missing_page=1) or carried no body text at all (empty_body=0), not readable content."
+   ],
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=public-web",
+     "route=public_web"
+    ],
+    "unknown": [
+     "note_end_not_proven",
+     "media_and_comments_not_inspected"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "unverified",
+   "verdict_reason": "no artifact: upstream/harness error content_unusable"
+  },
+  {
+   "channel": "xiaohongshu",
+   "action": "comments",
+   "gate": "consent",
+   "coverage": "upstream",
+   "whole_artifact": true,
+   "requested_outcome": "Read loaded comments and replies from a note (upstream: not an exhaustive export)",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "auth_required",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "auth_required",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "loaded_comments_only_not_exhaustive"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "linkedin",
+   "action": "jobs",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Search LinkedIn jobs: up to 2 job hits with identity and URL",
+   "params": {
+    "query": "Python developer",
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "public-web",
+   "route": "public_web",
+   "home_mode": "isolated-temp",
+   "wall_ms": 1314,
+   "elapsed_ms": 1123,
+   "error": null,
+   "items": 2,
+   "artifact": {
+    "items": 2,
+    "items_with_body": 2,
+    "items_with_raw": 2,
+    "body_chars": [
+     2555,
+     1450
+    ],
+    "max_body_chars": 2555,
+    "body_sha256": "445767ed60fbca4e0e50aa5c3c3b3991d3eb50b88be961e5d6685366dd17f25b",
+    "body_preview": "Hired hiring Senior Python Developer (Remote) in United States | LinkedIn     # Senior Python Developer (Remote)   Hired United States    10 hours ago    Be am…",
+    "text_truncated_items": 0,
+    "returned_url": "https://www.linkedin.com/jobs/view/senior-python-developer-remote-at-hired-4447811252"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "2 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='Hired hiring Senior Python Developer (Remote) in United States | LinkedIn'",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='https://www.linkedin.com/jobs/view/senior-python-developer-remote-at-hired-4447811252'",
+     "note": "",
+     "expected": {
+      "field": "url",
+      "all_items": true
+     }
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "present",
+     "evidence": "2555 chars in longest item body",
+     "note": "",
+     "expected": {
+      "non_empty_body": true
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "linkedin-jobs.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+    "Upstream ran with --backend public-web, which forbids browser fallback."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=2",
+     "items_with_body=2",
+     "text_truncated_items=0",
+     "max_body_chars=2555",
+     "backend=public-web",
+     "route=public_web"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 2,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "linkedin",
+   "action": "read",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": true,
+   "requested_outcome": "Read a LinkedIn job description: full description text",
+   "params": {
+    "target": "https://www.linkedin.com/jobs/view/senior-python-developer-remote-at-hired-4447811252"
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "linkedin jobs result"
+   },
+   "status": "failed",
+   "classification": "failed",
+   "backend": null,
+   "route": "public_web",
+   "home_mode": "isolated-temp",
+   "wall_ms": 5119,
+   "elapsed_ms": 4906,
+   "error": {
+    "code": "upstream_error",
+    "upstream_code": "UPSTREAM_BROKEN",
+    "message": "HTTP 403: Forbidden",
+    "hint": "This channel is temporarily not working; `message` is what was reported. Tell the user in plain words which platform has a problem, without naming tools; suggest `agent-reach update` only if the mess…",
+    "timed_out": false,
+    "attempts": [
+     {
+      "backend": "public-web/jina",
+      "result": "UPSTREAM_BROKEN",
+      "message": "HTTP 403: Forbidden"
+     },
+     {
+      "backend": "public-web/exa",
+      "result": "UPSTREAM_BROKEN",
+      "message": "Exa: Error fetching URL(s): https://www.linkedin.com/jobs/view/4447811252: CRAWL_NOT_FOUND"
+     }
+    ],
+    "exit_code": 1,
+    "details": {}
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "requested_target",
+     "kind": "target_match",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_text",
+     "kind": "body_text",
+     "required": true,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_not_error_shell",
+     "kind": "no_shell_marker",
+     "required": true,
+     "region": "body",
+     "status": "unverified",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": "linkedin-read.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+    "Upstream ran with --backend public-web, which forbids browser fallback."
+   ],
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=public_web"
+    ],
+    "unknown": [
+     "description_end_not_proven"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "unverified",
+   "verdict_reason": "no artifact: upstream/harness error upstream_error"
+  },
+  {
+   "channel": "boss",
+   "action": "search",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Search jobs using a configured browser session: up to 2 job hits",
+   "params": {
+    "query": "Python",
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "public-web",
+   "route": "public_web",
+   "home_mode": "isolated-temp",
+   "wall_ms": 1177,
+   "elapsed_ms": 991,
+   "error": null,
+   "items": 1,
+   "artifact": {
+    "items": 1,
+    "items_with_body": 1,
+    "items_with_raw": 1,
+    "body_chars": [
+     79
+    ],
+    "max_body_chars": 79,
+    "body_sha256": "6d17d9894fbaff570684114d07558d3876dbb9b4148944cb7bef99281c601c5a",
+    "body_preview": "「南京花园小区保洁，打扫卫生就行，就近派单招聘」_清熹家政招聘-BOSS直聘  「南京花园小区保洁，打扫卫生就行，就近派单招聘」\\_清熹家政招聘-BOSS直聘",
+    "text_truncated_items": 0,
+    "returned_url": "https://www.zhipin.com/job_detail/c1039e39ba83b73e0nd639i_FFJR.html?_security_check=1_1783322651289"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "1 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "1/1 items; first='「南京花园小区保洁，打扫卫生就行，就近派单招聘」_清熹家政招聘-BOSS直聘'",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "1/1 items; first='https://www.zhipin.com/job_detail/c1039e39ba83b73e0nd639i_FFJR.html?_security_check=1_1783322651289'",
+     "note": "",
+     "expected": {
+      "field": "url",
+      "all_items": true
+     }
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "present",
+     "evidence": "79 chars in longest item body",
+     "note": "",
+     "expected": {
+      "non_empty_body": true
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "boss-search.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+    "Upstream ran with --backend public-web, which forbids browser fallback."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=1",
+     "items_with_body=1",
+     "text_truncated_items=0",
+     "max_body_chars=79",
+     "backend=public-web",
+     "route=public_web"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 1,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "boss",
+   "action": "read",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": true,
+   "requested_outcome": "Read a direct BOSS job URL: full job description text",
+   "params": {
+    "target": "https://www.zhipin.com/job_detail/c1039e39ba83b73e0nd639i_FFJR.html?_security_check=1_1783322651289"
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "boss search result"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "public-web",
+   "route": "public_web",
+   "home_mode": "isolated-temp",
+   "wall_ms": 2039,
+   "elapsed_ms": 1822,
+   "error": null,
+   "items": 1,
+   "artifact": {
+    "items": 1,
+    "items_with_body": 1,
+    "items_with_raw": 1,
+    "body_chars": [
+     54
+    ],
+    "max_body_chars": 54,
+    "body_sha256": "f7dba9e2db1ed96f187a40e79a57f26050c2736304bc2c31155bd4fb8286ace4",
+    "body_preview": "B O S S  正在加载中...  © copyright BOSS直聘 京ICP备14013441号-5",
+    "text_truncated_items": 0,
+    "returned_url": "https://www.zhipin.com/job_detail/c1039e39ba83b73e0nd639i_FFJR.html?_security_check=1_1783322651289"
+   },
+   "units": [
+    {
+     "id": "requested_target",
+     "kind": "target_match",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "https://www.zhipin.com/job_detail/c1039e39ba83b73e0nd639i_FFJR.html?_security_check=1_1783322651289",
+     "note": "",
+     "expected": {
+      "target": "https://www.zhipin.com/job_detail/c1039e39ba83b73e0nd639i_FFJR.html?_security_check=1_1783322651289"
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "1/1 items; first='请稍候 - BOSS直聘'",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "body_text",
+     "kind": "body_text",
+     "required": true,
+     "region": "body",
+     "status": "present",
+     "evidence": "54 chars in longest item body",
+     "note": "",
+     "expected": {
+      "non_empty_body": true
+     }
+    },
+    {
+     "id": "body_not_error_shell",
+     "kind": "no_shell_marker",
+     "required": true,
+     "region": "body",
+     "status": "present",
+     "evidence": "no marker in first 400 chars of 1 body item(s)",
+     "note": "",
+     "expected": {
+      "markers": [
+       "you've been blocked by network security",
+       "blocked by network security",
+       "access denied",
+       "page not found",
+       "page could not be found",
+       "not found",
+       "404",
+       "页面不存在",
+       "你访问的页面不见了",
+       "页面已被删除",
+       "لم يتم العثور على الصفحة",
+       "siden blev ikke fundet",
+       "seite nicht gefunden",
+       "ページが見つかりません",
+       "sign in to continue",
+       "log in to continue",
+       "verify you are human",
+       "captcha"
+      ],
+      "window": 400
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "boss-read.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+    "Upstream ran with --backend public-web, which forbids browser fallback."
+   ],
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=1",
+     "items_with_body=1",
+     "text_truncated_items=0",
+     "max_body_chars=54",
+     "backend=public-web",
+     "route=public_web"
+    ],
+    "unknown": [
+     "description_end_not_proven"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 1,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "incomplete",
+   "verdict_reason": "end_of_artifact_not_proven"
+  },
+  {
+   "channel": "v2ex",
+   "action": "hot",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Today's hot topics: up to 2 topic rows with identity and URL",
+   "params": {
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "v2ex-api",
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 581,
+   "elapsed_ms": 388,
+   "error": null,
+   "items": 2,
+   "artifact": {
+    "items": 2,
+    "items_with_body": 2,
+    "items_with_raw": 1,
+    "body_chars": [
+     557,
+     250
+    ],
+    "max_body_chars": 557,
+    "body_sha256": "71c2be5dca8e88d6c9748139a6730be55fa91f0a6011dc37af4dad8f9b37ad52",
+    "body_preview": "我父亲 8 年前做过右肾透明细胞癌手术，两年前发现右侧腰背部包块。    ## 经过与结果    1. CT 、MRI 和 PET/CT 怀疑肾癌转移，但未发现其他明确病灶。  2. 腰背部肿瘤已经扩大切除，切缘阴性。  3. 病理及免疫组化确认肾细胞癌转移。  4. 术后影像没有明确残留或其他转移，属于转移灶切除后…",
+    "text_truncated_items": 0,
+    "returned_url": "https://www.v2ex.com/t/1252479"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "2 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='面对重大医疗决策， AI 和医生意见不同，我该信谁？'",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='https://www.v2ex.com/t/1252479'",
+     "note": "",
+     "expected": {
+      "field": "url",
+      "all_items": true
+     }
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "present",
+     "evidence": "557 chars in longest item body",
+     "note": "",
+     "expected": {
+      "non_empty_body": true
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "v2ex-hot.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+    "Some upstream raw payloads were dropped to keep output bounded."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=2",
+     "items_with_body=2",
+     "text_truncated_items=0",
+     "max_body_chars=557",
+     "backend=v2ex-api",
+     "route=public_api"
+    ],
+    "unknown": [
+     "hot_list_beyond_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 2,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "v2ex",
+   "action": "node",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Latest topics in a node: up to 2 topic rows with identity and URL",
+   "params": {
+    "node_name": "python",
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "v2ex-api",
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 387,
+   "elapsed_ms": 200,
+   "error": null,
+   "items": 2,
+   "artifact": {
+    "items": 2,
+    "items_with_body": 2,
+    "items_with_raw": 1,
+    "body_chars": [
+     512,
+     134
+    ],
+    "max_body_chars": 512,
+    "body_sha256": "62079a690fc60fbc3191b68b7e65321ea992796de3d74935bb4eb77a08ac2ba9",
+    "body_preview": "```  def fetch_created_at():      conn = pymysql.connect(          host=MYSQL_HOST, port=MYSQL_PORT, user=MYSQL_USER,          password=[redacted], database=MY…",
+    "text_truncated_items": 0,
+    "returned_url": "https://www.v2ex.com/t/1250533"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "2 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='前端想学后端，但是看完这段代码就已经力竭了'",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='https://www.v2ex.com/t/1250533'",
+     "note": "",
+     "expected": {
+      "field": "url",
+      "all_items": true
+     }
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "present",
+     "evidence": "512 chars in longest item body",
+     "note": "",
+     "expected": {
+      "non_empty_body": true
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "v2ex-node.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+    "Some upstream raw payloads were dropped to keep output bounded."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=2",
+     "items_with_body=2",
+     "text_truncated_items=0",
+     "max_body_chars=512",
+     "backend=v2ex-api",
+     "route=public_api"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 2,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "v2ex",
+   "action": "read",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": true,
+   "requested_outcome": "Read a topic and its replies: topic body plus the reply set",
+   "params": {
+    "target": "https://www.v2ex.com/t/1252479"
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "v2ex hot result"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "v2ex-api",
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 2097,
+   "elapsed_ms": 1880,
+   "error": null,
+   "items": 1,
+   "artifact": {
+    "items": 1,
+    "items_with_body": 1,
+    "items_with_raw": 0,
+    "body_chars": [
+     4000
+    ],
+    "max_body_chars": 4000,
+    "body_sha256": "e8a687aaa49d1b545fd1de8961d522f1c2630a6049706ecc0ec8c28600bdf8eb",
+    "body_preview": "我父亲 8 年前做过右肾透明细胞癌手术，两年前发现右侧腰背部包块。    ## 经过与结果    1. CT 、MRI 和 PET/CT 怀疑肾癌转移，但未发现其他明确病灶。  2. 腰背部肿瘤已经扩大切除，切缘阴性。  3. 病理及免疫组化确认肾细胞癌转移。  4. 术后影像没有明确残留或其他转移，属于转移灶切除后…",
+    "text_truncated_items": 1,
+    "returned_url": "https://www.v2ex.com/t/1252479"
+   },
+   "units": [
+    {
+     "id": "requested_target",
+     "kind": "target_match",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "https://www.v2ex.com/t/1252479",
+     "note": "",
+     "expected": {
+      "target": "https://www.v2ex.com/t/1252479"
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "1/1 items; first='面对重大医疗决策， AI 和医生意见不同，我该信谁？'",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "author_or_uploader",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "1/1 items; first='xxxxxxxxxxxxxx'",
+     "note": "",
+     "expected": {
+      "field": "author",
+      "all_items": true
+     }
+    },
+    {
+     "id": "body_text",
+     "kind": "body_text",
+     "required": true,
+     "region": "body",
+     "status": "present",
+     "evidence": "4000 chars in longest item body",
+     "note": "",
+     "expected": {
+      "non_empty_body": true
+     }
+    },
+    {
+     "id": "body_not_error_shell",
+     "kind": "no_shell_marker",
+     "required": true,
+     "region": "body",
+     "status": "present",
+     "evidence": "no marker in first 400 chars of 1 body item(s)",
+     "note": "",
+     "expected": {
+      "markers": [
+       "you've been blocked by network security",
+       "blocked by network security",
+       "access denied",
+       "page not found",
+       "page could not be found",
+       "not found",
+       "404",
+       "页面不存在",
+       "你访问的页面不见了",
+       "页面已被删除",
+       "لم يتم العثور على الصفحة",
+       "siden blev ikke fundet",
+       "seite nicht gefunden",
+       "ページが見つかりません",
+       "sign in to continue",
+       "log in to continue",
+       "verify you are human",
+       "captcha"
+      ],
+      "window": 400
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "v2ex-read.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path.",
+    "Some upstream raw payloads were dropped to keep output bounded."
+   ],
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=1",
+     "items_with_body=1",
+     "text_truncated_items=1",
+     "max_body_chars=4000",
+     "backend=v2ex-api",
+     "route=public_api"
+    ],
+    "unknown": [
+     "reply_set_not_exhausted",
+     "reply_count_not_recorded"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 1,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 1
+    }
+   },
+   "verdict": "incomplete",
+   "verdict_reason": "artifact_truncated_at_output_bound"
+  },
+  {
+   "channel": "v2ex",
+   "action": "user",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "A member's profile: identity fields",
+   "params": {
+    "username": "Livid"
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_metadata_only",
+   "backend": "v2ex-api",
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 544,
+   "elapsed_ms": 356,
+   "error": null,
+   "items": 1,
+   "artifact": {
+    "items": 1,
+    "items_with_body": 0,
+    "items_with_raw": 1,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": "https://www.v2ex.com/u/Livid"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "1 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "member_username",
+     "kind": "raw_fields",
+     "required": true,
+     "region": "structured_field",
+     "status": "present",
+     "evidence": "found ['username'] of ['username']",
+     "note": "",
+     "expected": {
+      "fields": [
+       "username"
+      ],
+      "mode": "all"
+     }
+    },
+    {
+     "id": "profile_detail",
+     "kind": "raw_fields_any",
+     "required": false,
+     "region": "structured_field",
+     "status": "present",
+     "evidence": "found ['bio', 'tagline', 'location', 'website'] of ['bio', 'tagline', 'location', 'website']",
+     "note": "",
+     "expected": {
+      "fields": [
+       "bio",
+       "tagline",
+       "location",
+       "website"
+      ],
+      "mode": "any"
+     }
+    }
+   ],
+   "artifact_kind": "metadata_only",
+   "raw_payload": "v2ex-user.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=1",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=v2ex-api",
+     "route=public_api"
+    ],
+    "unknown": [
+     "profile_completeness_not_assessed"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 1,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "xueqiu",
+   "action": "quote",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Real-time stock quote (A-share, HK, US): symbol, current price and quote time",
+   "params": {
+    "symbol": "SH600519"
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "tencent",
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 1048,
+   "elapsed_ms": 855,
+   "error": null,
+   "items": 1,
+   "artifact": {
+    "items": 1,
+    "items_with_body": 1,
+    "items_with_raw": 1,
+    "body_chars": [
+     21
+    ],
+    "max_body_chars": 21,
+    "body_sha256": "3262543ceac6edb4f433c2056207293a9c0cbc69ac6d08bc0a4983d0b18f0cbd",
+    "body_preview": "贵州茅台 1330.75 (-1.85%)",
+    "text_truncated_items": 0,
+    "returned_url": "https://xueqiu.com/S/SH600519"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "1 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "quote_fields",
+     "kind": "raw_fields",
+     "required": true,
+     "region": "structured_field",
+     "status": "present",
+     "evidence": "found ['symbol', 'current', 'time'] of ['symbol', 'current', 'time']",
+     "note": "",
+     "expected": {
+      "fields": [
+       "symbol",
+       "current",
+       "time"
+      ],
+      "mode": "all"
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "xueqiu-quote.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=1",
+     "items_with_body=1",
+     "text_truncated_items=0",
+     "max_body_chars=21",
+     "backend=tencent",
+     "route=public_api"
+    ],
+    "unknown": [
+     "quote_freshness_not_assessed"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 1,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "xueqiu",
+   "action": "search",
+   "gate": "public",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Find stocks by name or code: symbol and name rows",
+   "params": {
+    "query": "茅台",
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_metadata_only",
+   "backend": "tencent",
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 839,
+   "elapsed_ms": 654,
+   "error": null,
+   "items": 1,
+   "artifact": {
+    "items": 1,
+    "items_with_body": 0,
+    "items_with_raw": 1,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": "https://xueqiu.com/S/SH600519"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "1 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "symbol_fields",
+     "kind": "raw_fields",
+     "required": true,
+     "region": "structured_field",
+     "status": "present",
+     "evidence": "found ['symbol', 'name'] of ['symbol', 'name']",
+     "note": "",
+     "expected": {
+      "fields": [
+       "symbol",
+       "name"
+      ],
+      "mode": "all"
+     }
+    }
+   ],
+   "artifact_kind": "metadata_only",
+   "raw_payload": "xueqiu-search.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=1",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=tencent",
+     "route=public_api"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 1,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "xueqiu",
+   "action": "hot_posts",
+   "gate": "consent",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Trending Xueqiu community posts: bounded listing",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "auth_required",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "auth_required",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "xueqiu",
+   "action": "hot_stocks",
+   "gate": "consent",
+   "coverage": "upstream",
+   "whole_artifact": false,
+   "requested_outcome": "Most-watched stocks on Xueqiu: bounded listing",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "auth_required",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "auth_required",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "xiaoyuzhou",
+   "action": "transcribe",
+   "gate": "quota",
+   "coverage": "upstream",
+   "whole_artifact": true,
+   "requested_outcome": "Full transcript of a podcast episode (quota)",
+   "params": {},
+   "target_origin": {
+    "source": "gated: no target frozen; the gate must refuse the run"
+   },
+   "status": "gated_not_run",
+   "classification": "gated_not_run",
+   "backend": null,
+   "route": null,
+   "home_mode": null,
+   "wall_ms": null,
+   "elapsed_ms": null,
+   "error": {
+    "code": "asr_disabled",
+    "upstream_code": null,
+    "message": "gate refused the run before an action process existed",
+    "timed_out": false,
+    "attempts": [],
+    "exit_code": null
+   },
+   "items": 0,
+   "artifact": {
+    "items": 0,
+    "items_with_body": 0,
+    "items_with_raw": 0,
+    "body_chars": [],
+    "max_body_chars": 0,
+    "body_sha256": null,
+    "body_preview": "",
+    "text_truncated_items": 0,
+    "returned_url": ""
+   },
+   "units": [
+    {
+     "id": "requested_target",
+     "kind": "target_match",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_text",
+     "kind": "body_text",
+     "required": true,
+     "region": "body",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    },
+    {
+     "id": "body_not_error_shell",
+     "kind": "no_shell_marker",
+     "required": true,
+     "region": "body",
+     "status": "not_run",
+     "evidence": "",
+     "note": ""
+    }
+   ],
+   "artifact_kind": "none",
+   "raw_payload": null,
+   "limitations": [],
+   "gate_probe": {
+    "error_code": "asr_disabled",
+    "result_ok": false,
+    "runner_calls": 0,
+    "spawned_action_process": false,
+    "action_argv": [],
+    "asr_veto": true
+   },
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=0",
+     "items_with_body=0",
+     "text_truncated_items=0",
+     "max_body_chars=0",
+     "backend=None",
+     "route=None"
+    ],
+    "unknown": [
+     "transcript_end_not_proven"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 0,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "not_run",
+   "verdict_reason": "gate refused the run; no action process existed"
+  },
+  {
+   "channel": "web",
+   "action": "search",
+   "gate": "public",
+   "coverage": "native",
+   "whole_artifact": false,
+   "requested_outcome": "Search the web: up to 2 results with identity and URL",
+   "params": {
+    "query": "Python asyncio documentation",
+    "limit": 2
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "exa",
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 1228,
+   "elapsed_ms": 1040,
+   "error": null,
+   "items": 2,
+   "artifact": {
+    "items": 2,
+    "items_with_body": 2,
+    "items_with_raw": 2,
+    "body_chars": [
+     2779,
+     1207
+    ],
+    "max_body_chars": 2779,
+    "body_sha256": "a5b60b9eab5b7458125f12ef2f339d4f5040a3fed4bf12e3b90f15573fedbe8a",
+    "body_preview": "asyncio — Asynchronous I/O — Python 3.15.2 documentation  # `asyncio` — Asynchronous I/O¶  Hello World!  ``` import asyncio  async def main():     print('Hello…",
+    "text_truncated_items": 0,
+    "returned_url": "https://docs.python.org/3/library/asyncio.html"
+   },
+   "units": [
+    {
+     "id": "item_list",
+     "kind": "items_min",
+     "required": true,
+     "region": "list",
+     "status": "present",
+     "evidence": "2 item(s)",
+     "note": "",
+     "expected": {
+      "min_items": 1
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='asyncio — Asynchronous I/O — Python 3.14.7 documentation'",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "item_url",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "2/2 items; first='https://docs.python.org/3/library/asyncio.html'",
+     "note": "",
+     "expected": {
+      "field": "url",
+      "all_items": true
+     }
+    },
+    {
+     "id": "snippet_text",
+     "kind": "body_text",
+     "required": false,
+     "region": "body",
+     "status": "present",
+     "evidence": "2779 chars in longest item body",
+     "note": "",
+     "expected": {
+      "non_empty_body": true
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "web-search.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+   ],
+   "completeness": {
+    "scope": "bounded_request",
+    "whole_artifact_requested": false,
+    "whole_artifact_proven": null,
+    "known": [
+     "items_returned=2",
+     "items_with_body=2",
+     "text_truncated_items=0",
+     "max_body_chars=2779",
+     "backend=exa",
+     "route=public_api"
+    ],
+    "unknown": [
+     "matches_beyond_requested_limit_not_known"
+    ],
+    "caps": {
+     "requested_limit": 2,
+     "items_returned": 2,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "complete",
+   "verdict_reason": "bounded_request_units_present"
+  },
+  {
+   "channel": "web",
+   "action": "read",
+   "gate": "public",
+   "coverage": "native",
+   "whole_artifact": true,
+   "requested_outcome": "Read a web page as clean text: page body text",
+   "params": {
+    "target": "https://docs.python.org/3/library/asyncio.html"
+   },
+   "target_origin": {
+    "source": "prior action-sweep raw (2026-10-28T12:31Z)",
+    "discovered_from": "provided directly in the prior sweep params"
+   },
+   "status": "inspected",
+   "classification": "inspected_body",
+   "backend": "jina",
+   "route": "public_api",
+   "home_mode": "isolated-temp",
+   "wall_ms": 532,
+   "elapsed_ms": 342,
+   "error": null,
+   "items": 1,
+   "artifact": {
+    "items": 1,
+    "items_with_body": 1,
+    "items_with_raw": 0,
+    "body_chars": [
+     3312
+    ],
+    "max_body_chars": 3312,
+    "body_sha256": "3828fca9e4da0ca77f4e01449968fa0b388fea08364779254f2238c88d516ebb",
+    "body_preview": "* * *  asyncio is a library to write **concurrent** code using the **async/await** syntax.  asyncio is used as a foundation for multiple Python asynchronous fr…",
+    "text_truncated_items": 0,
+    "returned_url": "https://docs.python.org/3/library/asyncio.html"
+   },
+   "units": [
+    {
+     "id": "requested_target",
+     "kind": "target_match",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "https://docs.python.org/3/library/asyncio.html",
+     "note": "",
+     "expected": {
+      "target": "https://docs.python.org/3/library/asyncio.html"
+     }
+    },
+    {
+     "id": "item_identity",
+     "kind": "item_field_all",
+     "required": true,
+     "region": "metadata",
+     "status": "present",
+     "evidence": "1/1 items; first='asyncio — Asynchronous I/O'",
+     "note": "",
+     "expected": {
+      "field": "title",
+      "all_items": true
+     }
+    },
+    {
+     "id": "body_text",
+     "kind": "body_text",
+     "required": true,
+     "region": "body",
+     "status": "present",
+     "evidence": "3312 chars in longest item body",
+     "note": "",
+     "expected": {
+      "non_empty_body": true
+     }
+    },
+    {
+     "id": "body_not_error_shell",
+     "kind": "no_shell_marker",
+     "required": true,
+     "region": "body",
+     "status": "present",
+     "evidence": "no marker in first 400 chars of 1 body item(s)",
+     "note": "",
+     "expected": {
+      "markers": [
+       "you've been blocked by network security",
+       "blocked by network security",
+       "access denied",
+       "page not found",
+       "page could not be found",
+       "not found",
+       "404",
+       "页面不存在",
+       "你访问的页面不见了",
+       "页面已被删除",
+       "لم يتم العثور على الصفحة",
+       "siden blev ikke fundet",
+       "seite nicht gefunden",
+       "ページが見つかりません",
+       "sign in to continue",
+       "log in to continue",
+       "verify you are human",
+       "captcha"
+      ],
+      "window": 400
+     }
+    }
+   ],
+   "artifact_kind": "body",
+   "raw_payload": "web-read.json",
+   "limitations": [
+    "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
+    "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
+    "Public-only mode: no authenticated session and no browser fallback were used.",
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
+   ],
+   "completeness": {
+    "scope": "whole_artifact",
+    "whole_artifact_requested": true,
+    "whole_artifact_proven": false,
+    "known": [
+     "items_returned=1",
+     "items_with_body=1",
+     "text_truncated_items=0",
+     "max_body_chars=3312",
+     "backend=jina",
+     "route=public_api"
+    ],
+    "unknown": [
+     "page_end_not_proven",
+     "dynamic_or_collapsed_sections_not_inspected"
+    ],
+    "caps": {
+     "requested_limit": null,
+     "items_returned": 1,
+     "max_text_chars_per_item": 4000,
+     "text_truncated_items": 0
+    }
+   },
+   "verdict": "incomplete",
+   "verdict_reason": "end_of_artifact_not_proven"
+  }
+ ],
+ "errors_preserved": true,
+ "claims": {
+  "claim": "On 40 pinned actions (26 public, 12 auth-gated, 2 quota-gated): 26 public actions were executed, 14 gated actions were not run, 53/53 required artifact units on inspected rows were present, 14 rows were complete for their bounded/requested units, 3 were incomplete, 9 were unverified, and whole-artifact completeness was proven for 0 of 3 inspected read-type rows.",
+  "complete_rows_are_bounded_or_requested_units_only": true,
+  "returned_item_counts_are_not_evidence_of_artifact_completeness": true,
+  "superiority_claim": "not established: no cross-tool comparison was run and coverage of the same 40 action names is not superiority",
+  "not_established": [
+   "authenticated parity: the 12 consent actions were not run",
+   "quota/transcription parity: the 2 quota actions were not run; zero spend",
+   "whole-artifact completeness: no read proved its end/reply set was exhausted",
+   "reliability, freshness, latency and resource parity",
+   "content quality or human relevance of returned bodies",
+   "multi-day or multi-host stability"
+  ]
+ }
+}
