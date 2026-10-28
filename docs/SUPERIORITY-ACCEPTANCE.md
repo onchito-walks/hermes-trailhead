@@ -3,6 +3,12 @@
 Owner request: improve Trailhead in every way, not merely claim a research niche.
 Status: **in progress; overall superiority is NOT established**.
 
+Latest implementation sweep: [HARDENING-ACCEPTANCE-SWEEP.md](HARDENING-ACCEPTANCE-SWEEP.md)
+records all ten dimensions, 1134 independently passing tests, real fresh-agent
+multilingual CLI calls, equal-deadline cold/warm public comparisons and two
+measured routing/asset-lead repairs. It supersedes older implementation/test-count
+snapshots below, not historical observations or the open acceptance conditions.
+
 Latest bounded evidence: [P5 discussion capture](GITHUB-DISCUSSION-ACCEPTANCE.md)
 (2026-10-28, eight calls) verifies body hashes and all sixteen historical comment
 IDs for Trailhead; both tools returned comment bodies. Marker totals are

@@ -475,6 +475,36 @@ def test_tiktok_result_url_rejects_shop_listings():
     assert _tiktok_result_url("https://www.tiktok.com/@3dprintingdoctor/video/7665567402905685261") is True
 
 
+def test_tiktok_result_url_rejects_image_api_endpoints():
+    from hermes_trailhead.backends import _tiktok_result_url
+
+    # Recorded false lead: the tiktok lane surfaced /api/img endpoints as hits.
+    assert _tiktok_result_url("https://www.tiktok.com/api/img/") is False
+    assert _tiktok_result_url("https://www.tiktok.com/api/img/?itemId=7665567402905685261") is False
+    # Real video/profile discovery routes stay accepted.
+    assert _tiktok_result_url("https://www.tiktok.com/@3dprintingdoctor/video/7665567402905685261") is True
+    assert _tiktok_result_url("https://www.tiktok.com/@img_creator") is True
+
+
+def test_tiktok_paid_fallback_hits_pass_the_lane_validator(monkeypatch):
+    # A paid result must not smuggle in a URL the parsed backends reject.
+    monkeypatch.setattr(backends, "_tavily_api_key", lambda: "test-key")
+    monkeypatch.setattr(
+        backends,
+        "_tavily_search",
+        lambda *a, **k: (
+            backends._search_hit("image", "https://www.tiktok.com/api/img/", "xxxxxx"),
+            backends._search_hit(
+                "video", "https://www.tiktok.com/@creator/video/7665567402905685261", "caption"
+            ),
+        ),
+    )
+    result = execute_backend_chain("tiktok", "python protocol", limit=2, fetch=lambda url, timeout: "")
+    assert [hit.url for hit in result.hits] == [
+        "https://www.tiktok.com/@creator/video/7665567402905685261"
+    ]
+
+
 def test_open_web_result_url_excludes_dedicated_lane_hosts():
     from hermes_trailhead.backends import _open_web_result_url
 

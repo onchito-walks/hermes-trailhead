@@ -598,11 +598,13 @@ def _default_runtime_page(monkeypatch, markup):
     monkeypatch.setattr(urllib.request, "urlopen", lambda *args, **kwargs: _HtmlResponse(markup))
 
 
-def test_thin_native_result_is_replaced_by_a_larger_configured_fallback(monkeypatch):
+def test_thin_native_result_is_replaced_by_a_larger_fallback_that_keeps_every_native_url(
+    monkeypatch,
+):
     adapter = _FakeAdapter(
         _reach_result(
             [
-                _item("https://example.com/reach-lead", title="Reach lead", text="lead text"),
+                _item("https://example.com/native-lead", title="Native lead upstream", text="lead text"),
                 _item("https://example.com/reach-two", title="Reach two"),
             ]
         )
@@ -617,16 +619,62 @@ def test_thin_native_result_is_replaced_by_a_larger_configured_fallback(monkeypa
     assert execution.result_count == 2
     assert execution.engine == "agent_reach_web_search"
     assert [hit.url for hit in execution.hits] == [
-        "https://example.com/reach-lead",
+        "https://example.com/native-lead",
         "https://example.com/reach-two",
     ]
-    # Whole-result replacement: no native URL survives under upstream attribution.
-    assert "https://example.com/native-lead" not in {hit.url for hit in execution.hits}
+    # Whole-result replacement: every hit row, including the shared URL, is
+    # upstream's, so the upstream attribution is truthful for all of them.
+    assert execution.hits[0].title == "Native lead upstream"
+    assert execution.hits[0].snippet == "lead text"
     assert execution.attribution == ATTRIBUTION
     assert execution.error == ""
     assert "ddg_lite" in execution.attempts
     assert execution.attempts[-1].startswith("agent_reach_web_search")
     assert execution.to_dict()["attribution"] == ATTRIBUTION
+
+
+def test_larger_unrelated_fallback_never_displaces_the_native_hit(monkeypatch):
+    """More upstream leads are not a replacement unless every native URL survives."""
+    adapter = _FakeAdapter(
+        _reach_result(
+            [
+                _item("https://example.com/reach-lead", title="Reach lead"),
+                _item("https://example.com/reach-two", title="Reach two"),
+            ]
+        )
+    )
+    _configured_adapter(monkeypatch, adapter)
+    _default_runtime_page(monkeypatch, _ONE_NATIVE)
+
+    execution = execute_search("web", QUERY, limit=2).executions[0]
+
+    assert execution.result_count == 1
+    assert [hit.url for hit in execution.hits] == ["https://example.com/native-lead"]
+    assert execution.engine == "ddg_lite"
+    assert execution.attribution == ""
+    assert execution.error == ""
+    assert any(name.startswith("agent_reach_web_search") for name in execution.attempts)
+
+
+def test_duplicate_upstream_urls_cannot_inflate_eligibility(monkeypatch):
+    """Upstream repeats of one URL are one lead, never a larger replacement set."""
+    adapter = _FakeAdapter(
+        _reach_result(
+            [
+                _item("https://example.com/native-lead", title="Native lead upstream"),
+                _item("https://example.com/native-lead", title="Native lead upstream again"),
+            ]
+        )
+    )
+    _configured_adapter(monkeypatch, adapter)
+    _default_runtime_page(monkeypatch, _ONE_NATIVE)
+
+    execution = execute_search("web", QUERY, limit=2).executions[0]
+
+    assert execution.result_count == 1
+    assert [hit.url for hit in execution.hits] == ["https://example.com/native-lead"]
+    assert execution.engine == "ddg_lite"
+    assert execution.attribution == ""
 
 
 @pytest.mark.parametrize(

@@ -1,0 +1,129 @@
+{
+  "scope": "t_d73a39b6 final two-case matched smoke; no overall ranking",
+  "method": {
+    "wall_timeout_seconds_each_side": 20,
+    "isolation": "environment-only, not filesystem security sandbox",
+    "auth": false,
+    "quota": false,
+    "asr_disabled": true,
+    "warm": "immediate same-home reuse; NOT P2 thirty-minute observation"
+  },
+  "paired_observations": [
+    {
+      "phase": "cold",
+      "generated_at": "2026-10-28T17:32:46Z",
+      "case": "docs-python-typing",
+      "verdict": "both_evidence",
+      "sides": {
+        "trailhead": {
+          "tool": "trailhead",
+          "status": "ok",
+          "duration_ms": 563,
+          "cleaned_chars": 20004,
+          "backend": "docs",
+          "error": ""
+        },
+        "agent_reach": {
+          "tool": "agent_reach",
+          "status": "ok",
+          "duration_ms": 3186,
+          "cleaned_chars": 172752,
+          "backend": "jina",
+          "error": ""
+        }
+      }
+    },
+    {
+      "phase": "cold",
+      "generated_at": "2026-10-28T17:32:46Z",
+      "case": "forum-v2ex-topic",
+      "verdict": "both_evidence",
+      "sides": {
+        "trailhead": {
+          "tool": "trailhead",
+          "status": "ok",
+          "duration_ms": 665,
+          "cleaned_chars": 13718,
+          "backend": "forum",
+          "error": ""
+        },
+        "agent_reach": {
+          "tool": "agent_reach",
+          "status": "ok",
+          "duration_ms": 1156,
+          "cleaned_chars": 15093,
+          "backend": "v2ex-api",
+          "error": ""
+        }
+      }
+    },
+    {
+      "phase": "warm",
+      "generated_at": "2026-10-28T17:32:49Z",
+      "case": "docs-python-typing",
+      "verdict": "both_evidence",
+      "sides": {
+        "trailhead": {
+          "tool": "trailhead",
+          "status": "ok",
+          "duration_ms": 481,
+          "cleaned_chars": 20004,
+          "backend": "docs",
+          "error": ""
+        },
+        "agent_reach": {
+          "tool": "agent_reach",
+          "status": "ok",
+          "duration_ms": 1241,
+          "cleaned_chars": 172752,
+          "backend": "jina",
+          "error": ""
+        }
+      }
+    },
+    {
+      "phase": "warm",
+      "generated_at": "2026-10-28T17:32:49Z",
+      "case": "forum-v2ex-topic",
+      "verdict": "both_evidence",
+      "sides": {
+        "trailhead": {
+          "tool": "trailhead",
+          "status": "ok",
+          "duration_ms": 390,
+          "cleaned_chars": 13718,
+          "backend": "forum",
+          "error": ""
+        },
+        "agent_reach": {
+          "tool": "agent_reach",
+          "status": "ok",
+          "duration_ms": 1001,
+          "cleaned_chars": 15093,
+          "backend": "v2ex-api",
+          "error": ""
+        }
+      }
+    }
+  ],
+  "postfix_tiktok": {
+    "argv": [
+      "search",
+      "tiktok",
+      "Python 类型 协议 Protocol",
+      "--execute",
+      "--limit",
+      "3",
+      "--no-extract",
+      "--format",
+      "json"
+    ],
+    "exit_code": 0,
+    "duration_s": 1.263,
+    "urls": [
+      "https://www.tiktok.com/@jonjon.jpeg/"
+    ],
+    "stderr": "",
+    "note": "Clean environment public native discovery; zero surviving asset URLs is not proof of useful results."
+  }
+}

@@ -283,6 +283,9 @@ def _tiktok_result_url(url: str) -> bool:
     if host.startswith("shop."):
         # TikTok Shop listings are commercial pages, not creator content.
         return False
+    if path.lstrip("/").split("/")[:2] == ["api", "img"]:
+        # Raw image bytes, not content; site: search surfaced these as leads.
+        return False
     return "tiktok.com" in host and not path.startswith(("/about", "/legal", "/login"))
 
 
@@ -1280,6 +1283,11 @@ def execute_backend_chain(
                 platform_key = {"tavily_tiktok": "tiktok", "tavily_instagram": "instagram"}.get(backend.name)
                 if platform_key:
                     hits = _tavily_search(platform_key, query, limit, timeout=15)
+                    # The paid path returns raw API URLs, so it must pass the
+                    # same lane validator as every parsed backend.
+                    hits = tuple(
+                        hit for hit in hits if backend.accept_url is None or backend.accept_url(hit.url)
+                    )[:limit]
                     if hits:
                         return BackendResult(
                             hits=hits,

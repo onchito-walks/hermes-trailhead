@@ -627,8 +627,11 @@ def execute_action(
     )
     # A thin native result (some hits, but under the requested budget) gets one
     # whole-result replacement attempt.  It is taken only when upstream returns
-    # strictly more valid hits, so attribution stays homogeneous.  A chain that
-    # already spent its one fallback chance on a zero-hit run is left alone.
+    # more distinct URLs *and* retains every native URL: a larger unrelated set
+    # must never displace evidence the native chain already found, and no mixed
+    # provenance is assembled.  Counts use distinct URLs, so duplicate upstream
+    # leads cannot inflate eligibility.  A chain that already spent its one
+    # fallback chance on a zero-hit run is left alone.
     if (
         trusted_runtime
         and 0 < len(backend_result.hits) < limit
@@ -641,8 +644,12 @@ def execute_action(
             attempts = backend_result.attempts + [
                 name for name in fallback.attempts if name not in backend_result.attempts
             ]
-            kept = fallback if len(fallback.hits) > len(backend_result.hits) else backend_result
-            backend_result = replace(kept, attempts=attempts)
+            native_urls = {hit.url for hit in backend_result.hits}
+            upstream_urls = {hit.url for hit in fallback.hits}
+            supersedes = len(upstream_urls) > len(native_urls) and native_urls <= upstream_urls
+            backend_result = replace(
+                fallback if supersedes else backend_result, attempts=attempts
+            )
     status: ExecutionStatus = "ok" if backend_result.hits else ("gap" if backend_result.saw_response else "blocked")
     error = "" if backend_result.hits else backend_result.error
     # Ordering is a caller preference over URL evidence only.  With no criteria

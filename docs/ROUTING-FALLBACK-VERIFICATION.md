@@ -1,5 +1,10 @@
 # Maintained fallback in normal research — 2026-10-28
 
+**Follow-up:** [hardening sweep](HARDENING-ACCEPTANCE-SWEEP.md) tightens the
+historical count-only rule below: upstream must return more **distinct** URLs
+and retain **every native URL** before whole-result replacement. The original
+live observation below is historical, not a rerun of that stricter policy.
+
 Scope: `t_1738a820`. The stale brief's disconnected-backend assertion is already
 superseded by the existing public fallback in `backends.py` and its default-runtime
 regression. This increment closes the remaining **thin native result** case in

@@ -1,0 +1,666 @@
+{
+  "reference": "72fcc2aabe5370075103c869613df00842b2d846",
+  "worktree_note": "Base HEAD only, not a clean committed snapshot: superset-only search.py hardening and its tests were already modified. TikTok asset validation had not yet been fixed. This original observation is not post-fix success evidence.",
+  "generated_at": "2026-10-28T17:27:41+00:00",
+  "scope": "QA agent-session integration exercise; read-only CLI runs; no code changes",
+  "method": "Fresh live CLI invocations through subprocess in a clean environment (env -i equivalent: allowlisted PATH/HOME/XDG dirs only, no proxy or credential variables, TRAILHEAD_DISABLE_ASR=1). Every call ran in its own session with an outer 25s process-group SIGKILL deadline. Results are ordered leads, not relevance or completeness proof; language/source fields are URL-marker assertions reported by the CLI, not content language detection.",
+  "conditions": {
+    "transport": "subprocess CLI (python3 -m hermes_trailhead), no in-process imports",
+    "home": "throwaway temp dirs for HOME and XDG_CONFIG_HOME per batch",
+    "credential_env": "not set (allowlisted env only)",
+    "proxy_env": "not set",
+    "asr": "TRAILHEAD_DISABLE_ASR=1 (veto) on every call",
+    "auth_consent": false,
+    "quota_consent": false,
+    "account_or_login_flags": "none used",
+    "per_call_deadline_s": 25,
+    "limit": 3,
+    "extraction": "disabled (--no-extract) for searches",
+    "preferred_source": "docs.python.org",
+    "preferred_languages": [
+      "en",
+      "zh-cn",
+      "es"
+    ],
+    "queries": [
+      "Python typing Protocol",
+      "Python 类型 协议 Protocol",
+      "Python protocolo tipado estructural"
+    ],
+    "relevance_claimed": false
+  },
+  "counts": {
+    "calls": 13,
+    "calls_failed": 1,
+    "search_queries": 3,
+    "search_hits": 9,
+    "language_matched_hits": 5,
+    "source_matched_hits": 0
+  },
+  "calls": [
+    {
+      "id": "help_main",
+      "purpose": "top-level CLI surface",
+      "command": "-m hermes_trailhead --help",
+      "exit_status": 0,
+      "timed_out_killed": false,
+      "duration_s": 0.15,
+      "stdout_bytes": 2506,
+      "stderr_tail": "",
+      "error": null
+    },
+    {
+      "id": "help_search",
+      "purpose": "search flags incl. prefer-language/prefer-source/limit/no-extract",
+      "command": "-m hermes_trailhead search --help",
+      "exit_status": 0,
+      "timed_out_killed": false,
+      "duration_s": 0.16,
+      "stdout_bytes": 2199,
+      "stderr_tail": "",
+      "error": null
+    },
+    {
+      "id": "help_read",
+      "purpose": "native read flags and exit contract",
+      "command": "-m hermes_trailhead read --help",
+      "exit_status": 0,
+      "timed_out_killed": false,
+      "duration_s": 0.16,
+      "stdout_bytes": 1811,
+      "stderr_tail": "",
+      "error": null
+    },
+    {
+      "id": "help_reach",
+      "purpose": "reach inventory flags incl. --agent-reach and ASR veto",
+      "command": "-m hermes_trailhead reach --help",
+      "exit_status": 0,
+      "timed_out_killed": false,
+      "duration_s": 0.15,
+      "stdout_bytes": 1387,
+      "stderr_tail": "",
+      "error": null
+    },
+    {
+      "id": "reach_inventory_pinned",
+      "purpose": "Agent Reach inventory via explicit pinned executable",
+      "command": "-m hermes_trailhead reach --agent-reach <scratch>/bin/agent-reach --format json --timeout 10",
+      "exit_status": 0,
+      "timed_out_killed": false,
+      "duration_s": 0.38,
+      "stdout_bytes": 36761,
+      "stderr_tail": "",
+      "error": null
+    },
+    {
+      "id": "read_native_es_asyncio",
+      "purpose": "native read of Spanish asyncio docs page",
+      "command": "-m hermes_trailhead read https://docs.python.org/es/3/library/asyncio.html --format json --max-chars 1200",
+      "exit_status": 0,
+      "timed_out_killed": false,
+      "duration_s": 0.18,
+      "stdout_bytes": 3413,
+      "stderr_tail": "",
+      "error": null
+    },
+    {
+      "id": "web_en",
+      "purpose": "multilingual discovery search, web lane, limit 3, no-extract",
+      "command": "-m hermes_trailhead search web Python typing Protocol --execute --limit 3 --no-extract --format json --prefer-source docs.python.org --prefer-language en",
+      "exit_status": 0,
+      "timed_out_killed": false,
+      "duration_s": 0.95,
+      "stdout_bytes": 3326,
+      "stderr_tail": "",
+      "error": null
+    },
+    {
+      "id": "web_zh",
+      "purpose": "multilingual discovery search, web lane, limit 3, no-extract",
+      "command": "-m hermes_trailhead search web Python 类型 协议 Protocol --execute --limit 3 --no-extract --format json --prefer-source docs.python.org --prefer-language zh-cn",
+      "exit_status": 0,
+      "timed_out_killed": false,
+      "duration_s": 0.59,
+      "stdout_bytes": 4520,
+      "stderr_tail": "",
+      "error": null
+    },
+    {
+      "id": "web_es",
+      "purpose": "multilingual discovery search, web lane, limit 3, no-extract",
+      "command": "-m hermes_trailhead search web Python protocolo tipado estructural --execute --limit 3 --no-extract --format json --prefer-source docs.python.org --prefer-language es",
+      "exit_status": 0,
+      "timed_out_killed": false,
+      "duration_s": 2.11,
+      "stdout_bytes": 3333,
+      "stderr_tail": "",
+      "error": null
+    },
+    {
+      "id": "search_en",
+      "purpose": "wide fan-out search, limit 3, no-extract (context)",
+      "command": "-m hermes_trailhead search all Python typing Protocol --execute --limit 3 --no-extract --format json --prefer-source docs.python.org --prefer-language en",
+      "exit_status": 0,
+      "timed_out_killed": false,
+      "duration_s": 6.23,
+      "stdout_bytes": 21319,
+      "stderr_tail": "",
+      "error": null
+    },
+    {
+      "id": "search_zh",
+      "purpose": "wide fan-out search, limit 3, no-extract (context)",
+      "command": "-m hermes_trailhead search all Python 类型 协议 Protocol --execute --limit 3 --no-extract --format json --prefer-source docs.python.org --prefer-language zh-cn",
+      "exit_status": 0,
+      "timed_out_killed": false,
+      "duration_s": 9.94,
+      "stdout_bytes": 22834,
+      "stderr_tail": "",
+      "error": null
+    },
+    {
+      "id": "search_es",
+      "purpose": "wide fan-out search, limit 3, no-extract (killed at deadline)",
+      "command": "-m hermes_trailhead search all Python protocolo tipado estructural --execute --limit 3 --no-extract --format json --prefer-source docs.python.org --prefer-language es",
+      "exit_status": -9,
+      "timed_out_killed": true,
+      "duration_s": 25.03,
+      "stdout_bytes": 0,
+      "stderr_tail": "",
+      "error": "deadline_kill"
+    },
+    {
+      "id": "all_es_retry",
+      "purpose": "retry of the deadline-killed wide fan-out search",
+      "command": "-m hermes_trailhead search all Python protocolo tipado estructural --execute --limit 3 --no-extract --format json --prefer-source docs.python.org --prefer-language es",
+      "exit_status": 0,
+      "timed_out_killed": false,
+      "duration_s": 5.19,
+      "stdout_bytes": 22524,
+      "stderr_tail": "",
+      "error": null
+    }
+  ],
+  "help_surface": {
+    "top_level_commands": [
+      "doctor",
+      "queue",
+      "plan",
+      "capability-radar",
+      "agent-brief",
+      "routes",
+      "route",
+      "reliability",
+      "benchmark",
+      "gauntlet",
+      "score",
+      "reach",
+      "reach-call",
+      "compare",
+      "search",
+      "report",
+      "read"
+    ],
+    "search_order_flags": [
+      "--prefer-language TAG",
+      "--prefer-source HOST (repeatable)"
+    ],
+    "read_exit_contract": "0 usable evidence, 1 blocked/failed/unusable, 2 invalid args"
+  },
+  "reach_inventory": {
+    "engine": "agent-reach",
+    "executable": "explicit pinned path, basename 'agent-reach' (dispatch reason: explicit_ok)",
+    "found": true,
+    "public_only": true,
+    "quota_consuming_allowed": false,
+    "authenticated_allowed": false,
+    "asr_disabled": true,
+    "asr_vetoed": true,
+    "credential_source": "upstream-home-config",
+    "capabilities_returned": 40,
+    "gate_counts": {
+      "consent": 12,
+      "public": 26,
+      "quota": 2
+    },
+    "quota_consuming_actions": [
+      "xiaoyuzhou transcribe",
+      "youtube transcribe"
+    ],
+    "parity_counts": {
+      "channels": 14,
+      "actions": 40,
+      "surfaced": 40,
+      "surfaced_ratio": 1.0,
+      "native": 8,
+      "native_partial": 4,
+      "upstream_only": 28,
+      "public": 26,
+      "gated_auth": 12,
+      "gated_quota": 2,
+      "live_verified": 5,
+      "fixture_only": 35
+    },
+    "parity_reference_version": "1.6.0",
+    "live_verified_actions": [
+      "github search",
+      "reddit search",
+      "bilibili hot",
+      "v2ex hot",
+      "xueqiu quote"
+    ],
+    "error": null
+  },
+  "native_read": {
+    "url": "https://docs.python.org/es/3/library/asyncio.html",
+    "extraction_status": "ok",
+    "ok": true,
+    "source_type": "docs",
+    "content_length": 7195,
+    "returned_chars": 1200,
+    "truncated": true,
+    "content_sha256": "3cc9e3de23babe36192f072711cc787044cfb7c43cf9608285c8225c19148e40",
+    "usable_evidence": true,
+    "relevance": "unknown",
+    "source_quality": "canonical",
+    "source_quality_score": 80,
+    "source_quality_label": "Documentation site",
+    "url_language_marker": "es",
+    "policy": {
+      "agent_reach": "not_used",
+      "asr": "disabled",
+      "hermes_web_extract": "disabled",
+      "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+    },
+    "asr": {
+      "enabled": false,
+      "env": "TRAILHEAD_DISABLE_ASR",
+      "note": "read never invokes paid ASR"
+    },
+    "body_retained": false
+  },
+  "searches": [
+    {
+      "query": "Python typing Protocol",
+      "source_family": "web",
+      "engine": "jina_duckduckgo",
+      "preferred_language": "en",
+      "preferred_sources": [
+        "docs.python.org"
+      ],
+      "status": "ok",
+      "result_count": 3,
+      "attempts": [
+        "ddg_lite",
+        "ddg_html",
+        "jina_duckduckgo"
+      ],
+      "hits": [
+        {
+          "url": "https://typing.python.org/en/latest/spec/protocol.html",
+          "host": "typing.python.org",
+          "snippet_chars": 274,
+          "url_language": "en",
+          "language_match": true,
+          "source_matches": []
+        },
+        {
+          "url": "https://typing.python.org/en/latest/reference/protocols.html",
+          "host": "typing.python.org",
+          "snippet_chars": 274,
+          "url_language": "en",
+          "language_match": true,
+          "source_matches": []
+        },
+        {
+          "url": "https://realpython.com/python-protocol/",
+          "host": "realpython.com",
+          "snippet_chars": 133,
+          "url_language": "",
+          "language_match": false,
+          "source_matches": []
+        }
+      ],
+      "language_match_count": 2,
+      "source_match_count": 0
+    },
+    {
+      "query": "Python 类型 协议 Protocol",
+      "source_family": "web",
+      "engine": "jina_duckduckgo",
+      "preferred_language": "zh-cn",
+      "preferred_sources": [
+        "docs.python.org"
+      ],
+      "status": "ok",
+      "result_count": 3,
+      "attempts": [
+        "ddg_lite",
+        "ddg_html",
+        "jina_duckduckgo"
+      ],
+      "hits": [
+        {
+          "url": "https://www.cnblogs.com/geekbruce/articles/18685953",
+          "host": "www.cnblogs.com",
+          "snippet_chars": 162,
+          "url_language": "",
+          "language_match": false,
+          "source_matches": []
+        },
+        {
+          "url": "https://geek-blogs.com/blog/python-protocol/",
+          "host": "geek-blogs.com",
+          "snippet_chars": 143,
+          "url_language": "",
+          "language_match": false,
+          "source_matches": []
+        },
+        {
+          "url": "https://typing.python.org/en/latest/spec/protocol.html",
+          "host": "typing.python.org",
+          "snippet_chars": 300,
+          "url_language": "en",
+          "language_match": false,
+          "source_matches": []
+        }
+      ],
+      "language_match_count": 0,
+      "source_match_count": 0
+    },
+    {
+      "query": "Python protocolo tipado estructural",
+      "source_family": "web",
+      "engine": "jina_duckduckgo",
+      "preferred_language": "es",
+      "preferred_sources": [
+        "docs.python.org"
+      ],
+      "status": "ok",
+      "result_count": 3,
+      "attempts": [
+        "ddg_lite",
+        "ddg_html",
+        "jina_duckduckgo"
+      ],
+      "hits": [
+        {
+          "url": "https://universopython.com/es/blog/typing-protocol-python",
+          "host": "universopython.com",
+          "snippet_chars": 122,
+          "url_language": "es",
+          "language_match": true,
+          "source_matches": []
+        },
+        {
+          "url": "https://python.codeguides.io/es/type-hints/protocols-and-structural-typing/",
+          "host": "python.codeguides.io",
+          "snippet_chars": 226,
+          "url_language": "es",
+          "language_match": true,
+          "source_matches": []
+        },
+        {
+          "url": "https://academify.com.br/es/protocol-python-tipado-estructural/",
+          "host": "academify.com.br",
+          "snippet_chars": 135,
+          "url_language": "es",
+          "language_match": true,
+          "source_matches": []
+        }
+      ],
+      "language_match_count": 3,
+      "source_match_count": 0
+    }
+  ],
+  "wide_fanout": [
+    {
+      "query": "Python typing Protocol",
+      "lanes": [
+        {
+          "platform": "web",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 2,
+          "source_match_count": 0,
+          "url_languages": [
+            "en"
+          ]
+        },
+        {
+          "platform": "x",
+          "status": "ok",
+          "result_count": 1,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "reddit",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "tiktok",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "instagram",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "youtube",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "github",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        }
+      ]
+    },
+    {
+      "query": "Python 类型 协议 Protocol",
+      "lanes": [
+        {
+          "platform": "web",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": [
+            "en"
+          ]
+        },
+        {
+          "platform": "x",
+          "status": "ok",
+          "result_count": 1,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "reddit",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "tiktok",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "instagram",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "youtube",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "github",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        }
+      ]
+    },
+    {
+      "query": "Python protocolo tipado estructural",
+      "note": "retry after a 25s process-group kill on the same command",
+      "lanes": [
+        {
+          "platform": "web",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 3,
+          "source_match_count": 0,
+          "url_languages": [
+            "es"
+          ]
+        },
+        {
+          "platform": "x",
+          "status": "ok",
+          "result_count": 1,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "reddit",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "tiktok",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "instagram",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "youtube",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        },
+        {
+          "platform": "github",
+          "status": "ok",
+          "result_count": 3,
+          "language_match_count": 0,
+          "source_match_count": 0,
+          "url_languages": []
+        }
+      ]
+    }
+  ],
+  "preference_outcomes": [
+    {
+      "query": "Python typing Protocol",
+      "preferred_language": "en",
+      "preferred_source": "docs.python.org",
+      "language_matches": "2/3",
+      "source_matches": "0/3",
+      "language_preference": "matched",
+      "source_preference": "unmatched"
+    },
+    {
+      "query": "Python 类型 协议 Protocol",
+      "preferred_language": "zh-cn",
+      "preferred_source": "docs.python.org",
+      "language_matches": "0/3",
+      "source_matches": "0/3",
+      "language_preference": "unmatched",
+      "source_preference": "unmatched"
+    },
+    {
+      "query": "Python protocolo tipado estructural",
+      "preferred_language": "es",
+      "preferred_source": "docs.python.org",
+      "language_matches": "3/3",
+      "source_matches": "0/3",
+      "language_preference": "matched",
+      "source_preference": "unmatched"
+    }
+  ],
+  "anomalies": [
+    {
+      "kind": "deadline_kill",
+      "call": "search_es",
+      "detail": "wide fan-out 'search all' for the es query exceeded the 25s process-group deadline and was SIGKILLed; identical command/settings retried 5.19s later returned 0 exit within 5.19s, so the kill looks like a transient slow lane, not a deterministic failure",
+      "retry_call": "all_es_retry"
+    },
+    {
+      "kind": "preference_unmatched",
+      "call": "search_en/search_zh/search_es",
+      "detail": "no hit on docs.python.org or its subdomains in any lane; typing.python.org (the actual spec host) is not a subdomain of docs.python.org so it never matched --prefer-source docs.python.org"
+    },
+    {
+      "kind": "preference_unmatched",
+      "call": "web_zh",
+      "detail": "0/3 hits advertised zh-cn in the URL; the two Chinese-looking results live on cnblogs.com and geek-blogs.com with no language path segment or host label, so --prefer-language zh-cn could not order them and left an /en/ hit in the set"
+    },
+    {
+      "kind": "metadata_gap",
+      "call": "search_* wide fan-out",
+      "detail": "per-execution JSON reports preferred_language as the requested tag and criteria_matches carries url_language='' for hosts with no marker; the payload never claims a match it did not detect"
+    },
+    {
+      "kind": "low_value_hits",
+      "call": "search_zh (all lanes)",
+      "detail": "tiktok lane returned 3 hits whose snippets are 6 chars and whose URLs are tiktok.com/api/img/ endpoints, i.e. image endpoints, not content"
+    }
+  ]
+}
