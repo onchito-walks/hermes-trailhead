@@ -1,0 +1,488 @@
+{
+  "task": "t_4c26b5a6",
+  "source_commit": "4eb2ba8e4e270b7a09088c67d71a89aaba56316a",
+  "scope_complete": true,
+  "whole_product_complete": false,
+  "reference": {
+    "project": "Panniantong/Agent-Reach",
+    "url": "https://github.com/Panniantong/Agent-Reach",
+    "version": "1.6.0",
+    "commit": "14c213405669414492bda0f8d52cc6531d062c45",
+    "channels": 14,
+    "actions": 40,
+    "measured": "2026-10-28"
+  },
+  "tests": {
+    "pytest_passed": 1134,
+    "pytest_seconds": 60.6,
+    "compile": "passed",
+    "diff_check": "passed"
+  },
+  "raw_report_sha256": {
+    "trailhead-final-compare-run289.json": "1b736716005df7d2342f9264f71ab477fab0d7179b0f1963a12eadf397f1184b",
+    "trailhead-final-sweep-run289.json": "f8afdc5e85ce44f015570bc5815741a74ed10f5870dd634a1bf1ed022548cf4b",
+    "trailhead-public-cli-verification-run289.json": "132b4c6373c4292dc788092f14c0fcaebff64967469ff5713966eab75e494705",
+    "trailhead-final-inventory-run289.json": "be54ffbb8249a5c185054a4cb8c6d41238869181cd4f022babbf37c628ebc015",
+    "trailhead-final-gates-run289.json": "e036a61b217d77c0d2ec5602538f0642a7cfddca90d70c5fe5ffd16ea1d70469"
+  },
+  "comparison": {
+    "generated_at": "2026-10-28T17:37:50Z",
+    "environment": {
+      "host_timeout_s": 20.0,
+      "wall_timeout_s": 20.0,
+      "wall_timeout_scope": "one wall-clock budget per case for each side; a side that exceeds it is killed (whole process group) and reported status=timeout",
+      "search_limit": 3,
+      "execution": {
+        "trailhead": "subprocess",
+        "agent_reach": "subprocess",
+        "trailhead_worker": "<repo>/.venv/bin/python -m hermes_trailhead.comparative --worker",
+        "note": "subprocess = killable process with the shared wall timeout; injected = test-only in-process runner, no wall timeout"
+      },
+      "isolation": {
+        "kind": "environment-only",
+        "temp_home": true,
+        "env_credentials_dropped": true,
+        "filesystem_sandbox": false,
+        "credential_proof": false,
+        "note": "both tools get a throwaway HOME/HERMES_HOME/TMPDIR plus an environment with credential-, session-, cookie-, and proxy-shaped variables removed; this is not a filesystem or OS sandbox \u2014 a process can still read absolute paths outside the sandbox, so it is not credential-proof"
+      },
+      "billable_asr": {
+        "disabled": true,
+        "env": "TRAILHEAD_DISABLE_ASR=1",
+        "note": "extract.py's existing switch; a public comparison never invokes paid/key-consuming transcription"
+      },
+      "sandbox": {
+        "root": "<scratch>",
+        "home": "<scratch>/home",
+        "agent_reach_home": "<scratch>/agent-reach-home",
+        "reused": false,
+        "run_kind": "cold",
+        "credentials_forwarded": false,
+        "session_vars_forwarded": false,
+        "filesystem_sandbox": false
+      },
+      "agent_reach": {
+        "requested": true,
+        "available": true,
+        "path": "<scratch>/bin/agent-reach",
+        "version": "1.6.0"
+      }
+    },
+    "summary": {
+      "cases_run": 3,
+      "cases_skipped_auth": 0,
+      "cases_auth_unauthenticated": 0,
+      "cases_both_exercised": 3,
+      "verdict_counts": {
+        "both_evidence": 2,
+        "neither_evidence": 1
+      },
+      "trailhead_evidence_cases": 2,
+      "agent_reach_evidence_cases": 2,
+      "trailhead_possibly_cached_cases": 0,
+      "aggregate_ranking": null,
+      "ranking_note": "per-case outcomes only; no aggregate winner is computed from case counts, content length, or scope-mixed cases"
+    },
+    "observations": [
+      {
+        "case": "github-requests-readme",
+        "verdict": "both_evidence",
+        "sides": {
+          "trailhead": {
+            "tool": "trailhead",
+            "status": "ok",
+            "duration_ms": 457,
+            "cleaned_chars": 3098,
+            "backend": "github"
+          },
+          "agent_reach": {
+            "tool": "agent_reach",
+            "status": "ok",
+            "duration_ms": 282,
+            "cleaned_chars": 2874,
+            "backend": "github-api"
+          }
+        }
+      },
+      {
+        "case": "forum-v2ex-topic",
+        "verdict": "both_evidence",
+        "sides": {
+          "trailhead": {
+            "tool": "trailhead",
+            "status": "ok",
+            "duration_ms": 308,
+            "cleaned_chars": 13718,
+            "backend": "forum"
+          },
+          "agent_reach": {
+            "tool": "agent_reach",
+            "status": "ok",
+            "duration_ms": 1042,
+            "cleaned_chars": 15093,
+            "backend": "v2ex-api"
+          }
+        }
+      },
+      {
+        "case": "video-youtube-transcript",
+        "verdict": "neither_evidence",
+        "sides": {
+          "trailhead": {
+            "tool": "trailhead",
+            "status": "blocked",
+            "duration_ms": 2443,
+            "cleaned_chars": 0,
+            "backend": "youtube"
+          },
+          "agent_reach": {
+            "tool": "agent_reach",
+            "status": "blocked",
+            "duration_ms": 1586,
+            "cleaned_chars": 0,
+            "backend": ""
+          }
+        }
+      }
+    ]
+  },
+  "sweep": {
+    "conditions": "fresh homes, sensitive env/proxies withheld; maintained fallback explicitly enabled; ASR veto; no auth/quota consent; not filesystem sandbox",
+    "elapsed_s": 30.636,
+    "counts": {
+      "families": 7,
+      "hits": 7,
+      "automated_usable": 4,
+      "blocked_extractions": 2
+    },
+    "rows": [
+      {
+        "platform": "web",
+        "engine": "jina_duckduckgo",
+        "hits": 1,
+        "attempts": [
+          "ddg_lite",
+          "ddg_html",
+          "jina_duckduckgo"
+        ],
+        "extracted": [
+          {
+            "status": "ok",
+            "chars": 10853,
+            "automated_usable": true,
+            "automated_relevance": "relevant",
+            "transcript_status": "not_applicable",
+            "visual_analysis_status": "not_applicable"
+          }
+        ]
+      },
+      {
+        "platform": "x",
+        "engine": "searxng_site_x",
+        "hits": 1,
+        "attempts": [
+          "searxng_site_x"
+        ],
+        "extracted": [
+          {
+            "status": "ok",
+            "chars": 441,
+            "automated_usable": false,
+            "automated_relevance": "unrelated",
+            "transcript_status": "not_applicable",
+            "visual_analysis_status": "not_applicable"
+          }
+        ]
+      },
+      {
+        "platform": "reddit",
+        "engine": "jina_duckduckgo_site_reddit",
+        "hits": 1,
+        "attempts": [
+          "social_search_reddit",
+          "redlib_local_search",
+          "ddg_lite_site_reddit",
+          "jina_duckduckgo_site_reddit"
+        ],
+        "extracted": [
+          {
+            "status": "ok",
+            "chars": 1530,
+            "automated_usable": true,
+            "automated_relevance": "partial",
+            "transcript_status": "not_applicable",
+            "visual_analysis_status": "not_applicable"
+          }
+        ]
+      },
+      {
+        "platform": "tiktok",
+        "engine": "jina_duckduckgo_site_tiktok",
+        "hits": 1,
+        "attempts": [
+          "ddg_lite_site_tiktok",
+          "jina_duckduckgo_site_tiktok"
+        ],
+        "extracted": [
+          {
+            "status": "ok",
+            "chars": 1545,
+            "automated_usable": true,
+            "automated_relevance": "relevant",
+            "transcript_status": "ok",
+            "visual_analysis_status": "not_attempted"
+          }
+        ]
+      },
+      {
+        "platform": "instagram",
+        "engine": "jina_duckduckgo_site_instagram",
+        "hits": 1,
+        "attempts": [
+          "ddg_lite_site_instagram",
+          "jina_duckduckgo_site_instagram"
+        ],
+        "extracted": [
+          {
+            "status": "blocked",
+            "chars": 0,
+            "automated_usable": false,
+            "automated_relevance": "relevant",
+            "transcript_status": "not_available",
+            "visual_analysis_status": "not_attempted"
+          }
+        ]
+      },
+      {
+        "platform": "youtube",
+        "engine": "yt_dlp_flat_search",
+        "hits": 1,
+        "attempts": [
+          "yt_dlp_flat_search"
+        ],
+        "extracted": [
+          {
+            "status": "blocked",
+            "chars": 0,
+            "automated_usable": false,
+            "automated_relevance": "relevant",
+            "transcript_status": "not_attempted",
+            "visual_analysis_status": "not_attempted"
+          }
+        ]
+      },
+      {
+        "platform": "github",
+        "engine": "github_api_search",
+        "hits": 1,
+        "attempts": [
+          "github_api_search"
+        ],
+        "extracted": [
+          {
+            "status": "ok",
+            "chars": 10853,
+            "automated_usable": true,
+            "automated_relevance": "relevant",
+            "transcript_status": "not_applicable",
+            "visual_analysis_status": "not_applicable"
+          }
+        ]
+      }
+    ],
+    "inspection": "Reddit result is Unity game navigation, not this product; X CAPTCHA off-query/unusable; two repository hits duplicate; automated usability is not human-reviewed relevance"
+  },
+  "surface": {
+    "discovered_pairs": 40,
+    "channels": 14,
+    "gates": {
+      "public": 26,
+      "consent": 12,
+      "quota": 2
+    },
+    "all_attributed_paths": true
+  },
+  "gate_checks": {
+    "checks": [
+      {
+        "channel": "youtube",
+        "flags": [],
+        "veto": false,
+        "returncode": 1,
+        "error": "quota_required",
+        "argv": [],
+        "sentinel_started": false
+      },
+      {
+        "channel": "youtube",
+        "flags": [
+          "--allow-authenticated"
+        ],
+        "veto": false,
+        "returncode": 1,
+        "error": "quota_required",
+        "argv": [],
+        "sentinel_started": false
+      },
+      {
+        "channel": "youtube",
+        "flags": [
+          "--allow-quota-consuming"
+        ],
+        "veto": false,
+        "returncode": 1,
+        "error": "auth_required",
+        "argv": [],
+        "sentinel_started": false
+      },
+      {
+        "channel": "youtube",
+        "flags": [
+          "--allow-authenticated",
+          "--allow-quota-consuming"
+        ],
+        "veto": true,
+        "returncode": 1,
+        "error": "asr_disabled",
+        "argv": [],
+        "sentinel_started": false
+      },
+      {
+        "channel": "xiaoyuzhou",
+        "flags": [],
+        "veto": false,
+        "returncode": 1,
+        "error": "quota_required",
+        "argv": [],
+        "sentinel_started": false
+      },
+      {
+        "channel": "xiaoyuzhou",
+        "flags": [
+          "--allow-authenticated"
+        ],
+        "veto": false,
+        "returncode": 1,
+        "error": "quota_required",
+        "argv": [],
+        "sentinel_started": false
+      },
+      {
+        "channel": "xiaoyuzhou",
+        "flags": [
+          "--allow-quota-consuming"
+        ],
+        "veto": false,
+        "returncode": 1,
+        "error": "auth_required",
+        "argv": [],
+        "sentinel_started": false
+      },
+      {
+        "channel": "xiaoyuzhou",
+        "flags": [
+          "--allow-authenticated",
+          "--allow-quota-consuming"
+        ],
+        "veto": true,
+        "returncode": 1,
+        "error": "asr_disabled",
+        "argv": [],
+        "sentinel_started": false
+      }
+    ],
+    "upstream_invocations": 0,
+    "quota_calls": 0,
+    "pair_inventory_verified": 40
+  },
+  "public_cli": [
+    {
+      "action": "v2ex hot",
+      "returncode": 0,
+      "items": 2,
+      "provenance": {
+        "engine": "agent-reach",
+        "native": false,
+        "attribution": "Agent Reach (third-party CLI), forwarded by Hermes Trailhead",
+        "schema_version": 1,
+        "route": "public_api",
+        "public_only": true,
+        "quota_consuming": false,
+        "requested": "v2ex hot",
+        "reported_backend": "v2ex-api",
+        "forced_backend": "v2ex-api",
+        "home_mode": "isolated-temp"
+      }
+    },
+    {
+      "action": "bilibili hot",
+      "returncode": 0,
+      "items": 2,
+      "provenance": {
+        "engine": "agent-reach",
+        "native": false,
+        "attribution": "Agent Reach (third-party CLI), forwarded by Hermes Trailhead",
+        "schema_version": 1,
+        "route": "public_api",
+        "public_only": true,
+        "quota_consuming": false,
+        "requested": "bilibili hot",
+        "reported_backend": "bilibili-api",
+        "forced_backend": "bilibili-api",
+        "home_mode": "isolated-temp"
+      }
+    },
+    {
+      "action": "xueqiu quote",
+      "returncode": 0,
+      "items": 1,
+      "provenance": {
+        "engine": "agent-reach",
+        "native": false,
+        "attribution": "Agent Reach (third-party CLI), forwarded by Hermes Trailhead",
+        "schema_version": 1,
+        "route": "public_api",
+        "public_only": true,
+        "quota_consuming": false,
+        "requested": "xueqiu quote",
+        "reported_backend": "tencent",
+        "forced_backend": "tencent",
+        "home_mode": "isolated-temp"
+      }
+    },
+    {
+      "action": "github search",
+      "returncode": 0,
+      "items": 1,
+      "provenance": {
+        "engine": "agent-reach",
+        "native": false,
+        "attribution": "Agent Reach (third-party CLI), forwarded by Hermes Trailhead",
+        "schema_version": 1,
+        "route": "public_api",
+        "public_only": true,
+        "quota_consuming": false,
+        "requested": "github search",
+        "reported_backend": "github-api",
+        "forced_backend": "github-api",
+        "home_mode": "isolated-temp"
+      }
+    }
+  ],
+  "global_auto_asr_criterion": "FAILED: legacy native fallback veto-only; followup t_c46f0f73",
+  "paid_calls": 0,
+  "account_changes": false,
+  "push_commands": 0,
+  "o_txt_sha256": "1d3e2496f6911856b8abce624935e7c7c045b0ec54b4d3f3f4734f09abf26595",
+  "followup": "t_c46f0f73",
+  "remaining": [
+    "native ASR explicit default consent",
+    "full live artifact matrix and continuation",
+    "human relevance",
+    "multi-day reliability",
+    "final-source resources",
+    "clean cross-OS onboarding",
+    "authenticated artifacts and lifecycle",
+    "live paid transcription content and bounds"
+  ]
+}
