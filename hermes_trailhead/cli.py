@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
 import sys
 from contextlib import contextmanager
 from typing import Iterable
+from typing import Sequence
 from typing import cast
 from urllib.parse import urlparse
 
@@ -33,7 +35,8 @@ from .formatters import (
 from .router import all_routes, route_for
 from .router import route_for_with_live, score_route_with_live_state
 from .search import PLATFORMS, Platform, execute_search, search_run, ExecutedSearchRun, SearchRun, SearchHit
-from .extract import extract_hits
+from .search import normalize_source
+from .extract import extract_hits, retrieval_scope
 from .scoring import score_hits, rank_hits, score_hit, ScoredHit
 from .reliability import record_all_checks, reliability_summary
 from .benchmarks import BENCHMARK_TASKS, run_all_benchmarks, run_benchmark, BenchmarkScore
@@ -78,9 +81,29 @@ def search_data(platform: str, query: str, *, live: bool = False) -> SearchRun:
     return search_run(cast(Platform, platform), query, live=live)
 
 
-def search_execute_data(platform: str, query: str, *, live: bool = False, limit: int = 5) -> ExecutedSearchRun:
-    """Execute a Hermes Trailhead search through loginless public search paths."""
-    return execute_search(cast(Platform, platform), query, live=live, limit=limit)
+def search_execute_data(
+    platform: str,
+    query: str,
+    *,
+    live: bool = False,
+    limit: int = 5,
+    preferred_language: str = "",
+    preferred_sources: Sequence[str] = (),
+) -> ExecutedSearchRun:
+    """Execute a Hermes Trailhead search through loginless public search paths.
+
+    ``preferred_language`` / ``preferred_sources`` are passed straight through to
+    :func:`hermes_trailhead.search.execute_search`.  They order hits; they never
+    filter them, and they do not add an engine call.
+    """
+    return execute_search(
+        cast(Platform, platform),
+        query,
+        live=live,
+        limit=limit,
+        preferred_language=preferred_language,
+        preferred_sources=preferred_sources,
+    )
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
@@ -578,9 +601,101 @@ def cmd_compare(args: argparse.Namespace) -> int:
     return 0
 
 
+# ── Explicit search preferences ───────────────────────────────────────────
+#
+# `--prefer-language` / `--prefer-source` are the CLI surface for the explicit
+# criteria implemented by search.order_hits_by_criteria.  They are ordering
+# hints only: every hit the engine returned is still returned, in a stable
+# order, and no extra engine call is made.  Matching is limited to what the
+# result URL literally advertises — a language segment (`/es/`,
+# `es.wikipedia.org`) or a domain — so anything this URL shape cannot express
+# changes nothing instead of being guessed at.
+
+#: A language tag is a two-letter primary subtag plus an optional 2-8 character
+#: subtag: ``es``, ``zh-cn``, ``pt-br``.  Other shapes are rejected rather than
+#: guessed at, because the URL matcher could never satisfy them.
+_PREFERRED_LANGUAGE_RE = re.compile(r"^[a-z]{2}(?:-[a-z0-9]{2,8})?$")
+
+#: A source hint must be a domain host: dot-separated labels.  Scheme, path,
+#: port and a leading ``www.`` are dropped before this check.
+_PREFERRED_SOURCE_RE = re.compile(
+    r"^(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+)
+
+#: Text output clips a hit snippet to the same bound the parser stores (300).
+_TEXT_SNIPPET_MAX_CHARS = 300
+
+
+def normalize_preferred_language(raw: str) -> str:
+    """Return the tag to send upstream, or raise ``ValueError`` if unusable."""
+    tag = (raw or "").strip().lower().replace("_", "-")
+    if not tag:
+        return ""
+    if not _PREFERRED_LANGUAGE_RE.fullmatch(tag):
+        raise ValueError(
+            f"invalid --prefer-language {raw!r}: expected a language tag like "
+            "'es' or 'zh-cn' (two-letter primary subtag, optional 2-8 character subtag)"
+        )
+    return tag
+
+
+def normalize_preferred_source(raw: str) -> str:
+    """Return a validated bare host for ``--prefer-source``."""
+    source = normalize_source(raw or "")
+    if not source or not _PREFERRED_SOURCE_RE.fullmatch(source):
+        raise ValueError(
+            f"invalid --prefer-source {raw!r}: expected a domain host like "
+            "'docs.python.org' (scheme, path, port and a leading 'www.' are dropped)"
+        )
+    return source
+
+
+def search_preferences(args: argparse.Namespace) -> tuple[str, tuple[str, ...]]:
+    """Read the caller's explicit criteria off ``args``.
+
+    Both attributes are optional: a Namespace built without them (older callers,
+    direct programmatic use) means "no preferences", exactly like the CLI before
+    the flags existed.
+    """
+    raw_language = getattr(args, "preferred_language", "") or ""
+    raw_sources = getattr(args, "preferred_sources", ()) or ()
+    if isinstance(raw_sources, str):
+        raw_sources = (raw_sources,)
+    language = normalize_preferred_language(raw_language)
+    sources: list[str] = []
+    for raw in raw_sources:
+        source = normalize_preferred_source(raw)
+        if source not in sources:
+            sources.append(source)
+    return language, tuple(sources)
+
+
+def _preference_summary(language: str, sources: tuple[str, ...]) -> str:
+    parts: list[str] = []
+    if language:
+        parts.append(f"language={language}")
+    if sources:
+        parts.append("sources=" + ",".join(sources))
+    return " ".join(parts)
+
+
 def cmd_search(args: argparse.Namespace) -> int:
+    try:
+        preferred_language, preferred_sources = search_preferences(args)
+    except ValueError as error:
+        # Usage error: refuse a value the URL matcher could never satisfy
+        # instead of quietly running an unranked search.
+        print(f"error: {error}", file=sys.stderr)
+        return 2
     if args.execute:
-        executed = search_execute_data(args.platform, args.query, live=args.live, limit=args.limit)
+        executed = search_execute_data(
+            args.platform,
+            args.query,
+            live=args.live,
+            limit=args.limit,
+            preferred_language=preferred_language,
+            preferred_sources=preferred_sources,
+        )
         if args.format == "json":
             result = executed.to_dict()
             # Extraction and scoring are default; use --no-extract / --no-score to skip.
@@ -630,9 +745,25 @@ def cmd_search(args: argparse.Namespace) -> int:
                 print(f"Caveat: {execution.caveat}")
             if execution.error:
                 print(f"Error: {execution.error}")
+            if preferred_language or preferred_sources:
+                print(f"Preferences: {_preference_summary(preferred_language, preferred_sources)}")
+                print("Ordering only: these criteria never remove a hit")
+                matches = getattr(execution, "criteria_matches", ()) or ()
+                if matches:
+                    satisfied = sum(
+                        1
+                        for record in matches
+                        if record.get("language_match") or record.get("source_matches")
+                    )
+                    print(f"Criteria matches: {satisfied}/{len(matches)} hits")
             for i, hit in enumerate(execution.hits, start=1):
                 print(f"  {i}. {hit.title[:100]}")
                 print(f"     {hit.url}")
+                # Only the snippet the engine actually returned is printed; an
+                # absent snippet stays absent rather than being synthesised.
+                snippet = (getattr(hit, "snippet", "") or "").strip()
+                if snippet:
+                    print(f"     snippet: {snippet[:_TEXT_SNIPPET_MAX_CHARS]}")
             # Show extracted evidence when available
             if do_extract and execution.hits:
                 print()
@@ -747,13 +878,34 @@ def cmd_report(args: argparse.Namespace) -> int:
 # (`extract_hits` → `extract_one`); it adds no new fetch connector.
 
 READ_SCHEMA_VERSION = 1
+READ_PAGINATION_SCHEMA_VERSION = 1
 READ_ASR_ENV = "TRAILHEAD_DISABLE_ASR"
 READ_TIMEOUT_DEFAULT = 15.0
 READ_TIMEOUT_MIN = 1.0
 READ_TIMEOUT_MAX = 120.0
 READ_MIN_USABLE_CHARS = 50
-# `extract._html_to_readable_text` caps clean text here and appends "...".
+# `extract._html_to_readable_text` caps clean text here by default and appends
+# "..." — the historical preview bound kept for `search`.
 _READ_READABLE_CAP_HINT = 20000
+#: Default window for `read`: the same 20k-ish output the command always had.
+READ_DEFAULT_MAX_CHARS = 20000
+#: Largest single response window a caller may request.  A bigger document is
+#: paged with successive offsets instead of one unbounded stdout payload.
+READ_MAX_WINDOW_CHARS = 200000
+#: Cleaned text retained for paging inside one `read` call.  Bounds memory and
+#: is disclosed in the payload; it is NOT the raw response byte bound.
+READ_RETRIEVAL_CHAR_CAP = 1_000_000
+#: Raw HTTP body read during one `read` call.  Distinct from the cleaned-text
+#: retrieval cap and from the output window; reported separately.
+READ_TRANSPORT_BYTE_CAP = 8 * 1024 * 1024
+#: Marker `_html_to_readable_text` appends when its cap cuts the document.
+_READ_CAP_MARKER = "..."
+#: Longest accepted decimal spelling for a paging argument.  A character
+#: position beyond this cannot index any document Trailhead can hold, and
+#: converting the text would trip Python's int-string digit ceiling
+#: (``ValueError``) instead of producing the documented invalid_offset /
+#: invalid_max_chars result.
+_READ_MAX_ARG_DIGITS = 18
 
 #: Fallback plan actually in force for this command.  Reported in the payload so
 #: a consumer never has to guess which tiers were allowed.
@@ -865,6 +1017,72 @@ def _strip_read_url_credentials(text: str) -> str:
     stripped = _READ_URL_USERINFO_RE.sub(r"\g<scheme>", text)
     return _READ_SCHEMELESS_USERINFO_RE.sub("", stripped)
 
+def _read_window_arg(raw, *, name: str, default: int | None) -> tuple[int | None, str]:
+    """Parse one non-negative character count from CLI/API input."""
+    if raw is None or (isinstance(raw, str) and not raw.strip()):
+        return default, ""
+    if isinstance(raw, bool):
+        return None, f"--{name} must be a non-negative integer number of characters"
+    if isinstance(raw, int):
+        value = raw
+    else:
+        text = str(raw).strip()
+        if not re.fullmatch(r"[0-9]+", text):
+            return None, f"--{name} must be a non-negative integer number of characters"
+        # Length of the *spelling*, not of its significant digits: ``int()``
+        # applies its digit ceiling to the characters it is given, so a
+        # zero-padded 5,000-digit offset raises even though the value is small.
+        if len(text) > _READ_MAX_ARG_DIGITS:
+            return None, (
+                f"--{name} must be a non-negative integer number of characters "
+                "(too large)"
+            )
+        value = int(text)
+    # ``bit_length`` rather than ``str(value)``: formatting a hostile integer
+    # is itself the overflow this guard exists to avoid, and a window index
+    # never needs more than 63 bits.
+    if value < 0 or value.bit_length() > 63:
+        return None, f"--{name} must be a non-negative integer number of characters"
+    return value, ""
+
+
+def _read_pagination_args(
+    offset_raw, max_chars_raw
+) -> tuple[int, int, bool, str, str]:
+    """Return ``(offset, max_chars, explicit_window, error_code, message)``."""
+    offset, error = _read_window_arg(offset_raw, name="offset", default=0)
+    if error:
+        return 0, READ_DEFAULT_MAX_CHARS, False, "invalid_offset", error
+    assert offset is not None
+
+    explicit = max_chars_raw is not None and not (
+        isinstance(max_chars_raw, str) and not max_chars_raw.strip()
+    )
+    if not explicit:
+        return offset, READ_DEFAULT_MAX_CHARS, False, "", ""
+
+    max_chars, error = _read_window_arg(
+        max_chars_raw, name="max-chars", default=None
+    )
+    if error:
+        return offset, READ_DEFAULT_MAX_CHARS, True, "invalid_max_chars", error
+    if max_chars is None or not (1 <= max_chars <= READ_MAX_WINDOW_CHARS):
+        return (
+            offset,
+            READ_DEFAULT_MAX_CHARS,
+            True,
+            "invalid_max_chars",
+            f"--max-chars must be between 1 and {READ_MAX_WINDOW_CHARS}",
+        )
+    return offset, max_chars, True, "", ""
+
+
+def _read_cap_marker_hit(content: str) -> bool:
+    """True when the extractor appended its end-of-text cap marker."""
+    return len(content) >= _READ_READABLE_CAP_HINT and content.rstrip().endswith(
+        "\n" + _READ_CAP_MARKER
+    )
+
 
 def _read_display_url(raw: str) -> str:
     """The input with any embedded credentials removed, for error output.
@@ -901,7 +1119,72 @@ def _read_display_url(raw: str) -> str:
     return _strip_read_url_credentials(url)
 
 
-def _read_base_payload(url: str, timeout_seconds: int, *, error_code: str = "", error_message: str = "") -> dict:
+def _document_sha256(content: str) -> str:
+    """Identity of the *available extracted document*, before any windowing.
+
+    Every window of one document carries the same digest, so a caller can
+    prove that two ``read`` invocations paged the same text.  The digest is
+    computed over the UTF-8 bytes of the cleaned extracted text — never the
+    raw HTML — and an empty document has no identity to report, so it stays
+    ``""`` rather than the digest of the empty string.
+
+    Scope caveat: each ``read`` refetches the URL, so the digest proves which
+    version a window came from, not that a later page still exists.  Offsets
+    are only safe to chain while consecutive windows agree on it.
+    """
+    if not content:
+        return ""
+    return hashlib.sha256(content.encode("utf-8", "surrogatepass")).hexdigest()
+
+
+def _read_pagination_block(offset: int = 0, max_chars: int = READ_DEFAULT_MAX_CHARS) -> dict:
+    """Empty pagination metadata with every key the success path will fill."""
+    return {
+        "schema_version": READ_PAGINATION_SCHEMA_VERSION,
+        "offset": int(offset),
+        "max_chars": int(max_chars),
+        "start": 0,
+        "end": 0,
+        "returned_chars": 0,
+        "next_offset": None,
+        "more": False,
+        "total_available_chars": 0,
+        # Identity of the document the offsets index into.  Empty on every
+        # path that never reached extraction: no text was read, so there is no
+        # identity to report.
+        "document_sha256": "",
+        "window_empty": True,
+        "retrieval_char_cap": READ_RETRIEVAL_CHAR_CAP,
+        "extractor_truncated": False,
+        "retrieval_capped": False,
+        "transport_byte_cap": READ_TRANSPORT_BYTE_CAP,
+        "transport_capped": False,
+        "note": "",
+    }
+
+
+def _read_completeness_block() -> dict:
+    """What "complete" does and does not mean for a read."""
+    return {
+        "extracted_document_complete": False,
+        "raw_page_complete": False,
+        "note": (
+            "content is readable text extracted from the page, not the raw HTML; "
+            "markup, scripts and repeated chrome are removed, so completeness "
+            "never means a byte-identical copy of the fetched page"
+        ),
+    }
+
+
+def _read_base_payload(
+    url: str,
+    timeout_seconds: int,
+    *,
+    error_code: str = "",
+    error_message: str = "",
+    offset: int = 0,
+    max_chars: int = READ_DEFAULT_MAX_CHARS,
+) -> dict:
     """The complete, stable JSON shape shared by every `read` outcome."""
     return {
         "command": "read",
@@ -922,6 +1205,8 @@ def _read_base_payload(url: str, timeout_seconds: int, *, error_code: str = "", 
         "truncated": False,
         "truncation_note": "",
         "content": "",
+        "pagination": _read_pagination_block(offset, max_chars),
+        "completeness": _read_completeness_block(),
         "error": (
             {"code": error_code, "message": error_message} if error_code else None
         ),
@@ -934,6 +1219,27 @@ def _read_base_payload(url: str, timeout_seconds: int, *, error_code: str = "", 
         },
         "video_evidence": None,
     }
+
+
+def _read_window_line(payload: dict) -> str:
+    """One line stating exactly which slice of the extracted document this is."""
+    page = payload.get("pagination") or {}
+    total = page.get("total_available_chars", 0)
+    if not total:
+        return "Window: no extracted text available"
+    line = (
+        f"Window: chars {page.get('start', 0)}-{page.get('end', 0)} of "
+        f"{total} available extracted"
+    )
+    if page.get("more") and page.get("next_offset") is not None:
+        line += f" | next offset: {page['next_offset']}"
+    else:
+        line += " | complete for the available extracted text"
+    if page.get("document_sha256"):
+        line += f" | document sha256: {page['document_sha256']}"
+    if page.get("note"):
+        line += f" | {page['note']}"
+    return line
 
 
 def _read_text(payload: dict) -> str:
@@ -958,10 +1264,21 @@ def _read_text(payload: dict) -> str:
             f"{payload['content_length']} measured"
             + (f" — {payload['truncation_note']}" if payload["truncated"] else "")
         ),
+        *(
+            []
+            if payload.get("error")
+            else [_read_window_line(payload)]
+        ),
         "ASR: disabled — read never invokes paid transcription",
         "Fallbacks: agent-reach not used | hermes web_extract disabled",
     ]
     reasons = payload["evidence"].get("reasons") or []
+    if payload["pagination"].get("document_sha256"):
+        lines.append(
+            "Document identity: pagination.document_sha256 hashes the full "
+            "available extracted text; each read refetches the URL, so compare "
+            "it before chaining offsets across calls"
+        )
     if reasons:
         lines.append("Reasons: " + "; ".join(reasons))
     video = payload.get("video_evidence")
@@ -994,6 +1311,11 @@ def _emit_read(payload: dict, fmt: str, *, exit_code: int) -> int:
 def cmd_read(args: argparse.Namespace) -> int:
     """Read one known public URL and report usable evidence or a stable error."""
     timeout_seconds = _read_timeout_seconds(args.timeout)
+    offset, max_chars, explicit_window, page_error_code, page_error = (
+        _read_pagination_args(
+            getattr(args, "offset", 0), getattr(args, "max_chars", None)
+        )
+    )
     url, url_error = _validate_read_url(args.url)
     if url_error:
         payload = _read_base_payload(
@@ -1001,6 +1323,8 @@ def cmd_read(args: argparse.Namespace) -> int:
             timeout_seconds,
             error_code="invalid_url",
             error_message=url_error,
+            offset=offset,
+            max_chars=max_chars,
         )
         return _emit_read(payload, args.format, exit_code=2)
     if not (READ_TIMEOUT_MIN <= args.timeout <= READ_TIMEOUT_MAX):
@@ -1012,11 +1336,28 @@ def cmd_read(args: argparse.Namespace) -> int:
                 f"--timeout must be between {READ_TIMEOUT_MIN:g} and "
                 f"{READ_TIMEOUT_MAX:g} seconds"
             ),
+            offset=offset,
+            max_chars=max_chars,
+        )
+        return _emit_read(payload, args.format, exit_code=2)
+    if page_error_code:
+        payload = _read_base_payload(
+            url,
+            timeout_seconds,
+            error_code=page_error_code,
+            error_message=page_error,
+            offset=offset,
+            max_chars=max_chars,
         )
         return _emit_read(payload, args.format, exit_code=2)
 
+    # Widen one extraction to the bounded document paging reads from.  Search
+    # keeps its 20k preview; the scope is restored before this call returns.
     try:
-        with _asr_forced_off():
+        with _asr_forced_off(), retrieval_scope(
+            char_limit=READ_RETRIEVAL_CHAR_CAP,
+            byte_limit=READ_TRANSPORT_BYTE_CAP,
+        ) as transport_state:
             extracted = extract_hits(
                 (SearchHit(title="", url=url),),
                 limit=1,
@@ -1029,6 +1370,8 @@ def cmd_read(args: argparse.Namespace) -> int:
             timeout_seconds,
             error_code="internal_error",
             error_message=f"{type(exc).__name__}: {exc}",
+            offset=offset,
+            max_chars=max_chars,
         )
         return _emit_read(payload, args.format, exit_code=1)
 
@@ -1038,6 +1381,8 @@ def cmd_read(args: argparse.Namespace) -> int:
             timeout_seconds,
             error_code="internal_error",
             error_message="extractor returned no result for the URL",
+            offset=offset,
+            max_chars=max_chars,
         )
         return _emit_read(payload, args.format, exit_code=1)
 
@@ -1048,25 +1393,92 @@ def cmd_read(args: argparse.Namespace) -> int:
 
     content = result.content or ""
     measured = int(result.content_length or 0)
-    returned = len(content)
-    cap_hit = len(content) >= _READ_READABLE_CAP_HINT and content.rstrip().endswith("...")
-    truncated = measured > returned or cap_hit
+    total_available = len(content)
+    cap_hit = _read_cap_marker_hit(content)
+    retrieval_capped = bool(
+        cap_hit
+        and (
+            measured > total_available
+            or total_available >= READ_RETRIEVAL_CHAR_CAP - 8
+        )
+    )
+    # A legacy extractor payload (cap already applied at the historical 20k
+    # bound, end marker included) is <= default window + marker, so the default
+    # read still returns it whole instead of dropping the marker.  Nothing
+    # beyond it exists, so this is not a hidden skip of document text.
+    legacy_capped_default = bool(
+        not explicit_window
+        and offset == 0
+        and cap_hit
+        and total_available <= _READ_READABLE_CAP_HINT + 8
+    )
+    if legacy_capped_default:
+        start, end = 0, total_available
+        next_offset, more = None, False
+    else:
+        start = min(offset, total_available)
+        end = min(start + max_chars, total_available)
+        next_offset = end if end < total_available else None
+        more = next_offset is not None
+    window = content[start:end]
+    returned = len(window)
+    byte_capped = bool(transport_state.get("byte_capped"))
+    route_char_capped = bool(transport_state.get("char_capped"))
+    transport_capped = byte_capped or route_char_capped
+    extractor_truncated = measured > total_available or (
+        cap_hit and not retrieval_capped
+    )
+    truncated = bool(
+        extractor_truncated or retrieval_capped or transport_capped or more
+    )
+
     truncation_notes: list[str] = []
-    if measured > returned:
+    if measured > total_available:
         truncation_notes.append(
-            f"extractor kept {returned} of {measured} measured characters"
+            f"extractor kept {total_available} of {measured} measured characters"
         )
     if cap_hit:
         truncation_notes.append(
             "extractor hit its readable-text cap; the upstream page may continue"
         )
+    if retrieval_capped:
+        truncation_notes.append(
+            f"document continued past the {READ_RETRIEVAL_CHAR_CAP}-character "
+            "retrieval cap; later text was not retrieved"
+        )
+    if byte_capped:
+        truncation_notes.append(
+            f"response body hit the {READ_TRANSPORT_BYTE_CAP}-byte transport "
+            "cap; later text was not read"
+        )
+    if route_char_capped:
+        truncation_notes.append(
+            "the fetching route returned more text than its route cap; later "
+            "text was not read"
+        )
+    if more:
+        truncation_notes.append(
+            f"window covers characters {start}-{end} of {total_available} "
+            f"available; more text is available at offset {next_offset}"
+        )
 
-    substantial = max(measured, returned) > READ_MIN_USABLE_CHARS and bool(content.strip())
+    window_note = ""
+    if offset > total_available:
+        window_note = (
+            f"offset {offset} is beyond the {total_available} available "
+            "extracted characters; the requested window is empty"
+        )
+    elif total_available == 0:
+        window_note = "no extracted text is available to page"
+
+    substantial = max(measured, total_available) > READ_MIN_USABLE_CHARS and bool(
+        content.strip()
+    )
     usable = bool(result.status == "ok" and substantial and assessment.usable)
     reasons = list(assessment.reasons)
     if result.status == "ok" and not substantial:
         reasons.append(
-            f"extracted text is {max(measured, returned)} chars; "
+            f"extracted text is {max(measured, total_available)} chars; "
             f"usable evidence needs more than {READ_MIN_USABLE_CHARS}"
         )
 
@@ -1095,7 +1507,9 @@ def cmd_read(args: argparse.Namespace) -> int:
 
     # The base payload already carries command/schema/asr/policy defaults, so
     # success and failure can never drift apart in shape.
-    payload = _read_base_payload(url, timeout_seconds)
+    payload = _read_base_payload(
+        url, timeout_seconds, offset=offset, max_chars=max_chars
+    )
     payload.update(
         {
             "ok": usable and not error_code,
@@ -1105,7 +1519,47 @@ def cmd_read(args: argparse.Namespace) -> int:
             "returned_chars": returned,
             "truncated": truncated,
             "truncation_note": "; ".join(truncation_notes),
-            "content": content,
+            "content": window,
+            "pagination": {
+                "schema_version": READ_PAGINATION_SCHEMA_VERSION,
+                "offset": offset,
+                "max_chars": max_chars,
+                "start": start,
+                "end": end,
+                "returned_chars": returned,
+                "next_offset": next_offset,
+                "more": more,
+                "total_available_chars": total_available,
+                "document_sha256": _document_sha256(content),
+                "window_empty": end <= start,
+                "retrieval_char_cap": READ_RETRIEVAL_CHAR_CAP,
+                "extractor_truncated": extractor_truncated,
+                "retrieval_capped": retrieval_capped,
+                "transport_byte_cap": READ_TRANSPORT_BYTE_CAP,
+                "transport_capped": transport_capped,
+                "note": window_note,
+            },
+            "completeness": {
+                # Truthful only for a window that starts at the beginning of
+                # the extracted document *and* lost nothing: a suffix window
+                # that happens to reach EOF (offset > 0, no further text) is a
+                # window, never a complete read.
+                "extracted_document_complete": bool(
+                    not truncated
+                    and start == 0
+                    and total_available > 0
+                    and end == total_available
+                ),
+                "raw_page_complete": False,
+                "note": (
+                    "content is readable text extracted from the page, not the "
+                    "raw HTML; markup, scripts and repeated chrome are removed, "
+                    "so completeness never means a byte-identical copy of the "
+                    "fetched page, and a later read may refetch a changed "
+                    "version — compare pagination.document_sha256 before "
+                    "chaining offsets across calls"
+                ),
+            },
             "error": (
                 {"code": error_code, "message": error_message} if error_code else None
             ),
@@ -1309,6 +1763,30 @@ def build_parser() -> argparse.ArgumentParser:
     search.add_argument("--extract-limit", type=int, default=None, help="Max hits to extract per platform (defaults to --limit)")
     search.add_argument("--score", action="store_true", default=True, help="Score and rank search hits by source quality (default: on)")
     search.add_argument("--no-score", action="store_false", dest="score", help="Skip scoring — return raw summaries only")
+    search.add_argument(
+        "--prefer-language",
+        dest="preferred_language",
+        metavar="TAG",
+        default="",
+        help=(
+            "Order hits whose URL advertises this language first (e.g. 'es', 'zh-cn'). "
+            "Matches a language path segment (/es/, /zh-cn/) or a language host label "
+            "(es.wikipedia.org) only. Ordering hint: no hit is filtered, and the "
+            "query text is never used to guess a language"
+        ),
+    )
+    search.add_argument(
+        "--prefer-source",
+        dest="preferred_sources",
+        metavar="HOST",
+        action="append",
+        default=[],
+        help=(
+            "Order hits on this domain or its subdomains first; repeatable "
+            "(e.g. --prefer-source docs.python.org --prefer-source pypi.org). "
+            "Ordering hint: no hit is filtered"
+        ),
+    )
     search.set_defaults(func=cmd_search)
 
     report = sub.add_parser(
@@ -1340,14 +1818,37 @@ def build_parser() -> argparse.ArgumentParser:
             "for this command (TRAILHEAD_DISABLE_ASR=1 for the extraction only) and "
             "the model-backed Hermes web_extract fallback is not used, so a read is "
             "deterministic and free. Success (usable evidence) exits 0; blocked, "
-            "failed or unusable extraction exits 1; an invalid URL or timeout exits 2. "
-            "The JSON payload always contains the same keys, with error.code one of "
-            "invalid_url, invalid_timeout, extraction_blocked, extraction_error, "
-            "extraction_not_attempted, unusable_evidence, internal_error."
+            "failed or unusable extraction exits 1; an invalid URL, timeout or "
+            "pagination argument exits 2. --offset/--max-chars page over the "
+            "extracted document and report start/end/total/next_offset without "
+            "claiming raw page completeness. The JSON payload always contains the "
+            "same keys, with error.code one of invalid_url, invalid_timeout, "
+            "invalid_offset, invalid_max_chars, extraction_blocked, "
+            "extraction_error, extraction_not_attempted, unusable_evidence, "
+            "internal_error."
         ),
     )
     read_parser.add_argument("url", help="Absolute http(s) URL to read")
     read_parser.add_argument("--format", choices=["text", "json"], default="text")
+    read_parser.add_argument(
+        "--offset",
+        default="0",
+        metavar="CHARS",
+        help=(
+            "Start offset in extracted characters, non-negative (default: 0). "
+            "Offsets page the same extracted document, not the raw page bytes."
+        ),
+    )
+    read_parser.add_argument(
+        "--max-chars",
+        default=None,
+        metavar="CHARS",
+        help=(
+            f"Characters returned in this window, 1-{READ_MAX_WINDOW_CHARS} "
+            f"(default: {READ_DEFAULT_MAX_CHARS}). Use pagination.next_offset "
+            "for the next window."
+        ),
+    )
     read_parser.add_argument(
         "--timeout",
         type=float,

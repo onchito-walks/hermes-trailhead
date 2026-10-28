@@ -7,6 +7,8 @@ what failed.  The product goal is to turn "5 links found" into "3 pages extracte
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import asdict, dataclass
 from html import unescape as _html_unescape
 from html.parser import HTMLParser
@@ -248,7 +250,7 @@ def _fetch_text(url: str, timeout: int = 15) -> str:
         },
     )
     with urllib.request.urlopen(req, timeout=timeout) as response:
-        raw = response.read()
+        raw = _bounded_body(response)
         # Try UTF-8, fall back to replacement
         return raw.decode("utf-8", errors="replace")
 
@@ -297,7 +299,7 @@ def _fetch_jina(url: str, timeout: int = 20) -> str:
         },
     )
     with urllib.request.urlopen(req, timeout=timeout) as response:
-        return response.read().decode("utf-8", errors="replace")
+        return _bounded_body(response).decode("utf-8", errors="replace")
 
 
 def _youtube_video_id(url: str) -> str:
@@ -1431,6 +1433,85 @@ _HTML_HREF_RE = re.compile(r"""\bhref\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)""", re.I)
 _LINKLESS_TARGET_PREFIXES = ("#", "javascript:", "mailto:", "tel:", "data:", "about:")
 _READABLE_TEXT_LIMIT = 20000
 
+# ── Bounded retrieval scope ─────────────────────────────────────────────
+# `search` extracts a short preview per hit and keeps the historical 20k cap.
+# `read --offset/--max-chars` must page over a *whole* extracted document, so
+# it widens the same extractor for the duration of one call instead of adding a
+# second fetch path.  Three separate bounds are involved and must never be
+# conflated:
+#
+#   * ``char_limit``   — cleaned text retained for paging (read: 1M chars).
+#   * ``byte_limit``   — raw HTTP body read from the transport (read: 8 MiB).
+#   * the CLI window   — how many characters one response returns.
+#
+# ``byte_limit`` defaults to ``None`` (unbounded) so search behaviour is
+# unchanged unless a caller explicitly opens a wider scope.
+_retrieval_char_limit: ContextVar[int] = ContextVar(
+    "trailhead_retrieval_char_limit", default=_READABLE_TEXT_LIMIT
+)
+_transport_byte_limit: ContextVar[int | None] = ContextVar(
+    "trailhead_transport_byte_limit", default=None
+)
+_transport_state: ContextVar[dict[str, bool] | None] = ContextVar(
+    "trailhead_transport_state", default=None
+)
+
+
+def retrieval_char_limit() -> int:
+    """Cleaned-text budget currently in force for ``extract_one``."""
+    return _retrieval_char_limit.get()
+
+
+def _mark_transport_capped(kind: str) -> None:
+    """Record that a transport bound cut the body (never silent)."""
+    state = _transport_state.get()
+    if state is not None:
+        state[kind] = True
+
+
+def _bounded_body(response) -> bytes:
+    """Read a response body, honouring the scope's byte budget.
+
+    Reads one byte past the cap so an over-budget body can be reported as
+    truncated instead of being presented as if the whole document arrived.
+    """
+    cap = _transport_byte_limit.get()
+    if cap is None:
+        return response.read()
+    raw = response.read(cap + 1)
+    if len(raw) > cap:
+        _mark_transport_capped("byte_capped")
+        return raw[:cap]
+    return raw
+
+
+def _route_char_cap() -> int:
+    """Per-route text cap: historical 50k preview, widened by a read scope."""
+    return max(50_000, retrieval_char_limit() + 4)
+
+
+@contextmanager
+def retrieval_scope(*, char_limit: int, byte_limit: int | None = None):
+    """Widen extraction to a bounded document for one ``read`` call.
+
+    Yields a mutable state dict (``byte_capped`` / ``char_capped``) so the
+    caller can disclose a transport bound without the fetchers returning a
+    wider tuple.  Context variables are restored exactly, including the
+    unbounded default, so a paged read never changes later search extraction.
+    """
+    state = {"byte_capped": False, "char_capped": False}
+    char_token = _retrieval_char_limit.set(int(char_limit))
+    byte_token = _transport_byte_limit.set(
+        None if byte_limit is None else int(byte_limit)
+    )
+    state_token = _transport_state.set(state)
+    try:
+        yield state
+    finally:
+        _retrieval_char_limit.reset(char_token)
+        _transport_byte_limit.reset(byte_token)
+        _transport_state.reset(state_token)
+
 
 def _looks_like_extraction_error(text: str) -> bool:
     """True when ``text`` is the extractor's own failure message, not content."""
@@ -1516,7 +1597,13 @@ def _expand_anchor_targets(html: str, base_url: str = "") -> str:
     return _HTML_ANCHOR_RE.sub(replace, html or "")
 
 
-def _html_to_readable_text(html: str, base_url: str = "") -> str:
+def _html_to_readable_text(
+    html: str,
+    base_url: str = "",
+    *,
+    limit: int | None = None,
+    stats: dict | None = None,
+) -> str:
     """Convert server-rendered HTML into readable plain text.
 
     Scripts, styles, ``<head>`` and other non-visible bodies are dropped first
@@ -1528,6 +1615,12 @@ def _html_to_readable_text(html: str, base_url: str = "") -> str:
     ``base_url`` is the URL the HTML came from; when given, anchors keep their
     destination (``label — absolute URL``) so a listing page retains the
     identifiers a caller needs to act on what it just read.
+
+    ``limit`` defaults to :func:`retrieval_char_limit` (20k for search, wider
+    inside :func:`retrieval_scope`).  When ``stats`` is given it receives
+    ``total_chars`` (the full cleaned length *before* the cap) and ``capped``
+    (whether the cap actually cut text), so a caller can page honestly instead
+    of presenting a prefix as the whole document.
     """
     text = _HTML_COMMENT_RE.sub(" ", html or "")
     text = _HTML_SCRIPT_STYLE_RE.sub(" ", text)
@@ -1546,19 +1639,44 @@ def _html_to_readable_text(html: str, base_url: str = "") -> str:
         seen.add(line)
         lines.append(line)
     readable = "\n".join(lines).strip()
-    if len(readable) > _READABLE_TEXT_LIMIT:
-        readable = readable[:_READABLE_TEXT_LIMIT].rstrip() + "\n..."
+    effective_limit = retrieval_char_limit() if limit is None else int(limit)
+    capped = len(readable) > effective_limit
+    if stats is not None:
+        stats["total_chars"] = len(readable)
+        stats["capped"] = capped
+    if capped:
+        readable = readable[:effective_limit].rstrip() + "\n..."
     return readable
 
 
-def _as_readable_page_text(content: str, base_url: str = "") -> str:
-    """Readable text for an HTML page; already-clean text passes through."""
+def _as_readable_page_text(
+    content: str,
+    base_url: str = "",
+    *,
+    limit: int | None = None,
+    stats: dict | None = None,
+) -> str:
+    """Readable text for an HTML page; already-clean text is bounded too."""
     if not _looks_like_html(content):
-        return content or ""
-    return _html_to_readable_text(content, base_url=base_url)
+        text = content or ""
+        effective_limit = retrieval_char_limit() if limit is None else int(limit)
+        capped = len(text) > effective_limit
+        if stats is not None:
+            stats["total_chars"] = len(text)
+            stats["capped"] = capped
+        if capped:
+            return text[:effective_limit].rstrip() + "\n..."
+        return text
+    return _html_to_readable_text(content, base_url=base_url, limit=limit, stats=stats)
 
 
-def _readable_page_result(content: str, base_url: str = "") -> str:
+def _readable_page_result(
+    content: str,
+    base_url: str = "",
+    *,
+    limit: int | None = None,
+    stats: dict | None = None,
+) -> str:
     """Readable page text when ``content`` is usable evidence, else ``""``.
 
     Client-rendered shells are rejected on the *raw* payload (their markup is
@@ -1574,16 +1692,21 @@ def _readable_page_result(content: str, base_url: str = "") -> str:
     Usability is judged on the *source* text, without the link annotations
     added for a reader: appended destinations must never lift an interstitial
     over a length-based block/missing-page threshold.
+
+    ``stats`` receives the totals of the text actually returned (annotated
+    variant when a base URL is available).
     """
     if _is_html_shell(content):
         return ""
     if not _looks_like_html(content) and _is_interface_shell_text(content):
         return ""
-    text = _as_readable_page_text(content)
+    text = _as_readable_page_text(content, limit=limit, stats=stats)
     if not _is_usable_page_text(text):
         return ""
     if base_url and _looks_like_html(content):
-        annotated = _as_readable_page_text(content, base_url=base_url)
+        annotated = _as_readable_page_text(
+            content, base_url=base_url, limit=limit, stats=stats
+        )
         if annotated:
             return annotated
     return text
@@ -1667,6 +1790,15 @@ _PROVENANCE_ALWAYS_MAX_CHARS = 4000
 def _word_count(text: str) -> int:
     """Tokens that carry at least one alphanumeric character."""
     return sum(1 for w in (text or "").split() if any(c.isalnum() for c in w))
+
+
+def _cjk_char_count(text: str) -> int:
+    """Han/Kana/Hangul characters — the length signal for unspaced scripts."""
+    return sum(
+        1
+        for ch in text or ""
+        if "\u3040" <= ch <= "\u9fff" or "\uac00" <= ch <= "\ud7af"
+    )
 
 
 class _HtmlProvenanceParser(HTMLParser):
@@ -1892,10 +2024,27 @@ def _is_prose_block(block: str) -> bool:
     Counting characters where spaces are absent keeps short non-English prose
     from being read as a pile of control labels.
     """
-    cjk_chars = sum(1 for ch in block if "\u3040" <= ch <= "\u9fff" or "\uac00" <= ch <= "\ud7af")
+    cjk_chars = _cjk_char_count(block)
     if cjk_chars >= _PARAGRAPH_MIN_CJK_CHARS:
         return True
     return len(block.split()) >= _PARAGRAPH_MIN_WORDS
+
+
+def _looks_like_cjk_prose(text: str) -> bool:
+    """Positive evidence that a space-less body is prose, not UI labels.
+
+    A whitespace word count is meaningless for Han/Kana/Hangul text: a whole
+    Chinese document can be a handful of tokens.  The short-body shell rule
+    therefore needs its own language-neutral floor.  Two signals are required,
+    both absent from app chrome: enough CJK characters to be a document and at
+    least two sentence marks.  A Chinese menu, button row or loading pane has
+    neither, so this never rescues a shell — it only stops a real document from
+    being read as one.  Deliberately narrow: no other script heuristic is
+    widened without a reproduced false positive.
+    """
+    if _cjk_char_count(text) < _PARAGRAPH_MIN_CJK_CHARS * 2:
+        return False
+    return sum(1 for ch in text if ch in "。！？；") >= 2
 
 
 def _is_code_block(block: str) -> bool:
@@ -1964,6 +2113,12 @@ def _is_html_shell(content: str) -> bool:
     hundreds of paragraphs, and the page is perfectly readable.  A repetitive
     body is therefore only condemned when the DOM shows no prose blocks
     outside interface chrome.
+
+    The short-body gate is whitespace-word based, which says nothing about
+    scripts that write without spaces: a genuine Chinese/Japanese/Korean
+    document can be under 25 tokens.  Positive CJK prose evidence therefore
+    vetoes that gate; a CJK label/loading pane still has none and is still
+    rejected.
     """
     raw = content or ""
     low = raw.lower()
@@ -1971,10 +2126,16 @@ def _is_html_shell(content: str) -> bool:
         return False
     cleaned = _clean_html_text(raw)
     words = [w for w in cleaned.split() if any(c.isalnum() for c in w)]
-    if len(words) < 25:
+    if len(words) < 25 and not _looks_like_cjk_prose(cleaned):
         return True
     unique = len({w.lower() for w in words})
-    ratio = unique / len(words)
+    # A body can pass the CJK prose veto above while yielding *no* whitespace
+    # tokens: ``_cjk_char_count`` counts every Han/Kana/Hangul code point in the
+    # range, including ones ``str.isalnum`` rejects (unassigned code points,
+    # symbols).  Dividing there raised ZeroDivisionError out of shell
+    # classification.  With no tokens the word-based signals carry no evidence,
+    # so the DOM provenance below decides instead.
+    ratio = unique / len(words) if words else 0.0
     if ratio >= 0.2 and len(cleaned) > _PROVENANCE_ALWAYS_MAX_CHARS:
         return False
     provenance = _html_text_provenance(raw)
@@ -2564,14 +2725,19 @@ def _fetch_via_route(url: str, proxy, timeout: int = 15, *, opener_factory=None)
         else:
             opener = urllib.request.build_opener()
         resp = opener.open(urllib.request.Request(url, headers=_FETCH_HEADERS), timeout=timeout)
-        raw = resp.read()
+        raw = _bounded_body(resp)
         # Try UTF-8, fall back to latin-1
         try:
             text = raw.decode()
         except UnicodeDecodeError:
             text = raw.decode("latin-1")
+        cap = _route_char_cap()
         if text and len(text) > 200:
-            return text[:50000]
+            if len(text) > cap:
+                # Route-level preview bound; never let a clipped body look whole.
+                _mark_transport_capped("char_capped")
+                return text[:cap]
+            return text
     except Exception:
         pass
     return None
@@ -3112,10 +3278,11 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
             if content:
                 measured = len(content)
                 returned = content
-                if measured > _READABLE_TEXT_LIMIT:
+                effective_limit = retrieval_char_limit()
+                if measured > effective_limit:
                     # Keep the reported length honest: the caller sees that the
                     # page continued past what was returned.
-                    returned = content[:_READABLE_TEXT_LIMIT].rstrip() + "\n..."
+                    returned = content[:effective_limit].rstrip() + "\n..."
                 return ExtractionResult(
                     status="ok",
                     content=returned,
@@ -3614,12 +3781,13 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     # Try direct fetch first (fast, no subprocess).
     try:
         content = fetcher(url, timeout)
-        text = _readable_page_result(content, base_url=url)
+        stats: dict = {}
+        text = _readable_page_result(content, base_url=url, stats=stats)
         if text:
             return ExtractionResult(
                 status="ok",
                 content=text,
-                content_length=len(text),
+                content_length=stats.get("total_chars", len(text)),
                 source_type=source_type,
             )
         if _is_shell_payload(content):
@@ -3631,12 +3799,13 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     if fetch is None:  # Only try Jina when not testing
         try:
             content = _fetch_jina(url, timeout=timeout)
-            text = _readable_page_result(content, base_url=url)
+            stats: dict = {}
+            text = _readable_page_result(content, base_url=url, stats=stats)
             if text:
                 return ExtractionResult(
                     status="ok",
                     content=text,
-                    content_length=len(text),
+                    content_length=stats.get("total_chars", len(text)),
                     source_type=source_type,
                 )
             if _is_shell_payload(content):
@@ -3647,12 +3816,13 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     # Try Hermes native web_extract last (slow subprocess).
     try:
         content = (extract or _fetch_hermes_web_extract)(url, timeout)
-        text = _readable_page_result(content, base_url=url)
+        stats: dict = {}
+        text = _readable_page_result(content, base_url=url, stats=stats)
         if text:
             return ExtractionResult(
                 status="ok",
                 content=text,
-                content_length=len(text),
+                content_length=stats.get("total_chars", len(text)),
                 source_type=source_type,
             )
         if _is_shell_payload(content):

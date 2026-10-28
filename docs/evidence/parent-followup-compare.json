@@ -1,0 +1,255 @@
+{
+  "schema": "trailhead.comparative/2",
+  "generated_at": "2026-10-28T14:33:43Z",
+  "environment": {
+    "host_timeout_s": 20.0,
+    "wall_timeout_s": 20.0,
+    "wall_timeout_scope": "one wall-clock budget per case for each side; a side that exceeds it is killed (whole process group) and reported status=timeout",
+    "search_limit": 3,
+    "execution": {
+      "trailhead": "subprocess",
+      "agent_reach": "subprocess",
+      "trailhead_worker": "<repo>/.venv/bin/python -m hermes_trailhead.comparative --worker",
+      "note": "subprocess = killable process with the shared wall timeout; injected = test-only in-process runner, no wall timeout"
+    },
+    "isolation": {
+      "kind": "environment-only",
+      "temp_home": true,
+      "env_credentials_dropped": true,
+      "filesystem_sandbox": false,
+      "credential_proof": false,
+      "note": "both tools get a throwaway HOME/HERMES_HOME/TMPDIR plus an environment with credential-, session-, cookie-, and proxy-shaped variables removed; this is not a filesystem or OS sandbox \u2014 a process can still read absolute paths outside the sandbox, so it is not credential-proof"
+    },
+    "billable_asr": {
+      "disabled": true,
+      "env": "TRAILHEAD_DISABLE_ASR=1",
+      "note": "extract.py's existing switch; a public comparison never invokes paid/key-consuming transcription"
+    },
+    "sandbox": {
+      "root": "<scratch>",
+      "home": "<scratch>/home",
+      "agent_reach_home": "<scratch>/agent-reach-home",
+      "reused": false,
+      "run_kind": "cold",
+      "credentials_forwarded": false,
+      "session_vars_forwarded": false,
+      "filesystem_sandbox": false
+    },
+    "agent_reach": {
+      "requested": true,
+      "available": true,
+      "path": "<scratch>/bin/agent-reach",
+      "version": "1.6.0"
+    }
+  },
+  "methodology": {
+    "matched_outcomes": true,
+    "case_command_mapping": {
+      "trailhead_url": "killable worker subprocess (python -m hermes_trailhead.comparative --worker) -> extract.extract_one",
+      "trailhead_question": "killable worker subprocess -> search.execute_search(<case lane>) + extract.extract_hits",
+      "agent_reach": "killable subprocess: case.agent_reach_command, e.g. youtube subtitle / v2ex node"
+    },
+    "timeout_rule": "both sides get the same wall-clock budget per case and are killed with their process group when it expires; per-fetch overrides inside a tool cannot extend the case budget",
+    "evidence_rule": "evidence_ok requires status=ok and cleaned (markup-stripped) text at or above the case floor. A login/verification wall or a nav-shell page is rejected. A payload that is more than half markup is rejected only while its cleaned text stays under 4x the floor; above that threshold a long page is accepted on cleaned text length alone, which measures that readable text came back \u2014 not relevance or content quality. Transcript cases additionally require transcript material",
+    "aggregate_ranking": null,
+    "ranking_note": "No aggregate winner is computed. Cases differ in scope, corpus, and access path; per-case outcomes are the only output.",
+    "cache_rule": "each run uses a throwaway HOME/HERMES_HOME (cold); reuse a sandbox to measure a warm run, reported as run_kind=warm",
+    "limitations": [
+      "One host, one moment: network conditions differ between runs and hosts.",
+      "Cleaned length is not quality; a long page can beat a short canonical answer.",
+      "Markup-heavy verdicts apply only to short payloads; a long page with heavy markup is still 'evidence' if its cleaned text clears the floor.",
+      "Question cases search the same lane on both sides, but result ranking still differs by engine.",
+      "Agent Reach cases run through its own backends (gh, yt-dlp, exa, ...), so upstream drift affects only that side.",
+      "Both sides get a throwaway HOME/config and a stripped environment, which is not a filesystem or OS sandbox and not proof that a readable credential outside the sandbox was unused.",
+      "Auth-shaped cases are skipped by default; with --include-auth they are unauthenticated attempts in an empty HOME, not authenticated comparisons, and no session or consent config is used.",
+      "A blocked/errored side is a real outcome for this case, not proof of general failure.",
+      "Markup stripping is heuristic; a page whose readable text is embedded in scripts may be undercounted."
+    ]
+  },
+  "summary": {
+    "cases_run": 2,
+    "cases_skipped_auth": 0,
+    "cases_auth_unauthenticated": 0,
+    "cases_both_exercised": 2,
+    "verdict_counts": {
+      "both_evidence": 2
+    },
+    "trailhead_evidence_cases": 2,
+    "agent_reach_evidence_cases": 2,
+    "trailhead_possibly_cached_cases": 0,
+    "aggregate_ranking": null,
+    "ranking_note": "per-case outcomes only; no aggregate winner is computed from case counts, content length, or scope-mixed cases"
+  },
+  "cases": [
+    {
+      "case": {
+        "id": "github-requests-readme",
+        "kind": "url",
+        "family": "github",
+        "prompt": "https://github.com/psf/requests",
+        "agent_reach_command": [
+          "github",
+          "read",
+          "{prompt}"
+        ],
+        "evidence_requirement": "page_text",
+        "trailhead_lane": "web",
+        "requires_auth": false,
+        "auth_note": "",
+        "min_chars": 200,
+        "notes": "Repository page; both tools asked for the repository README/facts."
+      },
+      "auth": null,
+      "comparison": {
+        "case_id": "github-requests-readme",
+        "verdict": "both_evidence",
+        "reason": "both returned evidence for the requested outcome",
+        "trailhead": {
+          "tool": "trailhead",
+          "case_id": "github-requests-readme",
+          "status": "ok",
+          "duration_ms": 541,
+          "raw_chars": 3118,
+          "cleaned_chars": 3098,
+          "markup_ratio": 0.006,
+          "evidence_verdict": "evidence",
+          "evidence_note": "3098 cleaned chars",
+          "chrome_signals": 0,
+          "transcript_detected": false,
+          "item_count": 1,
+          "backend": "github",
+          "error": "",
+          "exit_code": 0,
+          "command": [
+            "<repo>/.venv/bin/python",
+            "-m",
+            "hermes_trailhead.comparative",
+            "--worker"
+          ],
+          "preview": "GitHub repository: psf/requests A simple, yet elegant, HTTP library. Homepage: https://requests.readthedocs.io/en/latest/ Stars: 54589 | Forks: 12106 | Open issues: 244 | Language: Python License: Apache License 2.0 README: # Requests [![Ve...",
+          "detail": "worker wall 541ms (in-process 424ms)",
+          "freshness": "fresh",
+          "exercised": true,
+          "evidence_ok": true,
+          "content_ok": true
+        },
+        "agent_reach": {
+          "tool": "agent_reach",
+          "case_id": "github-requests-readme",
+          "status": "ok",
+          "duration_ms": 286,
+          "raw_chars": 2894,
+          "cleaned_chars": 2874,
+          "markup_ratio": 0.007,
+          "evidence_verdict": "evidence",
+          "evidence_note": "2874 cleaned chars",
+          "chrome_signals": 0,
+          "transcript_detected": false,
+          "item_count": 1,
+          "backend": "github-api",
+          "error": "",
+          "exit_code": 0,
+          "command": [
+            "<scratch>/bin/agent-reach",
+            "github",
+            "read",
+            "https://github.com/psf/requests",
+            "--timeout",
+            "20"
+          ],
+          "preview": "# Requests [![Version](https://img.shields.io/pypi/v/requests.svg?maxAge=86400)](https://pypi.org/project/requests/) [![Supported Versions](https://img.shields.io/pypi/pyversions/requests.svg)](https://pypi.org/project/requests) [![Download...",
+          "detail": "1 of 1 items carried text",
+          "freshness": "fresh",
+          "exercised": true,
+          "evidence_ok": true,
+          "content_ok": true
+        }
+      }
+    },
+    {
+      "case": {
+        "id": "forum-v2ex-node",
+        "kind": "url",
+        "family": "v2ex",
+        "prompt": "https://www.v2ex.com/go/python",
+        "agent_reach_command": [
+          "v2ex",
+          "node",
+          "python"
+        ],
+        "evidence_requirement": "page_text",
+        "trailhead_lane": "web",
+        "requires_auth": false,
+        "auth_note": "",
+        "min_chars": 200,
+        "notes": "Node listing. Agent Reach is asked for `v2ex node python` (its node action), not `read`, which upstream rejects for node URLs. Trailhead reads the node page and the cleaned listing is assessed as evidence."
+      },
+      "auth": null,
+      "comparison": {
+        "case_id": "forum-v2ex-node",
+        "verdict": "both_evidence",
+        "reason": "both returned evidence for the requested outcome",
+        "trailhead": {
+          "tool": "trailhead",
+          "case_id": "forum-v2ex-node",
+          "status": "ok",
+          "duration_ms": 563,
+          "raw_chars": 5709,
+          "cleaned_chars": 5709,
+          "markup_ratio": 0.0,
+          "evidence_verdict": "evidence",
+          "evidence_note": "5709 cleaned chars",
+          "chrome_signals": 2,
+          "transcript_detected": false,
+          "item_count": 1,
+          "backend": "forum",
+          "error": "",
+          "exit_code": 0,
+          "command": [
+            "<repo>/.venv/bin/python",
+            "-m",
+            "hermes_trailhead.comparative",
+            "--worker"
+          ],
+          "preview": "Home \u2014 https://www.v2ex.com/ Sign Up \u2014 https://edge.v2ex.com/signup Sign In \u2014 https://edge.v2ex.com/signin \u8282\u70b9\u8ba2\u9605\u65b9\u5f0f RSS \u2014 https://www.v2ex.com/feed/python.xml JSON Feed \u2014 https://www.v2ex.com/feed/python.json \u4f7f\u7528 Planet \u8ba2\u9605\u8282\u70b9\u66f4\u65b0 \u2014 https://www.v2...",
+          "detail": "worker wall 563ms (in-process 446ms)",
+          "freshness": "fresh",
+          "exercised": true,
+          "evidence_ok": true,
+          "content_ok": true
+        },
+        "agent_reach": {
+          "tool": "agent_reach",
+          "case_id": "forum-v2ex-node",
+          "status": "ok",
+          "duration_ms": 394,
+          "raw_chars": 6600,
+          "cleaned_chars": 6204,
+          "markup_ratio": 0.06,
+          "evidence_verdict": "evidence",
+          "evidence_note": "6204 cleaned chars",
+          "chrome_signals": 0,
+          "transcript_detected": false,
+          "item_count": 10,
+          "backend": "v2ex-api",
+          "error": "",
+          "exit_code": 0,
+          "command": [
+            "<scratch>/bin/agent-reach",
+            "v2ex",
+            "node",
+            "python",
+            "--timeout",
+            "20"
+          ],
+          "preview": "``` def fetch_created_at(): conn = pymysql.connect( host=MYSQL_HOST, port=MYSQL_PORT, user=MYSQL_USER, password=MYSQL_PASSWORD, database=MYSQL_DATABASE, charset=\"utf8mb4\", ) try: with conn.cursor() as cur: cur.execute(\"SELECT created_at FRO...",
+          "detail": "10 of 10 items carried text",
+          "freshness": "fresh",
+          "exercised": true,
+          "evidence_ok": true,
+          "content_ok": true
+        }
+      }
+    }
+  ]
+}

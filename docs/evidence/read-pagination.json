@@ -1,0 +1,718 @@
+{
+  "artifact": "read-pagination",
+  "generated_at_utc": "2026-10-28T14:14:07.454389+00:00",
+  "policy": {
+    "no_credentials": true,
+    "no_paid_calls": true,
+    "no_publication": true,
+    "asr": "force-disabled for read",
+    "agent_reach": "not imported or invoked",
+    "hermes_web_extract": "disabled for read"
+  },
+  "contract": {
+    "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+    "language": "zh-Hans",
+    "frozen_markers": [
+      "类型提示",
+      "typing",
+      "泛型",
+      "协议",
+      "PEP 673"
+    ],
+    "window_default_chars": 20000,
+    "window_max_chars": 200000,
+    "retrieval_char_cap": 1000000,
+    "transport_byte_cap": 8388608,
+    "offset_unit": "characters of cleaned extracted text (not raw bytes)",
+    "raw_page_complete_claim": false
+  },
+  "live_read": {
+    "default_call": {
+      "command": "read",
+      "schema_version": 1,
+      "ok": true,
+      "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+      "source_type": "docs",
+      "timeout_seconds": 15,
+      "asr": {
+        "enabled": false,
+        "env": "TRAILHEAD_DISABLE_ASR",
+        "note": "read never invokes paid ASR"
+      },
+      "policy": {
+        "agent_reach": "not_used",
+        "asr": "disabled",
+        "hermes_web_extract": "disabled",
+        "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+      },
+      "extraction_status": "ok",
+      "content_length": 78047,
+      "returned_chars": 20000,
+      "truncated": true,
+      "truncation_note": "window covers characters 0-20000 of 78047 available; more text is available at offset 20000",
+      "pagination": {
+        "schema_version": 1,
+        "offset": 0,
+        "max_chars": 20000,
+        "start": 0,
+        "end": 20000,
+        "returned_chars": 20000,
+        "next_offset": 20000,
+        "more": true,
+        "total_available_chars": 78047,
+        "window_empty": false,
+        "retrieval_char_cap": 1000000,
+        "extractor_truncated": false,
+        "retrieval_capped": false,
+        "transport_byte_cap": 8388608,
+        "transport_capped": false,
+        "note": ""
+      },
+      "completeness": {
+        "extracted_document_complete": false,
+        "raw_page_complete": false,
+        "note": "content is readable text extracted from the page, not the raw HTML; markup, scripts and repeated chrome are removed, so completeness never means a byte-identical copy of the fetched page"
+      },
+      "error": null,
+      "evidence": {
+        "usable": true,
+        "transport_ok": true,
+        "relevance": "unknown",
+        "reasons": [],
+        "source_quality": {
+          "quality": "canonical",
+          "score": 80,
+          "reasons": [
+            "Documentation site",
+            "Successfully extracted (long content)"
+          ],
+          "label": "Documentation site"
+        }
+      },
+      "video_evidence": null,
+      "_invocation": {
+        "argv": [
+          "-m",
+          "hermes_trailhead",
+          "read",
+          "https://docs.python.org/zh-cn/3/library/typing.html",
+          "--format",
+          "json"
+        ],
+        "exit_code": 0,
+        "duration_s": 0.362
+      },
+      "content_chars": 20000,
+      "content_sha256": "5c764991dab177844ee09b0e7be89f628249bc77425e9ffa88b8cbccd3f3d2c3",
+      "content_preview": "主题\n自动\n明亮\n黑暗\n目录 — https://docs.python.org/zh-cn/3/contents.html\ntyping --- 对类型提示的支持\n有关 Python 类型系统的规范说明\n类型别名\nNewType\n标注可调用对象\n泛型（Generic）\n标注元组\n类对象的类型\n标注生成器和协程\n用户定义的泛型类型\nAny 类型\n名义子类型 vs 结构子类型\n模块内容\n特殊类型原语\n特殊类型\n特殊形式\n构造泛型类型与类型别名\n其他特殊指令\n协议\n与 IO 相关",
+      "content_tail_preview": "# 即使在子类中\ndef returns_eggs(self) -> \"Eggs\":\nreturn Eggs()\n更多细节请参见 PEP 673 — https://peps.python.org/pep-0673/。\ntyping.Typ"
+    },
+    "windows": [
+      {
+        "command": "read",
+        "schema_version": 1,
+        "ok": true,
+        "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+        "source_type": "docs",
+        "timeout_seconds": 15,
+        "asr": {
+          "enabled": false,
+          "env": "TRAILHEAD_DISABLE_ASR",
+          "note": "read never invokes paid ASR"
+        },
+        "policy": {
+          "agent_reach": "not_used",
+          "asr": "disabled",
+          "hermes_web_extract": "disabled",
+          "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+        },
+        "extraction_status": "ok",
+        "content_length": 78047,
+        "returned_chars": 20000,
+        "truncated": true,
+        "truncation_note": "window covers characters 0-20000 of 78047 available; more text is available at offset 20000",
+        "pagination": {
+          "schema_version": 1,
+          "offset": 0,
+          "max_chars": 20000,
+          "start": 0,
+          "end": 20000,
+          "returned_chars": 20000,
+          "next_offset": 20000,
+          "more": true,
+          "total_available_chars": 78047,
+          "window_empty": false,
+          "retrieval_char_cap": 1000000,
+          "extractor_truncated": false,
+          "retrieval_capped": false,
+          "transport_byte_cap": 8388608,
+          "transport_capped": false,
+          "note": ""
+        },
+        "completeness": {
+          "extracted_document_complete": false,
+          "raw_page_complete": false,
+          "note": "content is readable text extracted from the page, not the raw HTML; markup, scripts and repeated chrome are removed, so completeness never means a byte-identical copy of the fetched page"
+        },
+        "error": null,
+        "evidence": {
+          "usable": true,
+          "transport_ok": true,
+          "relevance": "unknown",
+          "reasons": [],
+          "source_quality": {
+            "quality": "canonical",
+            "score": 80,
+            "reasons": [
+              "Documentation site",
+              "Successfully extracted (long content)"
+            ],
+            "label": "Documentation site"
+          }
+        },
+        "video_evidence": null,
+        "_invocation": {
+          "argv": [
+            "-m",
+            "hermes_trailhead",
+            "read",
+            "https://docs.python.org/zh-cn/3/library/typing.html",
+            "--format",
+            "json",
+            "--offset",
+            "0",
+            "--max-chars",
+            "20000"
+          ],
+          "exit_code": 0,
+          "duration_s": 0.299
+        },
+        "content_chars": 20000,
+        "content_sha256": "5c764991dab177844ee09b0e7be89f628249bc77425e9ffa88b8cbccd3f3d2c3",
+        "content_preview": "主题\n自动\n明亮\n黑暗\n目录 — https://docs.python.org/zh-cn/3/contents.html\ntyping --- 对类型提示的支持\n有关 Python 类型系统的规范说明\n类型别名\nNewType\n标注可调用对象\n泛型（Generic）\n标注元组\n类对象的类型\n标注生成器和协程\n用户定义的泛型类型\nAny 类型\n名义子类型 vs 结构子类型\n模块内容\n特殊类型原语\n特殊类型\n特殊形式\n构造泛型类型与类型别名\n其他特殊指令\n协议\n与 IO 相关",
+        "content_tail_preview": "# 即使在子类中\ndef returns_eggs(self) -> \"Eggs\":\nreturn Eggs()\n更多细节请参见 PEP 673 — https://peps.python.org/pep-0673/。\ntyping.Typ"
+      },
+      {
+        "command": "read",
+        "schema_version": 1,
+        "ok": true,
+        "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+        "source_type": "docs",
+        "timeout_seconds": 15,
+        "asr": {
+          "enabled": false,
+          "env": "TRAILHEAD_DISABLE_ASR",
+          "note": "read never invokes paid ASR"
+        },
+        "policy": {
+          "agent_reach": "not_used",
+          "asr": "disabled",
+          "hermes_web_extract": "disabled",
+          "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+        },
+        "extraction_status": "ok",
+        "content_length": 78047,
+        "returned_chars": 20000,
+        "truncated": true,
+        "truncation_note": "window covers characters 20000-40000 of 78047 available; more text is available at offset 40000",
+        "pagination": {
+          "schema_version": 1,
+          "offset": 20000,
+          "max_chars": 20000,
+          "start": 20000,
+          "end": 40000,
+          "returned_chars": 20000,
+          "next_offset": 40000,
+          "more": true,
+          "total_available_chars": 78047,
+          "window_empty": false,
+          "retrieval_char_cap": 1000000,
+          "extractor_truncated": false,
+          "retrieval_capped": false,
+          "transport_byte_cap": 8388608,
+          "transport_capped": false,
+          "note": ""
+        },
+        "completeness": {
+          "extracted_document_complete": false,
+          "raw_page_complete": false,
+          "note": "content is readable text extracted from the page, not the raw HTML; markup, scripts and repeated chrome are removed, so completeness never means a byte-identical copy of the fetched page"
+        },
+        "error": null,
+        "evidence": {
+          "usable": true,
+          "transport_ok": true,
+          "relevance": "unknown",
+          "reasons": [],
+          "source_quality": {
+            "quality": "canonical",
+            "score": 80,
+            "reasons": [
+              "Documentation site",
+              "Successfully extracted (long content)"
+            ],
+            "label": "Documentation site"
+          }
+        },
+        "video_evidence": null,
+        "_invocation": {
+          "argv": [
+            "-m",
+            "hermes_trailhead",
+            "read",
+            "https://docs.python.org/zh-cn/3/library/typing.html",
+            "--format",
+            "json",
+            "--offset",
+            "20000",
+            "--max-chars",
+            "20000"
+          ],
+          "exit_code": 0,
+          "duration_s": 0.283
+        },
+        "content_chars": 20000,
+        "content_sha256": "63222002bc6a2408eb31f42f94ed7a03682ca2f8dc742cb77b6d37a0002a4d27",
+        "content_preview": "eAlias¶\n特殊注解，用于显式声明 类型别名.\nFactors: TypeAlias = list[int]\n在较早的 Python 版本上，TypeAlias 对注解使用前向引用的别名时特别有用，因为类型检查器可能很难将这些别名与正常的变量赋值区分开来：\nfrom typing import Generic, TypeAlias, TypeVar\nT = TypeVar(\"T\")\n# \"Box\" 还不存在,\n# 因此我们必须在 Python <3.12 版本中使用引号进",
+        "content_tail_preview": " 中使用时才有效，或者作为 Callable 的第一个参数，或者作为用户定义的泛型的参数。 参见 Generic 以了解更多关于泛型的信息。\n例如，为了给一个函数添加基本的日志记录，我们可以创建一个装饰器 add_logging 来记录函数"
+      },
+      {
+        "command": "read",
+        "schema_version": 1,
+        "ok": true,
+        "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+        "source_type": "docs",
+        "timeout_seconds": 15,
+        "asr": {
+          "enabled": false,
+          "env": "TRAILHEAD_DISABLE_ASR",
+          "note": "read never invokes paid ASR"
+        },
+        "policy": {
+          "agent_reach": "not_used",
+          "asr": "disabled",
+          "hermes_web_extract": "disabled",
+          "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+        },
+        "extraction_status": "ok",
+        "content_length": 78047,
+        "returned_chars": 20000,
+        "truncated": true,
+        "truncation_note": "window covers characters 40000-60000 of 78047 available; more text is available at offset 60000",
+        "pagination": {
+          "schema_version": 1,
+          "offset": 40000,
+          "max_chars": 20000,
+          "start": 40000,
+          "end": 60000,
+          "returned_chars": 20000,
+          "next_offset": 60000,
+          "more": true,
+          "total_available_chars": 78047,
+          "window_empty": false,
+          "retrieval_char_cap": 1000000,
+          "extractor_truncated": false,
+          "retrieval_capped": false,
+          "transport_byte_cap": 8388608,
+          "transport_capped": false,
+          "note": ""
+        },
+        "completeness": {
+          "extracted_document_complete": false,
+          "raw_page_complete": false,
+          "note": "content is readable text extracted from the page, not the raw HTML; markup, scripts and repeated chrome are removed, so completeness never means a byte-identical copy of the fetched page"
+        },
+        "error": null,
+        "evidence": {
+          "usable": true,
+          "transport_ok": true,
+          "relevance": "unknown",
+          "reasons": [],
+          "source_quality": {
+            "quality": "canonical",
+            "score": 80,
+            "reasons": [
+              "Documentation site",
+              "Successfully extracted (long content)"
+            ],
+            "label": "Documentation site"
+          }
+        },
+        "video_evidence": null,
+        "_invocation": {
+          "argv": [
+            "-m",
+            "hermes_trailhead",
+            "read",
+            "https://docs.python.org/zh-cn/3/library/typing.html",
+            "--format",
+            "json",
+            "--offset",
+            "40000",
+            "--max-chars",
+            "20000"
+          ],
+          "exit_code": 0,
+          "duration_s": 0.278
+        },
+        "content_chars": 20000,
+        "content_sha256": "9f5d1a1f6e793d14e0e12748087cb4a02d7a3eab7d86ae90d0bcc0cc89b4f7db",
+        "content_preview": "调用。 参数规范变量告诉类型检查器，传入装饰器的可调用对象和由其返回的新可调用对象有相互依赖的类型参数:\nimport logging\ndef add_logging[T, **P](f: Callable[P, T]) -> Callable[P, T]:\n'''A type-safe decorator to add logging to a function.'''\ndef inner(*args: P.args, **kwargs: P.kwargs) -> T:\nl",
+        "content_tail_preview": " if getattr(obj, \"__override__\", False) 这样的检查来确定对象 obj 是否已被标记为重载。 如果被装饰的对象不支持设置属性，该装饰器将不加修改地返回对象而不会引发异常。\n更多细节参见 PEP 698 "
+      },
+      {
+        "command": "read",
+        "schema_version": 1,
+        "ok": true,
+        "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+        "source_type": "docs",
+        "timeout_seconds": 15,
+        "asr": {
+          "enabled": false,
+          "env": "TRAILHEAD_DISABLE_ASR",
+          "note": "read never invokes paid ASR"
+        },
+        "policy": {
+          "agent_reach": "not_used",
+          "asr": "disabled",
+          "hermes_web_extract": "disabled",
+          "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+        },
+        "extraction_status": "ok",
+        "content_length": 78047,
+        "returned_chars": 18047,
+        "truncated": false,
+        "truncation_note": "",
+        "pagination": {
+          "schema_version": 1,
+          "offset": 60000,
+          "max_chars": 20000,
+          "start": 60000,
+          "end": 78047,
+          "returned_chars": 18047,
+          "next_offset": null,
+          "more": false,
+          "total_available_chars": 78047,
+          "window_empty": false,
+          "retrieval_char_cap": 1000000,
+          "extractor_truncated": false,
+          "retrieval_capped": false,
+          "transport_byte_cap": 8388608,
+          "transport_capped": false,
+          "note": ""
+        },
+        "completeness": {
+          "extracted_document_complete": true,
+          "raw_page_complete": false,
+          "note": "content is readable text extracted from the page, not the raw HTML; markup, scripts and repeated chrome are removed, so completeness never means a byte-identical copy of the fetched page"
+        },
+        "error": null,
+        "evidence": {
+          "usable": true,
+          "transport_ok": true,
+          "relevance": "unknown",
+          "reasons": [],
+          "source_quality": {
+            "quality": "canonical",
+            "score": 80,
+            "reasons": [
+              "Documentation site",
+              "Successfully extracted (long content)"
+            ],
+            "label": "Documentation site"
+          }
+        },
+        "video_evidence": null,
+        "_invocation": {
+          "argv": [
+            "-m",
+            "hermes_trailhead",
+            "read",
+            "https://docs.python.org/zh-cn/3/library/typing.html",
+            "--format",
+            "json",
+            "--offset",
+            "60000",
+            "--max-chars",
+            "20000"
+          ],
+          "exit_code": 0,
+          "duration_s": 0.3
+        },
+        "content_chars": 18047,
+        "content_sha256": "b04da5ac09911b62fde0b713d2ccfbc89fd56a6dc53b843b0c0055271efab165",
+        "content_preview": "— https://peps.python.org/pep-0698/。\n@typing.disjoint_base¶\nDecorator to mark a class as a disjoint base.\nType checkers do not allow child classes of a disjoint base C to\ninherit from other disjoint bases that are not parent or child classe",
+        "content_tail_preview": "新于10月 28, 2026 (12:56 UTC) 。\n发现了错误 — https://docs.python.org/bugs.html？\n使用Sphinx — https://www.sphinx-doc.org/ 8.2.3 创建。"
+      }
+    ],
+    "window_count": 4,
+    "spans": [
+      [
+        0,
+        20000
+      ],
+      [
+        20000,
+        40000
+      ],
+      [
+        40000,
+        60000
+      ],
+      [
+        60000,
+        78047
+      ]
+    ],
+    "contiguous_no_gaps": true,
+    "first_window_markers": {
+      "类型提示": 6,
+      "typing": 37,
+      "泛型": 34,
+      "协议": 3,
+      "PEP 673": 1
+    },
+    "per_window_marker_counts": [
+      {
+        "类型提示": 6,
+        "typing": 37,
+        "泛型": 34,
+        "协议": 3,
+        "PEP 673": 1
+      },
+      {
+        "类型提示": 1,
+        "typing": 41,
+        "泛型": 17,
+        "协议": 0,
+        "PEP 673": 0
+      },
+      {
+        "类型提示": 3,
+        "typing": 41,
+        "泛型": 10,
+        "协议": 29,
+        "PEP 673": 0
+      },
+      {
+        "类型提示": 2,
+        "typing": 76,
+        "泛型": 5,
+        "协议": 2,
+        "PEP 673": 0
+      }
+    ],
+    "reconstructed_chars": 78047,
+    "reconstructed_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+    "full_single_window_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+    "reconstruction_matches_full_single_window": true,
+    "full_single_window": {
+      "command": "read",
+      "schema_version": 1,
+      "ok": true,
+      "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+      "source_type": "docs",
+      "timeout_seconds": 15,
+      "asr": {
+        "enabled": false,
+        "env": "TRAILHEAD_DISABLE_ASR",
+        "note": "read never invokes paid ASR"
+      },
+      "policy": {
+        "agent_reach": "not_used",
+        "asr": "disabled",
+        "hermes_web_extract": "disabled",
+        "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+      },
+      "extraction_status": "ok",
+      "content_length": 78047,
+      "returned_chars": 78047,
+      "truncated": false,
+      "truncation_note": "",
+      "pagination": {
+        "schema_version": 1,
+        "offset": 0,
+        "max_chars": 200000,
+        "start": 0,
+        "end": 78047,
+        "returned_chars": 78047,
+        "next_offset": null,
+        "more": false,
+        "total_available_chars": 78047,
+        "window_empty": false,
+        "retrieval_char_cap": 1000000,
+        "extractor_truncated": false,
+        "retrieval_capped": false,
+        "transport_byte_cap": 8388608,
+        "transport_capped": false,
+        "note": ""
+      },
+      "completeness": {
+        "extracted_document_complete": true,
+        "raw_page_complete": false,
+        "note": "content is readable text extracted from the page, not the raw HTML; markup, scripts and repeated chrome are removed, so completeness never means a byte-identical copy of the fetched page"
+      },
+      "error": null,
+      "evidence": {
+        "usable": true,
+        "transport_ok": true,
+        "relevance": "unknown",
+        "reasons": [],
+        "source_quality": {
+          "quality": "canonical",
+          "score": 80,
+          "reasons": [
+            "Documentation site",
+            "Successfully extracted (long content)"
+          ],
+          "label": "Documentation site"
+        }
+      },
+      "video_evidence": null,
+      "_invocation": {
+        "argv": [
+          "-m",
+          "hermes_trailhead",
+          "read",
+          "https://docs.python.org/zh-cn/3/library/typing.html",
+          "--format",
+          "json",
+          "--max-chars",
+          "200000"
+        ],
+        "exit_code": 0,
+        "duration_s": 0.277
+      },
+      "content_chars": 78047,
+      "content_sha256": "eb8e809440b16bbd9346d5121e238514afe21a777ff8855f2136459a1e9216ea",
+      "content_preview": "主题\n自动\n明亮\n黑暗\n目录 — https://docs.python.org/zh-cn/3/contents.html\ntyping --- 对类型提示的支持\n有关 Python 类型系统的规范说明\n类型别名\nNewType\n标注可调用对象\n泛型（Generic）\n标注元组\n类对象的类型\n标注生成器和协程\n用户定义的泛型类型\nAny 类型\n名义子类型 vs 结构子类型\n模块内容\n特殊类型原语\n特殊类型\n特殊形式\n构造泛型类型与类型别名\n其他特殊指令\n协议\n与 IO 相关",
+      "content_tail_preview": "新于10月 28, 2026 (12:56 UTC) 。\n发现了错误 — https://docs.python.org/bugs.html？\n使用Sphinx — https://www.sphinx-doc.org/ 8.2.3 创建。"
+    },
+    "total_available_chars_first_window": 78047
+  },
+  "f8_non_english_shell_assessment": {
+    "finding": "the short-body gate in _is_html_shell counts whitespace tokens; Han/Kana/Hangul text has almost none, so a genuine short CJK HTML document was unconditionally classified as a client-rendered shell",
+    "fixture_zh_document": {
+      "cleaned_chars": 376,
+      "whitespace_words": 11,
+      "cjk_chars": 332,
+      "old_rule_would_say_shell": true,
+      "cjk_prose_evidence": true,
+      "current_is_html_shell": false,
+      "current_readable_empty": false
+    },
+    "fixture_zh_label_shell": {
+      "cleaned_chars": 19,
+      "cjk_prose_evidence": false,
+      "current_is_html_shell": true
+    },
+    "fixture_short_english_shell": {
+      "whitespace_words": 4,
+      "current_is_html_shell": true
+    },
+    "fixture_legit_zh_article_with_missing_page_phrase": {
+      "chars": 1193,
+      "classify_page_shell": null,
+      "usable_page_text": true
+    },
+    "live_pages_probed": [
+      {
+        "url": "https://docs.python.org/zh-cn/3/copyright.html",
+        "fetched_html_chars": 14348,
+        "cleaned_chars": 776,
+        "whitespace_words": 112,
+        "cjk_chars": 310,
+        "old_short_rule_would_say_shell": false,
+        "current_is_html_shell": false,
+        "current_readable_page_result_empty": false
+      },
+      {
+        "url": "https://docs.python.org/zh-cn/3/about.html",
+        "fetched_html_chars": 15701,
+        "cleaned_chars": 1065,
+        "whitespace_words": 152,
+        "cjk_chars": 464,
+        "old_short_rule_would_say_shell": false,
+        "current_is_html_shell": false,
+        "current_readable_page_result_empty": false
+      },
+      {
+        "url": "https://docs.python.org/zh-cn/3/library/__future__.html",
+        "fetched_html_chars": 30415,
+        "cleaned_chars": 3047,
+        "whitespace_words": 354,
+        "cjk_chars": 955,
+        "old_short_rule_would_say_shell": false,
+        "current_is_html_shell": false,
+        "current_readable_page_result_empty": false
+      },
+      {
+        "url": "https://docs.python.org/zh-cn/3/library/constants.html",
+        "fetched_html_chars": 27691,
+        "cleaned_chars": 2356,
+        "whitespace_words": 263,
+        "cjk_chars": 990,
+        "old_short_rule_would_say_shell": false,
+        "current_is_html_shell": false,
+        "current_readable_page_result_empty": false
+      },
+      {
+        "url": "https://www.ruanyifeng.com/blog/2019/09/curl-reference.html",
+        "fetched_html_chars": 54585,
+        "cleaned_chars": 8588,
+        "whitespace_words": 896,
+        "cjk_chars": 2693,
+        "old_short_rule_would_say_shell": false,
+        "current_is_html_shell": false,
+        "current_readable_page_result_empty": false
+      },
+      {
+        "url": "https://www.liaoxuefeng.com/wiki/1016959663602400/1016959856222624",
+        "fetched_html_chars": 135206,
+        "cleaned_chars": 4638,
+        "whitespace_words": 460,
+        "cjk_chars": 1226,
+        "old_short_rule_would_say_shell": false,
+        "current_is_html_shell": false,
+        "current_readable_page_result_empty": false
+      },
+      {
+        "url": "https://zh.wikipedia.org/wiki/Python",
+        "fetched_html_chars": 961209,
+        "cleaned_chars": 111210,
+        "whitespace_words": 13870,
+        "cjk_chars": 23312,
+        "old_short_rule_would_say_shell": false,
+        "current_is_html_shell": false,
+        "current_readable_page_result_empty": false
+      },
+      {
+        "url": "https://www.runoob.com/python3/python3-basic-syntax.html",
+        "fetched_html_chars": 115770,
+        "cleaned_chars": 17345,
+        "whitespace_words": 2094,
+        "cjk_chars": 4339,
+        "old_short_rule_would_say_shell": false,
+        "current_is_html_shell": false,
+        "current_readable_page_result_empty": false
+      }
+    ],
+    "not_changed": [
+      "zero-width/full-width marker normalisation was NOT broadened (no reproduced live false negative; F8 remains open for that form)",
+      "the 801-2000-char single-language middle band stays conservative",
+      "no new language list or stop-word heuristic was added"
+    ],
+    "verdict": "one narrow false positive reproduced by fixture and fixed with positive CJK prose evidence (>=80 CJK chars and >=2 CJK sentence marks); label-only CJK shells and short Latin shells still rejected. No live page in the eight-page sample triggered the old short rule, so this is a fixture-level fix, not a measured live coverage win."
+  },
+  "deterministic_tests": {
+    "command": "python -m pytest -q tests/test_read_pagination.py",
+    "exit_code": 0,
+    "summary": "27 passed in 0.28s"
+  },
+  "not_claimed": [
+    "raw HTML byte-identical completeness",
+    "any authenticated, paid or ASR-backed lane",
+    "clean-machine or cross-OS behaviour",
+    "that the live page content is immutable across future runs"
+  ]
+}

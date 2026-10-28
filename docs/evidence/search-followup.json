@@ -1,0 +1,595 @@
+{
+  "schema": "trailhead.search-followup/1",
+  "status": "executed",
+  "frozen_at": "2026-10-28T13:59:17Z",
+  "executed_at": "2026-10-28T14:05:15Z",
+  "reviewed_by": "Hermes agent (monchobotjr) - agent reviewed, NOT human reviewed",
+  "scope": {
+    "purpose": "recover real Jina/DuckDuckGo snippets and add explicit, caller-supplied source/language ordering criteria",
+    "not": "not a relevance model, not a reranker, not a parity or superiority comparison, not a completeness measurement",
+    "caps": {
+      "queries": 3,
+      "hits_per_query": 3,
+      "before_calls": 3,
+      "after_calls": 3,
+      "paid_or_auth_calls": 0
+    },
+    "cli": "criteria are exposed on execute_search()/execute_action() only; no CLI flag was added in this change"
+  },
+  "host": {
+    "platform": "Linux aarch64",
+    "python": "3.11.15",
+    "repo_head": "82e7891",
+    "working_tree": "modified (other workers editing backends.py, cli.py, extract.py, reach_backend.py)"
+  },
+  "snippet_fix": {
+    "defect": "_snippet_from_block stopped at the first blank line, but Jina Reader separates the result heading, the favicon/breadcrumb line and the snippet line with blank lines, so every snippet was empty",
+    "block_shape": [
+      "## [title](ddg redirect)",
+      "",
+      "[![Image N](icon)](redirect)[display/url](redirect)",
+      "",
+      "[snippet text](redirect)",
+      ""
+    ],
+    "extraction_rules": [
+      "the snippet is the link text of an inline markdown link line inside the block",
+      "favicon/image lines are skipped",
+      "the grey breadcrumb line is skipped (it equals the hit URL or its host+path)",
+      "the window stops at the next heading, so a block never borrows the next block's text",
+      "bold highlight markers (** / __), backslash escapes and the ¶ anchor glyph are removed; whitespace is collapsed; nothing is added, re-spaced or translated",
+      "a line that opens a markdown link/highlight but never closes it is a truncated response tail and is skipped, not used",
+      "text is capped at 300 characters, the same cap as before"
+    ],
+    "before_snippets_nonempty": "0/9",
+    "after_snippets_nonempty_frozen": "9/9",
+    "after_snippets_nonempty_live": "9/9"
+  },
+  "criteria": {
+    "rules": {
+      "language_source": "first path segment if it is an ISO 639-1 code, optionally with a region subtag",
+      "language_host": "otherwise leftmost host label when the host has >= 3 labels and the label is a recognised ISO 639-1 code",
+      "language_codes": "fixed frozenset in hermes_trailhead/search.py (_LANGUAGE_CODES); unknown codes yield no language",
+      "language_match": "url tag equals the request, or the url tag extends it with a region subtag (zh matches zh-cn); zh-hans never matches zh-cn (no script/region folding)",
+      "source_match": "requested host equal to the url host, or the url host is a subdomain of it; scheme, path, port and leading www. are stripped; no wildcards, no path matching",
+      "precedence": "language group first, domain group second, original backend order otherwise (stable sort)",
+      "inactive_criteria": "a criterion that was not supplied contributes nothing; both empty returns the backend order unchanged",
+      "never_inferred": "query text is never inspected for script or keywords; hit order is never changed unless the caller passes a criterion"
+    },
+    "api": [
+      "execute_search(..., preferred_language='', preferred_sources=())",
+      "execute_action(..., preferred_language='', preferred_sources=())",
+      "order_hits_by_criteria(hits, preferred_language=..., preferred_sources=...)"
+    ],
+    "hit_json": "unchanged: {title, url, snippet}"
+  },
+  "cases": [
+    {
+      "case_id": "sf-en",
+      "language_requested": "en",
+      "query": "requests HTTP library",
+      "expected_entities": [
+        "docs.python-requests.org/en/master/index.html",
+        "pypi.org/project/requests/",
+        "github.com/psf/requests"
+      ],
+      "before": {
+        "source": "same engine call, pre-change parser, raw response kept",
+        "started_at": "2026-10-28T13:59:17Z",
+        "finished_at": "2026-10-28T13:59:17Z",
+        "raw_chars": 10842,
+        "raw_sha256_16": "a9a17cf7592afc7c",
+        "result_count": 3,
+        "snippet_nonempty": 0,
+        "hits": [
+          {
+            "rank": 1,
+            "title": "Requests: HTTP for Humans™ — Requests 2.34.2 documentation",
+            "url": "https://docs.python-requests.org/en/master/index.html",
+            "snippet": ""
+          },
+          {
+            "rank": 2,
+            "title": "requests · PyPI",
+            "url": "https://pypi.org/project/requests/",
+            "snippet": ""
+          },
+          {
+            "rank": 3,
+            "title": "GitHub - psf/requests: A simple, yet elegant, HTTP library.",
+            "url": "https://github.com/psf/requests",
+            "snippet": ""
+          }
+        ]
+      },
+      "after_frozen": {
+        "note": "same raw response bytes as 'before', parsed by the new reader",
+        "result_count": 3,
+        "snippet_nonempty": 3,
+        "hits": [
+          {
+            "rank": 1,
+            "title": "Requests: HTTP for Humans™ — Requests 2.34.2 documentation",
+            "url": "https://docs.python-requests.org/en/master/index.html",
+            "snippet": "Requests: HTTP for Humans™ Release v2.34.2. (Installation) Requests is an elegant and simple HTTPlibrary for Python, built for human beings."
+          },
+          {
+            "rank": 2,
+            "title": "requests · PyPI",
+            "url": "https://pypi.org/project/requests/",
+            "snippet": "RequestsRequests is a simple, yet elegant, HTTPlibrary. ... Requests allows you to send HTTP/1.1 requests extremely easily. There's no need to manually add query strings to your URLs, or to form-encode your PUT & POST data — but nowadays, just use the json method!"
+          },
+          {
+            "rank": 3,
+            "title": "GitHub - psf/requests: A simple, yet elegant, HTTP library.",
+            "url": "https://github.com/psf/requests",
+            "snippet": "A simple, yet elegant, HTTPlibrary. Contribute to psf/requests development by creating an account on GitHub."
+          }
+        ],
+        "default_order": [
+          "https://docs.python-requests.org/en/master/index.html",
+          "https://pypi.org/project/requests/",
+          "https://github.com/psf/requests"
+        ],
+        "criteria": {
+          "preferred_language": "en",
+          "preferred_sources": [
+            "docs.python.org"
+          ]
+        },
+        "criteria_order": [
+          "https://docs.python-requests.org/en/master/index.html",
+          "https://pypi.org/project/requests/",
+          "https://github.com/psf/requests"
+        ],
+        "criteria_records": [
+          {
+            "url": "https://docs.python-requests.org/en/master/index.html",
+            "url_language": "en",
+            "language_match": true,
+            "source_matches": []
+          },
+          {
+            "url": "https://pypi.org/project/requests/",
+            "url_language": "",
+            "language_match": false,
+            "source_matches": []
+          },
+          {
+            "url": "https://github.com/psf/requests",
+            "url_language": "",
+            "language_match": false,
+            "source_matches": []
+          }
+        ]
+      },
+      "after_live": {
+        "note": "fresh public call after the change; network may differ from the frozen response",
+        "started_at": "2026-10-28T14:02:50Z",
+        "finished_at": "2026-10-28T14:02:50Z",
+        "engine": "jina_duckduckgo",
+        "attempts": [
+          "ddg_lite",
+          "ddg_lite_circuit_open",
+          "ddg_html",
+          "ddg_html_circuit_open",
+          "jina_duckduckgo"
+        ],
+        "status": "ok",
+        "result_count": 3,
+        "snippet_nonempty": 3,
+        "snippet_chars": [
+          140,
+          264,
+          108
+        ],
+        "hits": [
+          {
+            "rank": 1,
+            "title": "Requests: HTTP for Humans™ — Requests 2.34.2 documentation",
+            "url": "https://docs.python-requests.org/en/master/index.html",
+            "snippet": "Requests: HTTP for Humans™ Release v2.34.2. (Installation) Requests is an elegant and simple HTTPlibrary for Python, built for human beings."
+          },
+          {
+            "rank": 2,
+            "title": "requests · PyPI",
+            "url": "https://pypi.org/project/requests/",
+            "snippet": "RequestsRequests is a simple, yet elegant, HTTPlibrary. ... Requests allows you to send HTTP/1.1 requests extremely easily. There's no need to manually add query strings to your URLs, or to form-encode your PUT & POST data — but nowadays, just use the json method!"
+          },
+          {
+            "rank": 3,
+            "title": "GitHub - psf/requests: A simple, yet elegant, HTTP library.",
+            "url": "https://github.com/psf/requests",
+            "snippet": "A simple, yet elegant, HTTPlibrary. Contribute to psf/requests development by creating an account on GitHub."
+          }
+        ],
+        "criteria": {
+          "preferred_language": "en",
+          "preferred_sources": [
+            "docs.python.org"
+          ]
+        },
+        "criteria_matches": [
+          {
+            "url": "https://docs.python-requests.org/en/master/index.html",
+            "url_language": "en",
+            "language_match": true,
+            "source_matches": []
+          },
+          {
+            "url": "https://pypi.org/project/requests/",
+            "url_language": "",
+            "language_match": false,
+            "source_matches": []
+          },
+          {
+            "url": "https://github.com/psf/requests",
+            "url_language": "",
+            "language_match": false,
+            "source_matches": []
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "sf-zh",
+      "language_requested": "zh-Hans",
+      "query": "Python类型提示",
+      "expected_entities": [
+        "docs.python.org/zh-cn/3/library/typing.html",
+        "PEP 484",
+        "mypy zh docs"
+      ],
+      "before": {
+        "source": "same engine call, pre-change parser, raw response kept",
+        "started_at": "2026-10-28T13:59:17Z",
+        "finished_at": "2026-10-28T13:59:18Z",
+        "raw_chars": 10309,
+        "raw_sha256_16": "42a756f15469fd84",
+        "result_count": 3,
+        "snippet_nonempty": 0,
+        "hits": [
+          {
+            "rank": 1,
+            "title": "Python 类型注解（Type Hints） - 菜鸟教程",
+            "url": "https://www.runoob.com/python3/python-type-hints.html",
+            "snippet": ""
+          },
+          {
+            "rank": 2,
+            "title": "typing --- 对类型提示的支持 — Python 3.15.2 文档",
+            "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+            "snippet": ""
+          },
+          {
+            "rank": 3,
+            "title": "Python 类型提示(Typing Hint)使用详解 - 知乎",
+            "url": "https://zhuanlan.zhihu.com/p/688656182",
+            "snippet": ""
+          }
+        ]
+      },
+      "after_frozen": {
+        "note": "same raw response bytes as 'before', parsed by the new reader",
+        "result_count": 3,
+        "snippet_nonempty": 3,
+        "hits": [
+          {
+            "rank": 1,
+            "title": "Python 类型注解（Type Hints） - 菜鸟教程",
+            "url": "https://www.runoob.com/python3/python-type-hints.html",
+            "snippet": "Python 类型注解（Type Hints） 想象一下，你给朋友寄一个包裹。如果你在包裹上写明\"易碎品\"和\"向上箭头\"，快递员就会知道要小心轻放、正确朝向。类型注解（Type Hints） 在编程中就扮演着类似的角色——它是一种为代码添加\"说明标签\"的技术，明确地指出变量、函数参数和返回值应该是什么 ..."
+          },
+          {
+            "rank": 2,
+            "title": "typing --- 对类型提示的支持 — Python 3.15.2 文档",
+            "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+            "snippet": "Learn how to use the typing module to add type annotations to your Python code. See examples of type aliases, NewType, callable objects, and other advanced type hints."
+          },
+          {
+            "rank": 3,
+            "title": "Python 类型提示(Typing Hint)使用详解 - 知乎",
+            "url": "https://zhuanlan.zhihu.com/p/688656182",
+            "snippet": "类型提示，对应当前的python 3.12 中 Typing Hint英文词语(官方文档有时也称类型注解(type annotation)。正如 hint 的英文本义，Typing Hint 只是对当前变量类型的提示，并非强制类型申明，Python未来版本会继续完…"
+          }
+        ],
+        "default_order": [
+          "https://www.runoob.com/python3/python-type-hints.html",
+          "https://docs.python.org/zh-cn/3/library/typing.html",
+          "https://zhuanlan.zhihu.com/p/688656182"
+        ],
+        "criteria": {
+          "preferred_language": "zh",
+          "preferred_sources": [
+            "docs.python.org"
+          ]
+        },
+        "criteria_order": [
+          "https://docs.python.org/zh-cn/3/library/typing.html",
+          "https://www.runoob.com/python3/python-type-hints.html",
+          "https://zhuanlan.zhihu.com/p/688656182"
+        ],
+        "criteria_records": [
+          {
+            "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+            "url_language": "zh-cn",
+            "language_match": true,
+            "source_matches": [
+              "docs.python.org"
+            ]
+          },
+          {
+            "url": "https://www.runoob.com/python3/python-type-hints.html",
+            "url_language": "",
+            "language_match": false,
+            "source_matches": []
+          },
+          {
+            "url": "https://zhuanlan.zhihu.com/p/688656182",
+            "url_language": "",
+            "language_match": false,
+            "source_matches": []
+          }
+        ]
+      },
+      "after_live": {
+        "note": "fresh public call after the change; network may differ from the frozen response",
+        "started_at": "2026-10-28T14:02:50Z",
+        "finished_at": "2026-10-28T14:02:50Z",
+        "engine": "jina_duckduckgo",
+        "attempts": [
+          "ddg_lite",
+          "ddg_lite_circuit_open",
+          "ddg_html",
+          "ddg_html_circuit_open",
+          "jina_duckduckgo"
+        ],
+        "status": "ok",
+        "result_count": 3,
+        "snippet_nonempty": 3,
+        "snippet_chars": [
+          167,
+          155,
+          133
+        ],
+        "hits": [
+          {
+            "rank": 1,
+            "title": "typing --- 对类型提示的支持 — Python 3.15.2 文档",
+            "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+            "snippet": "Learn how to use the typing module to add type annotations to your Python code. See examples of type aliases, NewType, callable objects, and other advanced type hints."
+          },
+          {
+            "rank": 2,
+            "title": "Python 类型注解（Type Hints） - 菜鸟教程",
+            "url": "https://www.runoob.com/python3/python-type-hints.html",
+            "snippet": "Python 类型注解（Type Hints） 想象一下，你给朋友寄一个包裹。如果你在包裹上写明\"易碎品\"和\"向上箭头\"，快递员就会知道要小心轻放、正确朝向。类型注解（Type Hints） 在编程中就扮演着类似的角色——它是一种为代码添加\"说明标签\"的技术，明确地指出变量、函数参数和返回值应该是什么 ..."
+          },
+          {
+            "rank": 3,
+            "title": "Python 类型提示(Typing Hint)使用详解 - 知乎",
+            "url": "https://zhuanlan.zhihu.com/p/688656182",
+            "snippet": "类型提示，对应当前的python 3.12 中 Typing Hint英文词语(官方文档有时也称类型注解(type annotation)。正如 hint 的英文本义，Typing Hint 只是对当前变量类型的提示，并非强制类型申明，Python未来版本会继续完…"
+          }
+        ],
+        "criteria": {
+          "preferred_language": "zh",
+          "preferred_sources": [
+            "docs.python.org"
+          ]
+        },
+        "criteria_matches": [
+          {
+            "url": "https://docs.python.org/zh-cn/3/library/typing.html",
+            "url_language": "zh-cn",
+            "language_match": true,
+            "source_matches": [
+              "docs.python.org"
+            ]
+          },
+          {
+            "url": "https://www.runoob.com/python3/python-type-hints.html",
+            "url_language": "",
+            "language_match": false,
+            "source_matches": []
+          },
+          {
+            "url": "https://zhuanlan.zhihu.com/p/688656182",
+            "url_language": "",
+            "language_match": false,
+            "source_matches": []
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "sf-es",
+      "language_requested": "es",
+      "query": "documentación Python asyncio",
+      "expected_entities": [
+        "docs.python.org/es/3/library/asyncio-dev.html",
+        "docs.python.org/es/3/library/asyncio.html"
+      ],
+      "before": {
+        "source": "same engine call, pre-change parser, raw response kept",
+        "started_at": "2026-10-28T13:59:18Z",
+        "finished_at": "2026-10-28T13:59:18Z",
+        "raw_chars": 11453,
+        "raw_sha256_16": "33fcd7a2a7e867d9",
+        "result_count": 3,
+        "snippet_nonempty": 0,
+        "hits": [
+          {
+            "rank": 1,
+            "title": "asyncio — Asynchronous I/O — Python 3.15.2 documentation",
+            "url": "https://docs.python.org/3/library/asyncio.html",
+            "snippet": ""
+          },
+          {
+            "rank": 2,
+            "title": "Desarrollando con asyncio — documentación de Python - 3.15.0",
+            "url": "https://docs.python.org/es/3/library/asyncio-dev.html",
+            "snippet": ""
+          },
+          {
+            "rank": 3,
+            "title": "A conceptual overview of asyncio — Python 3.15.2 documentation",
+            "url": "https://docs.python.org/3/howto/a-conceptual-overview-of-asyncio.html",
+            "snippet": ""
+          }
+        ]
+      },
+      "after_frozen": {
+        "note": "same raw response bytes as 'before', parsed by the new reader",
+        "result_count": 3,
+        "snippet_nonempty": 3,
+        "hits": [
+          {
+            "rank": 1,
+            "title": "asyncio — Asynchronous I/O — Python 3.15.2 documentation",
+            "url": "https://docs.python.org/3/library/asyncio.html",
+            "snippet": "asyncio is a library to write concurrent code using the async/await syntax. asyncio is used as a foundation for multiple Python asynchronous frameworks that provide high-performance network and web-servers, database connection libraries, distributed task queues, etc. asyncio is often a perfect fit f"
+          },
+          {
+            "rank": 2,
+            "title": "Desarrollando con asyncio — documentación de Python - 3.15.0",
+            "url": "https://docs.python.org/es/3/library/asyncio-dev.html",
+            "snippet": "La programación asincrónica es diferente a la programación «secuencial» clásica. Esta página enumera errores y trampas comunes y explica cómo evitarlos. Modo depuración: Por defecto asyncio se ejec..."
+          },
+          {
+            "rank": 3,
+            "title": "A conceptual overview of asyncio — Python 3.15.2 documentation",
+            "url": "https://docs.python.org/3/howto/a-conceptual-overview-of-asyncio.html",
+            "snippet": "A conceptual overview part 1: the high-level In part 1, we'll cover the main, high-level building blocks of asyncio: the event loop, coroutine functions, coroutine objects, tasks, and await. Event loop Everything in asyncio happens relative to the event loop. It's the star of the show, but prefers t"
+          }
+        ],
+        "default_order": [
+          "https://docs.python.org/3/library/asyncio.html",
+          "https://docs.python.org/es/3/library/asyncio-dev.html",
+          "https://docs.python.org/3/howto/a-conceptual-overview-of-asyncio.html"
+        ],
+        "criteria": {
+          "preferred_language": "es",
+          "preferred_sources": [
+            "docs.python.org"
+          ]
+        },
+        "criteria_order": [
+          "https://docs.python.org/es/3/library/asyncio-dev.html",
+          "https://docs.python.org/3/library/asyncio.html",
+          "https://docs.python.org/3/howto/a-conceptual-overview-of-asyncio.html"
+        ],
+        "criteria_records": [
+          {
+            "url": "https://docs.python.org/es/3/library/asyncio-dev.html",
+            "url_language": "es",
+            "language_match": true,
+            "source_matches": [
+              "docs.python.org"
+            ]
+          },
+          {
+            "url": "https://docs.python.org/3/library/asyncio.html",
+            "url_language": "",
+            "language_match": false,
+            "source_matches": [
+              "docs.python.org"
+            ]
+          },
+          {
+            "url": "https://docs.python.org/3/howto/a-conceptual-overview-of-asyncio.html",
+            "url_language": "",
+            "language_match": false,
+            "source_matches": [
+              "docs.python.org"
+            ]
+          }
+        ]
+      },
+      "after_live": {
+        "note": "fresh public call after the change; network may differ from the frozen response",
+        "started_at": "2026-10-28T14:02:50Z",
+        "finished_at": "2026-10-28T14:02:51Z",
+        "engine": "jina_duckduckgo",
+        "attempts": [
+          "ddg_lite",
+          "ddg_lite_circuit_open",
+          "ddg_html",
+          "ddg_html_circuit_open",
+          "jina_duckduckgo"
+        ],
+        "status": "ok",
+        "result_count": 3,
+        "snippet_nonempty": 3,
+        "snippet_chars": [
+          200,
+          300,
+          300
+        ],
+        "hits": [
+          {
+            "rank": 1,
+            "title": "Desarrollando con asyncio — documentación de Python - 3.15.0",
+            "url": "https://docs.python.org/es/3/library/asyncio-dev.html",
+            "snippet": "La programación asincrónica es diferente a la programación «secuencial» clásica. Esta página enumera errores y trampas comunes y explica cómo evitarlos. Modo depuración: Por defecto asyncio se ejec..."
+          },
+          {
+            "rank": 2,
+            "title": "asyncio — Asynchronous I/O — Python 3.15.2 documentation",
+            "url": "https://docs.python.org/3/library/asyncio.html",
+            "snippet": "asyncio is a library to write concurrent code using the async/await syntax. asyncio is used as a foundation for multiple Python asynchronous frameworks that provide high-performance network and web-servers, database connection libraries, distributed task queues, etc. asyncio is often a perfect fit f"
+          },
+          {
+            "rank": 3,
+            "title": "A conceptual overview of asyncio — Python 3.15.2 documentation",
+            "url": "https://docs.python.org/3/howto/a-conceptual-overview-of-asyncio.html",
+            "snippet": "A conceptual overview part 1: the high-level In part 1, we'll cover the main, high-level building blocks of asyncio: the event loop, coroutine functions, coroutine objects, tasks, and await. Event loop Everything in asyncio happens relative to the event loop. It's the star of the show, but prefers t"
+          }
+        ],
+        "criteria": {
+          "preferred_language": "es",
+          "preferred_sources": [
+            "docs.python.org"
+          ]
+        },
+        "criteria_matches": [
+          {
+            "url": "https://docs.python.org/es/3/library/asyncio-dev.html",
+            "url_language": "es",
+            "language_match": true,
+            "source_matches": [
+              "docs.python.org"
+            ]
+          },
+          {
+            "url": "https://docs.python.org/3/library/asyncio.html",
+            "url_language": "",
+            "language_match": false,
+            "source_matches": [
+              "docs.python.org"
+            ]
+          },
+          {
+            "url": "https://docs.python.org/3/howto/a-conceptual-overview-of-asyncio.html",
+            "url_language": "",
+            "language_match": false,
+            "source_matches": [
+              "docs.python.org"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "gaps": [
+    "agent reviewed, not human reviewed; three queries, nine hits per run",
+    "one engine served every call (jina_duckduckgo); ddg_lite and ddg_html opened the circuit, so results are engine-correlated",
+    "DuckDuckGo highlight spans that touch emit no separating space; the reader output therefore contains e.g. 'HTTPlibrary' and 'RequestsRequests'. Those strings are literal reader output and were not repaired",
+    "300-character cap cuts mid-word for the two Spanish 'docs.python.org/3' snippets",
+    "language tags are not folded: a request for zh-hans does not match a /zh-cn/ page",
+    "language detection is URL-shape only; a page whose language is only in its content is reported as URL language ''",
+    "the leftmost-host-label rule can read a brand label as a language on a three-label host",
+    "ordering is not scoring: no relevance value is produced, and extract's evidence.relevance stays 'unknown'",
+    "CLI exposure, fallback ordering and cross-engine comparisons were not exercised"
+  ]
+}
