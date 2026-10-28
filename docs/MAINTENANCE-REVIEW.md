@@ -11,11 +11,25 @@ normaliser, and probe each safety claim with a local stub executable + injected
 runner. Every defect below was reproduced before it was fixed, and each fix is
 pinned by `tests/test_review_regressions.py`.
 
+## Status update — 2026-10-28 (follow-up landed)
+
+F7, F9 and F10 were fixed after this review by
+[`MAINTENANCE-FOLLOWUP.md`](MAINTENANCE-FOLLOWUP.md) (commit `b20d4e3`).
+That document owns the measurements, the exact coercion rules, the cache key
+and the shared-deadline design; this review keeps its original pre-fix
+observations, dated as the review record, and does not restate them as new
+evidence.
+
+Current whole-tree state for this update: `928 passed`, `py_compile` clean,
+gauntlet 100/100 (parent-verified 2026-10-28). Run the suite with
+`TRAILHEAD_DISABLE_ASR` unset — with it exported, 15 ASR/transcription tests
+fail because the veto short-circuits them.
+
 ## Verified state
 
 ```bash
 .venv/bin/python -m py_compile hermes_trailhead/*.py      # ok
-.venv/bin/python -m pytest -q                             # 721 passed, 0 xfailed, 0 failed  (this change's final run)
+.venv/bin/python -m pytest -q                             # 721 passed, 0 xfailed, 0 failed  (review-time run; current tree: 928)
 .venv/bin/python -m hermes_trailhead gauntlet             # 100/100 (4 lanes, 0 fail)
 .venv/bin/python -m hermes_trailhead reach --format json  # 40 actions / 14 channels, 5 live
 ```
@@ -28,9 +42,15 @@ and F6.
 positives are withheld (`reddit read` → `blocked`, `xiaohongshu read` →
 `missing_page`, `linkedin read` → `missing_page`); no other row loses an item
 and no field is clipped. The previously-claimed result — 20 `returned_items`,
-3 false positives — became 17 usable rows + 3 `content_unusable`. The ledger
-file itself is not in the tree, so F6 was not replayed against it: the
-empty-body rule can only lower that usable count (a `read` row with no text now
+3 false positives — became **17 rows that returned items** plus 3
+`content_unusable`. An earlier revision of this paragraph called those 17 rows
+"usable"; that was an overclaim. A returned item means the row survived
+normalisation with at least one item — it is not a usability, relevance or
+completeness verdict, and the replay artifact records `completeness:
+not_assessed` / `freshness: not_assessed` on every row
+([`evidence/action-sweep-replay.json`](evidence/action-sweep-replay.json)).
+The ledger file itself is not in the tree, so F6 was not replayed against it: the
+empty-body rule can only lower that returned-item count (a `read` row with no text now
 counts as unusable), never raise it.
 
 ## Findings
@@ -43,10 +63,10 @@ counts as unusable), never raise it.
 | F4 | medium | Long body with two same-language 404 phrases condemned as a shell | **fixed** |
 | F5 | medium-high | Output cap applied after full capture; timeout orphans grandchildren | **fixed** |
 | F6 | low | Body read with empty text still reports `ok: true` | **fixed** |
-| F7 | low | `bool`/`float` parameter values rejected as "must be a string" | open |
+| F7 | low | `bool`/`float` parameter values rejected as "must be a string" | **fixed** — [follow-up](MAINTENANCE-FOLLOWUP.md) |
 | F8 | low | Shell markers are literal substrings; 801–2000-char single-language bodies narrowed | open |
-| F9 | low | One registry subprocess per fallback invocation (per action) | open |
-| F10 | info | `registry()` uses a fixed 35 s budget regardless of `timeout` | open |
+| F9 | low | One registry subprocess per fallback invocation (per action) | **fixed** — [follow-up](MAINTENANCE-FOLLOWUP.md) |
+| F10 | info | `registry()` uses a fixed 35 s budget regardless of `timeout` | **fixed** — [follow-up](MAINTENANCE-FOLLOWUP.md) |
 
 ### F1 — untrusted item fields were forwarded unbounded (fixed)
 
@@ -216,7 +236,14 @@ Doc drift to hand off (file outside this change's ownership):
 shell". Both now include `empty_body`. That file needs the same two-line update
 by its owner; the code and `reach_backend`'s docstring are already accurate.
 
-### F7 — `bool`/`float` parameters are unusable as native types (open)
+*Resolved after this review: the current `agent-reach-backend.md` lists
+`empty_body` and describes the all-rows-empty case; the sentence above is the
+2026-10-28 review record.*
+
+### F7 — `bool`/`float` parameters are unusable as native types (fixed 2026-10-28)
+
+**Closed after this review** — see [F7 in the follow-up](MAINTENANCE-FOLLOWUP.md#f7--declared-boolfloat-parameters-are-coerced-not-rejected-fixed)
+for the coercion rules and bounds. The observation below is the pre-fix record.
 
 `_coerce_params` routes every non-`int` parameter through `_validate_str`, so a
 declared `bool`/`float` parameter rejects `True`/`3.5` with "must be a string".
@@ -235,14 +262,22 @@ real documentation. Suggested follow-up: strip `\u200b-\u200d\ufeff` before
 matching and refresh the fixture set from a new live sweep instead of widening
 the rules.
 
-### F9 — one registry read per fallback invocation (open)
+### F9 — one registry read per fallback invocation (fixed 2026-10-28)
+
+**Closed after this review** — see [F9 in the follow-up](MAINTENANCE-FOLLOWUP.md#f9--one-discovery-read-per-configuration-not-per-adapter-fixed)
+for the per-process cache, its key, and the stale-until-refresh caveat. The text
+below is the pre-fix record.
 
 `execute_backend_chain` builds a fresh adapter per action, and each adapter runs
 `agent-reach channels` on first use. A five-lane sweep can therefore spend five
 subprocess reads on discovery before any search. A per-process adapter cache
 keyed by `(executable, limit)` would remove that without changing semantics.
 
-### F10 — registry timeout is fixed (info)
+### F10 — `registry()` used a fixed 35 s budget (fixed 2026-10-28)
+
+**Closed after this review** — discovery now shares the caller's deadline; see
+[F10 in the follow-up](MAINTENANCE-FOLLOWUP.md#f10--discovery-shares-the-callers-wall-clock-fixed).
+The observation below is the pre-fix record.
 
 `registry()` calls the runner with `timeout_grace + 30.0` regardless of the
 backend's `timeout`. Defensible (discovery is not a paid call), but undocumented

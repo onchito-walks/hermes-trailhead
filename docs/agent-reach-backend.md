@@ -202,9 +202,11 @@ Excluded on purpose:
   `[exe, channel, action, *options, "--backend", ..., "--timeout", ..., "--", *positionals]`.
   Options precede `--`; every positional follows it, so a target cannot become
   a flag even if upstream's parser changes.
-- **Unsafe positionals rejected.** A value starting with `-`, containing a
-  control character, or longer than `MAX_VALUE_CHARS` is refused with
-  `unsafe_target` / `invalid_params`.
+- **Unsafe positionals rejected.** For `str` target parameters, a value starting
+  with `-`, containing a control character, or longer than `MAX_VALUE_CHARS` is
+  refused with `unsafe_target` / `invalid_params`. A declared `float` may be
+  negative: it follows `--name`, not the `--` terminator, so it cannot become a
+  flag.
 - **URL schemes validated.** `javascript:`, `data:`, `file:`, `ftp:`, `gopher:`,
   `smb:`, `telnet:`, `vbscript:`, `about:`, `chrome:` are rejected everywhere.
   Target-like params (`target`, `url`, `link`, `href`, `repo`) must be `http(s)`
@@ -214,11 +216,33 @@ Excluded on purpose:
   for schema version, `ok`, channel/action/param name shape, duplicate names,
   param types, backend labels, and public-web prefixes. Malformed output is
   `registry_invalid`, not a best-effort guess. The validated registry is cached
-  for the process lifetime (`refresh=True` re-reads).
-- **Bounded.** `limit` is clamped to 1–50, `timeout` to 1–120 s (with a grace
-  window so upstream can emit its own JSON timeout), item counts are capped,
-  item text is truncated to 4000 characters, oversized `raw` blobs are dropped,
-  and oversized stdout is rejected.
+  **per process** — `_REGISTRY_CACHE`, LRU-bounded to 8 entries, keyed by
+  `(absolute executable, public-mode flag, env-identity digest, runner)`.
+  `refresh=True`, `clear_registry_cache()`, or a process restart re-reads it.
+  Consequence, stated rather than hidden: a long-lived process keeps the
+  inventory it first validated, so an upstream channel/action change is masked
+  until one of those happens. That is **inventory staleness, not a credential or
+  sandbox property**: public and authenticated discovery never share an entry
+  (different `HOME`), a failed or malformed discovery is never cached, and
+  consent flags, `HOME` mode, `max_items` and `timeout` stay per call. Design and
+  measurements: [`MAINTENANCE-FOLLOWUP.md`](MAINTENANCE-FOLLOWUP.md).
+- **Declared parameter types are coerced, not stringified.** `str` and `int`
+  keep their existing rules (the `limit` 1–50 clamp; leading `-`, control
+  characters and URL schemes refused). A declared `bool` accepts a native
+  boolean and the strings `true/false/yes/no/1/0` (canonicalised); `1`, `0`,
+  `1.0`, `"maybe"`, lists and mappings are refused. A declared `float` accepts
+  finite numbers and decimal strings, is bounded to `MAX_FLOAT_PARAM` (`1e12`),
+  and rejects `nan`, `±inf`, `1e999`, `"1_000"` and `"0x10"` as
+  `invalid_params` before `build_argv` runs. A negative float is legitimate
+  because it follows `--name`; only `str` targets refuse a leading `-`.
+- **Bounded.** `limit` is clamped to 1–50 and `timeout` to 1–120 s. One call has
+  **one wall clock**: `timeout + grace` is the aggregate deadline, and shared
+  discovery is charged against it (`min(grace + 30 s, deadline − now)`); the
+  action then gets only the remaining budget. A slow `agent-reach channels`
+  read therefore cannot push the call past the advertised deadline, and a
+  deadline already spent starts no action. Item counts are capped, item text is
+  truncated to 4000 characters, oversized `raw` blobs are dropped, and oversized
+  stdout is rejected.
 - **Untrusted error text is redacted (best effort).** Registry stderr,
   execution stderr, upstream `error` fields (`code`, `message`, `hint`), and
   `meta.attempts` rows are passed through pattern redaction for common

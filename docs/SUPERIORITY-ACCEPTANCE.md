@@ -110,8 +110,21 @@ No task is marked complete merely because this document or a benchmark exists.
 - [Fresh agent CLI exercise](AGENT-SESSION-EVIDENCE.md), not just direct imports.
 - [Maintenance review](MAINTENANCE-REVIEW.md): bounded live capture, POSIX process
   group cleanup, finite item limits, empty-body rejection and shell regressions.
-- Parent independently verified 734 tests passing, compilation, diff-check,
-  deterministic gauntlet and live search/read/matched comparison. No pushes.
+  F7/F9/F10 are now closed by [MAINTENANCE-FOLLOWUP.md](MAINTENANCE-FOLLOWUP.md).
+- [Search follow-ups](SEARCH-FOLLOWUP.md): snippet recovery (9/9 actual
+  engine-returned snippets, agent-read, **no human validation**) and API-level
+  ordering criteria, exposed on the CLI as `--prefer-language` / `--prefer-source`
+  ([SEARCH-CLI-PREFERENCES.md](SEARCH-CLI-PREFERENCES.md)). Bounded observations
+  on three queries; they do not establish relevance quality.
+- A native GitHub issue/PR lane is being implemented **concurrently** in this
+  tree. It is not integrated into this checkpoint and no acceptance result for it
+  is recorded here; its cases must be added to the frozen manifest and run, not
+  inferred from the forwarding surface.
+- Parent independently verified **928 tests passing** (2026-10-28 whole-tree run:
+  928 passed; run with `TRAILHEAD_DISABLE_ASR` unset — with it exported, 15
+  ASR/transcription tests fail because the veto short-circuits them), compilation,
+  diff-check, deterministic gauntlet (100/100) and live search/read/matched
+  comparison. No pushes.
 
 Still open: authenticated artifacts and account lifecycle (specific consent needed),
 quota-backed live transcription/podcast (separate explicit budget needed), real
@@ -120,3 +133,10 @@ relevance beyond these URL markers, multi-day reliability/freshness, comparable
 per-tool runtime resource accounting and all-artifact pagination/completeness.
 Linux isolated-wheel verification is useful but is not clean-machine/cross-OS proof.
 The forwarding surface borrows upstream implementation; it is not a superiority win.
+
+Concrete, frozen procedures for the remaining work — artifact completeness,
+repeated multi-day public runs, per-tool resource accounting, and the
+public/consent/quota lane split — are in
+[PUBLIC-REMAINING-ACCEPTANCE.md](PUBLIC-REMAINING-ACCEPTANCE.md). That document
+defines how to run them and what may be claimed; **none of it is executed yet**,
+and it does not mark this plan complete or public work exhausted.

@@ -7,6 +7,13 @@ Reviewer: Hermes agent (`monchobotjr`), **agent-reviewed, NOT human reviewed**.
 Frozen expectations were written to the JSON before any search call (`status: frozen_before_calls` at
 `2026-10-28T13:33:24Z`); the executed record preserves them and adds the observed results.
 
+> **Later work, separate changes (2026-10-28):** [`SEARCH-FOLLOWUP.md`](SEARCH-FOLLOWUP.md)
+> (snippet recovery + API-level ranking criteria) and
+> [`SEARCH-CLI-PREFERENCES.md`](SEARCH-CLI-PREFERENCES.md) (the `--prefer-language` /
+> `--prefer-source` flags) re-used these same three queries. They are separate observations
+> and do not revise anything below; see the addendum before **Reproduce** for the one gap
+> they close.
+
 ## Why this probe exists
 
 The repeated en/zh evidence already on file covers action parity and artifact presence. It does not
@@ -103,6 +110,8 @@ its title.
 
 1. **No snippets anywhere.** All 9 hits returned `snippet: ""` on the `jina_duckduckgo` path. Relevance
    review is therefore title + URL + read text; snippet-level relevance could not be assessed.
+   *(This was true for this run; the parser gap was closed later the same day — see the addendum.
+   The recovered strings are engine text read by one agent, still not human validation.)*
 2. **One engine served every query.** `ddg_lite` and `ddg_html` produced no hits before the Jina path
    succeeded, so these results are engine-correlated; a second independent backend was not exercised.
 3. **Fallback untested.** No optional public backend fallback was required (3/3 queries returned 3 hits
@@ -116,6 +125,34 @@ its title.
    pages were fetched, and their version labels were not cross-checked against the index.
 8. **Not measured:** recall, completeness, latency, cost, or any cross-tool comparison. One agent read
    nine rows; that is the entire evidence base.
+
+## Addendum — the snippet gap was closed later the same day (not part of this probe)
+
+Gap 1 above is accurate for the run recorded here: at 13:33–13:50 UTC all nine
+`jina_duckduckgo` hits carried `snippet: ""`. A later change
+([`SEARCH-FOLLOWUP.md`](SEARCH-FOLLOWUP.md)) found the block shape — Jina puts a
+blank line between the heading, the favicon/breadcrumb line and the snippet line —
+and recovered the snippet from the inline link text. Re-parsing the **same raw
+bytes** and a fresh live run both produced **9/9 non-empty snippets** (lengths
+140, 264, 108 / 167, 155, 133 / 200, 300, 300), with hit URLs, titles, counts and
+order unchanged.
+
+What that addendum is and is not:
+
+- The nine strings are actual engine-returned snippet text, stored verbatim
+  (including `HTTPlibrary` / `RequestsRequests`, which were not repaired because
+  inserting the missing space would be inventing text).
+- They were read by **one agent — no human validation**. Nothing here becomes
+  human-reviewed relevance evidence.
+- The relevance verdicts in this document were title + URL + read text; snippet
+  recovery does not change them. It also does not make snippet language a
+  language signal: the `docs.python.org/zh-cn/...` row's blurb is English.
+- [`SEARCH-CLI-PREFERENCES.md`](SEARCH-CLI-PREFERENCES.md) exposes ordering on
+  URL evidence only (`--prefer-language`, `--prefer-source`); no new live
+  relevance campaign was run for the flags, and no relevance score exists.
+
+The original gap list above is left as written on 2026-10-28 so the pre-snippet
+state stays auditable.
 
 ## Reproduce
 
