@@ -2511,6 +2511,59 @@ def _strip_reader_metadata(text: str) -> str:
     return "\n".join(lines[index:])
 
 
+#: A reader tier states the upstream HTTP status in its header when the target
+#: did not answer 2xx — ``Warning: Target URL returned error 404: Not Found``,
+#: or an ``X-Target-Status:`` line.  That header is transport metadata about the
+#: fetch, so it is authoritative evidence that the artifact was *not* served,
+#: even though the reader itself answered 200 with its own error chrome.
+_READER_STATUS_WARNING_RE = re.compile(
+    r"\btarget url returned error\s+(\d{3})\b", re.IGNORECASE
+)
+_READER_TARGET_STATUS_RE = re.compile(
+    r"^x-target-status\s*:\s*(\d{3})\b", re.IGNORECASE
+)
+#: Keys that mark a block as a reader envelope rather than a document that
+#: happens to open with a ``Warning:`` line.
+_READER_ENVELOPE_KEYS = ("url source:", "markdown content:")
+
+
+def _reader_upstream_status(text: str) -> int | None:
+    """Upstream HTTP status declared by a reader tier's leading header.
+
+    Only the contiguous header at the very top of the payload is inspected, and
+    only when it is shaped like a reader envelope (it also carries ``URL
+    Source:``/``Markdown Content:``).  A document that *discusses* or *quotes*
+    the same warning — in prose, or in a fenced block further down — never
+    reaches this header, so it keeps being judged as a document.
+    """
+    header: list[str] = []
+    for line in (text or "").splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if not (
+            _READER_METADATA_RE.match(stripped)
+            or _READER_TARGET_STATUS_RE.match(stripped)
+        ):
+            break
+        header.append(stripped)
+        if stripped.lower().startswith("markdown content:"):
+            # Everything following this boundary is document body, even when
+            # its first lines look like reader metadata.
+            break
+    if not any(
+        entry.lower().startswith(_READER_ENVELOPE_KEYS) for entry in header
+    ):
+        return None
+    for entry in header:
+        match = _READER_TARGET_STATUS_RE.match(entry)
+        if match is None and entry.lower().startswith("warning:"):
+            match = _READER_STATUS_WARNING_RE.search(entry)
+        if match:
+            return int(match.group(1))
+    return None
+
+
 #: Control labels that an app surface repeats.  Positive evidence only: a
 #: document that merely mentions one of them is never condemned for it, so the
 #: list deliberately stays a vocabulary of chrome rather than a blocklist.
@@ -2874,23 +2927,38 @@ def classify_page_shell(text: str) -> str | None:
     Returns ``"blocked"`` when the body is an access interstitial (network
     security block, traffic challenge, or a platform's loading gate — see
     ``_is_loading_interstitial``), ``"missing_page"`` when the target is gone
-    (404 in any localization), else ``None``.
+    (404 in any localization, or a reader tier's own upstream 404/410 header),
+    else ``None``.
 
     Deliberately conservative: a marker alone never condemns a long body,
     because legitimate articles discuss 404 pages and blocked requests.  A
-    missing-page marker counts when the body is short (a shell has little real
-    prose), or when a long body is *corroborated*: either at least two
-    different languages agree (the shape of LinkedIn's multilingual 404) or at
-    least three distinct phrases appear — a docs page that quotes ``page not
-    found`` and ``this page doesn't exist`` is a page, not a 404 shell.
-    Metadata records (empty text) and discovery snippets are out of scope:
-    callers decide which bodies are supposed to be complete artifacts.
+    reader tier's *transport header*, by contrast, is not page text at all: a
+    declared upstream error status is judged before any body heuristic, since
+    an HTTP 200 envelope around a 404 page still means the artifact was never
+    served.  A missing-page marker in the body counts when the body is short (a
+    shell has little real prose), or when a long body is *corroborated*: either
+    at least two different languages agree (the shape of LinkedIn's multilingual
+    404) or at least three distinct phrases appear — a docs page that quotes
+    ``page not found`` and ``this page doesn't exist`` is a page, not a 404
+    shell.  Metadata records (empty text) and discovery snippets are out of
+    scope: callers decide which bodies are supposed to be complete artifacts.
     """
     raw = (text or "").strip()
     if not raw:
         return None
     normalised = re.sub(r"\s+", " ", raw).lower()
     length = len(normalised)
+
+    # Transport first: when the reader tier itself reports that the upstream
+    # target errored, the body it shipped is its own error chrome (a vendor
+    # "not found" page, a sign-in shell), never the requested artifact — and no
+    # amount of navigation markup makes it evidence.  The header is the only
+    # place this counts; the same wording quoted inside a document is prose.
+    upstream_status = _reader_upstream_status(raw)
+    if upstream_status in (404, 410):
+        return "missing_page"
+    if upstream_status is not None and 400 <= upstream_status <= 599:
+        return "blocked"
 
     # The same gate reaches us through a reader tier as ``Title: 请稍候 -
     # BOSS直聘`` + ``URL Source: ...`` + warnings in front of the three body
