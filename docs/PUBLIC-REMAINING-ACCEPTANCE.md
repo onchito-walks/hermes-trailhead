@@ -1,5 +1,14 @@
 # Public remaining acceptance — frozen procedures, first executions recorded
 
+Latest execution addendum (2026-10-28T16:45Z):
+[P5 GitHub discussion campaign](GITHUB-DISCUSSION-ACCEPTANCE.md) now records
+eight bounded calls on a separate frozen manifest. Both tools returned comment
+bodies; Trailhead additionally exposed IDs and bounded-capture disclosures.
+Literal-format marker totals are not a fair comparative score. P5 multi-day
+and repeated resource distributions remain unmeasured. P2 day-one cold has
+[started](PUBLIC-RELIABILITY-STATE.md); warm is time-gated. Historical “unrun”
+statements below describe the original freeze, not these later executions.
+
 Status: **procedures frozen 2026-10-28; the first bounded executions are now
 recorded.** P1 (single-day artifact completeness) and P3 (per-tool resources) were
 run once each — 60 invocations on the three frozen cases

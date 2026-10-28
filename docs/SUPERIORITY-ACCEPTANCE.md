@@ -3,6 +3,12 @@
 Owner request: improve Trailhead in every way, not merely claim a research niche.
 Status: **in progress; overall superiority is NOT established**.
 
+Latest bounded evidence: [P5 discussion capture](GITHUB-DISCUSSION-ACCEPTANCE.md)
+(2026-10-28, eight calls) verifies body hashes and all sixteen historical comment
+IDs for Trailhead; both tools returned comment bodies. Marker totals are
+format-dependent contract checks, not superiority scores. [P2 reliability state](PUBLIC-RELIABILITY-STATE.md)
+contains the genuine day-one cold observations; no five-day result exists yet.
+
 ## Frozen reference
 
 - Agent Reach 1.6.0, commit `14c213405669414492bda0f8d52cc6531d062c45`.

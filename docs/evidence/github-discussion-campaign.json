@@ -1,0 +1,2279 @@
+{
+  "schema": "trailhead.public-resource/1",
+  "generated_at": "2026-10-28T16:45:09Z",
+  "campaign_started_at": "2026-10-28T16:45:05Z",
+  "campaign_window_utc": {
+    "start": "2026-10-28T16:45:05Z",
+    "end": "2026-10-28T16:45:09Z",
+    "note": "one window; this is not a multi-day reliability campaign (P2)"
+  },
+  "manifest": {
+    "path": "docs/evidence/github-discussion-manifest.json",
+    "schema": "trailhead.public-remaining-manifest/1",
+    "frozen_at": "2026-10-28T16:45:02Z",
+    "frozen_by": "P5 executor (harness author; not an independent reviewer) — expectations taken from pre-existing frozen evidence",
+    "manifest_sha256": "8167c395ec1cd508513a37f7e5a380c51e54ea4f7149dba7e835eb1212fef9b5",
+    "recomputed_match": true,
+    "cases": 2
+  },
+  "host": {
+    "hostname": "single Linux host (name withheld)",
+    "platform": "Linux-7.0.0-1013-oracle-aarch64-with-glibc2.43",
+    "machine": "aarch64",
+    "cpus": 4,
+    "mem_total_kb": 24547476,
+    "loadavg_at_start": [
+      1.18,
+      1.01,
+      1.0
+    ],
+    "python": "3.11.15",
+    "measurement_host_note": "one host; per-run load is recorded so a reader can see whether the runs shared the machine with other work"
+  },
+  "tools": {
+    "trailhead": {
+      "invocation": "python -m hermes_trailhead read <url> --format json --timeout 25",
+      "python": "3.11.15",
+      "commit": "1ac3332f36613a153698407a35545bf330554503"
+    },
+    "agent_reach": {
+      "executable_name": "agent-reach",
+      "distribution_name": "agent-reach",
+      "version": "1.6.0",
+      "pinned_commit": "14c213405669414492bda0f8d52cc6531d062c45",
+      "direct_url": "https://github.com/Panniantong/Agent-Reach/archive/14c213405669414492bda0f8d52cc6531d062c45.zip",
+      "executable_sha256": "bf25f7bd524f8aa289f502708b88366fb14733c51b7e14294f193f8f0925fae6",
+      "install_source": "GitHub archive at a pinned commit (direct_url)"
+    }
+  },
+  "dependencies": {
+    "trailhead_env": {
+      "env_name": ".venv",
+      "distribution_count": 27,
+      "env_disk_bytes": 118719946
+    },
+    "agent_reach_env": {
+      "env_name": "agent-reach-eval-venv",
+      "distribution_count": 14,
+      "env_disk_bytes": 37645401
+    },
+    "note": "both environments were already installed; on-disk size and distribution count are measured, install duration is not re-measured, and a dev venv is not a like-for-like runtime footprint"
+  },
+  "design": {
+    "evaluator_version": 2,
+    "tools_per_invocation": 1,
+    "deadline": "25s killable process group, equal for both tools",
+    "rounds_per_case_tool_state": 1,
+    "states": [
+      "cold",
+      "warm"
+    ],
+    "cold": "fresh sandbox tree (HOME/HERMES_HOME/XDG/TMPDIR inside scratch)",
+    "warm": "second run in the same sandbox tree of that round",
+    "interleaving": "trailhead and agent_reach alternate inside every state",
+    "sandbox": "comparative.build_sandbox: environment isolation only, not a filesystem sandbox",
+    "asr": "TRAILHEAD_DISABLE_ASR=1 exported and asserted for every child",
+    "credentials": "none supplied; env keys validated against an allowlist",
+    "raw_payloads": "kept in scratch, capped at 4194304 bytes/run"
+  },
+  "runs": [
+    {
+      "case_id": "public-github-flask-issue-5",
+      "tool": "trailhead",
+      "state": "cold",
+      "round": 1,
+      "sandbox_reused": false,
+      "sandbox_tree": "public-github-flask-issue-5/tree-trailhead-r1",
+      "loadavg": [
+        1.02,
+        0.97,
+        0.99
+      ],
+      "status": "ok",
+      "tool_ok": true,
+      "error_code": "",
+      "started_at": "2026-10-28T16:45:05Z",
+      "wall_s": 0.57,
+      "cpu_user_s": 0.135,
+      "cpu_sys_s": 0.06,
+      "peak_rss_kb": 29104,
+      "exit_code": 0,
+      "timed_out": false,
+      "stdout_bytes": 2671,
+      "stderr_bytes": 0,
+      "raw_capped": false,
+      "items": null,
+      "returned_chars": 714,
+      "truncated": false,
+      "continuation": {
+        "state": "exhausted",
+        "source": "payload.pagination"
+      },
+      "units": [
+        {
+          "id": "issue_identity",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "GitHub issue pallets/flask#5: Implement SQLAlchemy",
+          "region": "body",
+          "offset": 0,
+          "context": "GitHub issue pallets/flask#5: Implement SQLAlchemy State: closed | Author: justquick | Cre",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "issue_state_metadata",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "State: closed",
+          "region": "body",
+          "offset": 51,
+          "context": "e pallets/flask#5: Implement SQLAlchemy State: closed | Author: justquick | Created: 2010-04-",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "issue_body_text",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "Use SQLAlchemy in the core framework as an ORM",
+          "region": "body",
+          "offset": 189,
+          "context": "com/pallets/flask/issues/5  Issue body: Use SQLAlchemy in the core framework as an ORM  Conversation comments: captured 2 of 2",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "issue_comment_308703",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "Just use the Flask-SQLAlchemy extension",
+          "region": "body",
+          "offset": 410,
+          "context": "ent 1: dcolish (2010-07-12) [id 308703] Just use the Flask-SQLAlchemy extension  --- comment 2: mitsuhiko (2010-07-12)",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "issue_comment_308779",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "What dcolish said.",
+          "region": "body",
+          "offset": 501,
+          "context": "t 2: mitsuhiko (2010-07-12) [id 308779] What dcolish said.  Capture note: this is the issue body p",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "discussion_capture_disclosed",
+          "kind": "regex_distinct",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "body",
+          "offset": null,
+          "context": "",
+          "reason": "",
+          "distinct_found": 1,
+          "distinct_body": 1,
+          "distinct_metadata": 0,
+          "min_distinct": 1,
+          "state": "present"
+        }
+      ],
+      "verdict": "markers_present",
+      "verdict_reasons": [],
+      "required_present": 6,
+      "required_total": 6,
+      "required_assessed": 6,
+      "artifacts": {
+        "unit_states": {
+          "issue_identity": "present",
+          "issue_state_metadata": "present",
+          "issue_body_text": "present",
+          "issue_comment_308703": "present",
+          "issue_comment_308779": "present",
+          "discussion_capture_disclosed": "present"
+        },
+        "body_chars": 714,
+        "metadata_chars": 56,
+        "body_sha256": "b2191546f4d203f7"
+      },
+      "raw_files": {
+        "stdout": "trailhead-cold-r1.stdout.json",
+        "stderr": "trailhead-cold-r1.stderr.txt",
+        "rusage": "trailhead-cold-r1.stdout.rusage.json"
+      },
+      "wrapper": {
+        "exit_code": 0,
+        "stderr": ""
+      }
+    },
+    {
+      "case_id": "public-github-flask-issue-5",
+      "tool": "agent_reach",
+      "state": "cold",
+      "round": 1,
+      "sandbox_reused": false,
+      "sandbox_tree": "public-github-flask-issue-5/tree-agent_reach-r1",
+      "loadavg": [
+        1.02,
+        0.97,
+        0.99
+      ],
+      "status": "ok",
+      "tool_ok": true,
+      "error_code": "",
+      "started_at": "2026-10-28T16:45:06Z",
+      "wall_s": 0.465,
+      "cpu_user_s": 0.228,
+      "cpu_sys_s": 0.061,
+      "peak_rss_kb": 35188,
+      "exit_code": 0,
+      "timed_out": false,
+      "stdout_bytes": 705,
+      "stderr_bytes": 0,
+      "raw_capped": false,
+      "items": 1,
+      "returned_chars": 131,
+      "truncated": null,
+      "continuation": {
+        "state": "unknown",
+        "source": "absent"
+      },
+      "units": [
+        {
+          "id": "issue_identity",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "none of the declared values appear in body or metadata",
+          "state": "absent"
+        },
+        {
+          "id": "issue_state_metadata",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "none of the declared values appear in body or metadata",
+          "state": "absent"
+        },
+        {
+          "id": "issue_body_text",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "Use SQLAlchemy in the core framework as an ORM",
+          "region": "body",
+          "offset": 0,
+          "context": "Use SQLAlchemy in the core framework as an ORM   @dcolish: Just use the Flask-SQLAlche",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "issue_comment_308703",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "Just use the Flask-SQLAlchemy extension",
+          "region": "body",
+          "offset": 59,
+          "context": "he core framework as an ORM   @dcolish: Just use the Flask-SQLAlchemy extension   @mitsuhiko: What dcolish said.",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "issue_comment_308779",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "What dcolish said.",
+          "region": "body",
+          "offset": 113,
+          "context": "lask-SQLAlchemy extension   @mitsuhiko: What dcolish said.",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "discussion_capture_disclosed",
+          "kind": "regex_distinct",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "0 distinct match(es) < min_distinct 1",
+          "distinct_found": 0,
+          "distinct_body": 0,
+          "distinct_metadata": 0,
+          "min_distinct": 1,
+          "state": "absent"
+        }
+      ],
+      "verdict": "incomplete",
+      "verdict_reasons": [
+        "required_unit_absent:issue_identity,issue_state_metadata,discussion_capture_disclosed",
+        "truncation_unverified: payload reports no truncation flag"
+      ],
+      "required_present": 3,
+      "required_total": 6,
+      "required_assessed": 6,
+      "artifacts": {
+        "unit_states": {
+          "issue_identity": "absent",
+          "issue_state_metadata": "absent",
+          "issue_body_text": "present",
+          "issue_comment_308703": "present",
+          "issue_comment_308779": "present",
+          "discussion_capture_disclosed": "absent"
+        },
+        "body_chars": 131,
+        "metadata_chars": 93,
+        "body_sha256": "775572b1a77de7ef"
+      },
+      "raw_files": {
+        "stdout": "agent_reach-cold-r1.stdout.json",
+        "stderr": "agent_reach-cold-r1.stderr.txt",
+        "rusage": "agent_reach-cold-r1.stdout.rusage.json"
+      },
+      "wrapper": {
+        "exit_code": 0,
+        "stderr": ""
+      }
+    },
+    {
+      "case_id": "public-github-flask-issue-5",
+      "tool": "trailhead",
+      "state": "warm",
+      "round": 1,
+      "sandbox_reused": true,
+      "sandbox_tree": "public-github-flask-issue-5/tree-trailhead-r1",
+      "loadavg": [
+        1.02,
+        0.97,
+        0.99
+      ],
+      "status": "ok",
+      "tool_ok": true,
+      "error_code": "",
+      "started_at": "2026-10-28T16:45:06Z",
+      "wall_s": 0.216,
+      "cpu_user_s": 0.138,
+      "cpu_sys_s": 0.019,
+      "peak_rss_kb": 29104,
+      "exit_code": 0,
+      "timed_out": false,
+      "stdout_bytes": 2671,
+      "stderr_bytes": 0,
+      "raw_capped": false,
+      "items": null,
+      "returned_chars": 714,
+      "truncated": false,
+      "continuation": {
+        "state": "exhausted",
+        "source": "payload.pagination"
+      },
+      "units": [
+        {
+          "id": "issue_identity",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "GitHub issue pallets/flask#5: Implement SQLAlchemy",
+          "region": "body",
+          "offset": 0,
+          "context": "GitHub issue pallets/flask#5: Implement SQLAlchemy State: closed | Author: justquick | Cre",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "issue_state_metadata",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "State: closed",
+          "region": "body",
+          "offset": 51,
+          "context": "e pallets/flask#5: Implement SQLAlchemy State: closed | Author: justquick | Created: 2010-04-",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "issue_body_text",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "Use SQLAlchemy in the core framework as an ORM",
+          "region": "body",
+          "offset": 189,
+          "context": "com/pallets/flask/issues/5  Issue body: Use SQLAlchemy in the core framework as an ORM  Conversation comments: captured 2 of 2",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "issue_comment_308703",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "Just use the Flask-SQLAlchemy extension",
+          "region": "body",
+          "offset": 410,
+          "context": "ent 1: dcolish (2010-07-12) [id 308703] Just use the Flask-SQLAlchemy extension  --- comment 2: mitsuhiko (2010-07-12)",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "issue_comment_308779",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "What dcolish said.",
+          "region": "body",
+          "offset": 501,
+          "context": "t 2: mitsuhiko (2010-07-12) [id 308779] What dcolish said.  Capture note: this is the issue body p",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "discussion_capture_disclosed",
+          "kind": "regex_distinct",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "body",
+          "offset": null,
+          "context": "",
+          "reason": "",
+          "distinct_found": 1,
+          "distinct_body": 1,
+          "distinct_metadata": 0,
+          "min_distinct": 1,
+          "state": "present"
+        }
+      ],
+      "verdict": "markers_present",
+      "verdict_reasons": [],
+      "required_present": 6,
+      "required_total": 6,
+      "required_assessed": 6,
+      "artifacts": {
+        "unit_states": {
+          "issue_identity": "present",
+          "issue_state_metadata": "present",
+          "issue_body_text": "present",
+          "issue_comment_308703": "present",
+          "issue_comment_308779": "present",
+          "discussion_capture_disclosed": "present"
+        },
+        "body_chars": 714,
+        "metadata_chars": 56,
+        "body_sha256": "b2191546f4d203f7"
+      },
+      "raw_files": {
+        "stdout": "trailhead-warm-r1.stdout.json",
+        "stderr": "trailhead-warm-r1.stderr.txt",
+        "rusage": "trailhead-warm-r1.stdout.rusage.json"
+      },
+      "wrapper": {
+        "exit_code": 0,
+        "stderr": ""
+      }
+    },
+    {
+      "case_id": "public-github-flask-issue-5",
+      "tool": "agent_reach",
+      "state": "warm",
+      "round": 1,
+      "sandbox_reused": true,
+      "sandbox_tree": "public-github-flask-issue-5/tree-agent_reach-r1",
+      "loadavg": [
+        1.02,
+        0.97,
+        0.99
+      ],
+      "status": "ok",
+      "tool_ok": true,
+      "error_code": "",
+      "started_at": "2026-10-28T16:45:06Z",
+      "wall_s": 0.267,
+      "cpu_user_s": 0.193,
+      "cpu_sys_s": 0.045,
+      "peak_rss_kb": 35576,
+      "exit_code": 0,
+      "timed_out": false,
+      "stdout_bytes": 747,
+      "stderr_bytes": 0,
+      "raw_capped": false,
+      "items": 1,
+      "returned_chars": 131,
+      "truncated": null,
+      "continuation": {
+        "state": "unknown",
+        "source": "absent"
+      },
+      "units": [
+        {
+          "id": "issue_identity",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "none of the declared values appear in body or metadata",
+          "state": "absent"
+        },
+        {
+          "id": "issue_state_metadata",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "none of the declared values appear in body or metadata",
+          "state": "absent"
+        },
+        {
+          "id": "issue_body_text",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "Use SQLAlchemy in the core framework as an ORM",
+          "region": "body",
+          "offset": 0,
+          "context": "Use SQLAlchemy in the core framework as an ORM   @dcolish: Just use the Flask-SQLAlche",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "issue_comment_308703",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "Just use the Flask-SQLAlchemy extension",
+          "region": "body",
+          "offset": 59,
+          "context": "he core framework as an ORM   @dcolish: Just use the Flask-SQLAlchemy extension   @mitsuhiko: What dcolish said.",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "issue_comment_308779",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "What dcolish said.",
+          "region": "body",
+          "offset": 113,
+          "context": "lask-SQLAlchemy extension   @mitsuhiko: What dcolish said.",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "discussion_capture_disclosed",
+          "kind": "regex_distinct",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "0 distinct match(es) < min_distinct 1",
+          "distinct_found": 0,
+          "distinct_body": 0,
+          "distinct_metadata": 0,
+          "min_distinct": 1,
+          "state": "absent"
+        }
+      ],
+      "verdict": "incomplete",
+      "verdict_reasons": [
+        "required_unit_absent:issue_identity,issue_state_metadata,discussion_capture_disclosed",
+        "truncation_unverified: payload reports no truncation flag"
+      ],
+      "required_present": 3,
+      "required_total": 6,
+      "required_assessed": 6,
+      "artifacts": {
+        "unit_states": {
+          "issue_identity": "absent",
+          "issue_state_metadata": "absent",
+          "issue_body_text": "present",
+          "issue_comment_308703": "present",
+          "issue_comment_308779": "present",
+          "discussion_capture_disclosed": "absent"
+        },
+        "body_chars": 131,
+        "metadata_chars": 93,
+        "body_sha256": "775572b1a77de7ef"
+      },
+      "raw_files": {
+        "stdout": "agent_reach-warm-r1.stdout.json",
+        "stderr": "agent_reach-warm-r1.stderr.txt",
+        "rusage": "agent_reach-warm-r1.stdout.rusage.json"
+      },
+      "wrapper": {
+        "exit_code": 0,
+        "stderr": ""
+      }
+    },
+    {
+      "case_id": "public-github-flask-pr-112",
+      "tool": "trailhead",
+      "state": "cold",
+      "round": 1,
+      "sandbox_reused": false,
+      "sandbox_tree": "public-github-flask-pr-112/tree-trailhead-r1",
+      "loadavg": [
+        1.18,
+        1.01,
+        1.0
+      ],
+      "status": "ok",
+      "tool_ok": true,
+      "error_code": "",
+      "started_at": "2026-10-28T16:45:07Z",
+      "wall_s": 0.918,
+      "cpu_user_s": 0.148,
+      "cpu_sys_s": 0.024,
+      "peak_rss_kb": 28712,
+      "exit_code": 0,
+      "timed_out": false,
+      "stdout_bytes": 5633,
+      "stderr_bytes": 0,
+      "raw_capped": false,
+      "items": null,
+      "returned_chars": 3614,
+      "truncated": false,
+      "continuation": {
+        "state": "exhausted",
+        "source": "payload.pagination"
+      },
+      "units": [
+        {
+          "id": "pr_identity",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "GitHub pull request pallets/flask#112: JSONP",
+          "region": "body",
+          "offset": 0,
+          "context": "GitHub pull request pallets/flask#112: JSONP State: closed | Merged: no | Draft: no",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_state_metadata",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "State: closed",
+          "region": "body",
+          "offset": 45,
+          "context": "b pull request pallets/flask#112: JSONP State: closed | Merged: no | Draft: no | Author: ghos",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_merge_metadata",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "Merged: no",
+          "region": "body",
+          "offset": 61,
+          "context": "allets/flask#112: JSONP State: closed | Merged: no | Draft: no | Author: ghost | Created:",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_body_text",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "I added a function to return padded JSON",
+          "region": "body",
+          "offset": 341,
+          "context": "ll request body: If you are interested, I added a function to return padded JSON. I needed it for a project I'm working",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_382640",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "That does look interesting, but where is callback coming from?",
+          "region": "body",
+          "offset": 727,
+          "context": "t 1: mitsuhiko (2010-09-01) [id 382640] That does look interesting, but where is callback coming from? Also, it would need unittests and an im",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_383274",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "The import in the init file is there",
+          "region": "body",
+          "offset": 903,
+          "context": "mment 2: ghost (2010-09-01) [id 383274] The import in the init file is there. The callback is generated on the clien",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_618181",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "+1 on this. Would play well with jQuery",
+          "region": "body",
+          "offset": 1309,
+          "context": "ment 3: galvez (2010-12-17) [id 618181] +1 on this. Would play well with jQuery's getJSON() function (which uses JSONP",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_620332",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "I'll try to get on writing some unit tests",
+          "region": "body",
+          "offset": 1521,
+          "context": "mment 4: ghost (2010-12-18) [id 620332] I'll try to get on writing some unit tests.  --- comment 5: subtlepath (2011-01-04",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_650978",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "JSONP should be returned with MIME type",
+          "region": "body",
+          "offset": 1617,
+          "context": "5: subtlepath (2011-01-04) [id 650978] JSONP should be returned with MIME type 'text/javascript', not 'application/jso",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_scope_note",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "NOT the complete PR conversation",
+          "region": "body",
+          "offset": 3444,
+          "context": "views and inline review comments. It is NOT the complete PR conversation: timeline events, review-thread resolut",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "discussion_capture_disclosed",
+          "kind": "regex_distinct",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "body",
+          "offset": null,
+          "context": "",
+          "reason": "",
+          "distinct_found": 2,
+          "distinct_body": 2,
+          "distinct_metadata": 0,
+          "min_distinct": 1,
+          "state": "present"
+        }
+      ],
+      "verdict": "markers_present",
+      "verdict_reasons": [],
+      "required_present": 11,
+      "required_total": 11,
+      "required_assessed": 11,
+      "artifacts": {
+        "unit_states": {
+          "pr_identity": "present",
+          "pr_state_metadata": "present",
+          "pr_merge_metadata": "present",
+          "pr_body_text": "present",
+          "pr_comment_382640": "present",
+          "pr_comment_383274": "present",
+          "pr_comment_618181": "present",
+          "pr_comment_620332": "present",
+          "pr_comment_650978": "present",
+          "pr_scope_note": "present",
+          "discussion_capture_disclosed": "present"
+        },
+        "body_chars": 3614,
+        "metadata_chars": 56,
+        "body_sha256": "4d537c66976b72d9"
+      },
+      "raw_files": {
+        "stdout": "trailhead-cold-r1.stdout.json",
+        "stderr": "trailhead-cold-r1.stderr.txt",
+        "rusage": "trailhead-cold-r1.stdout.rusage.json"
+      },
+      "wrapper": {
+        "exit_code": 0,
+        "stderr": ""
+      }
+    },
+    {
+      "case_id": "public-github-flask-pr-112",
+      "tool": "agent_reach",
+      "state": "cold",
+      "round": 1,
+      "sandbox_reused": false,
+      "sandbox_tree": "public-github-flask-pr-112/tree-agent_reach-r1",
+      "loadavg": [
+        1.18,
+        1.01,
+        1.0
+      ],
+      "status": "ok",
+      "tool_ok": true,
+      "error_code": "",
+      "started_at": "2026-10-28T16:45:08Z",
+      "wall_s": 0.727,
+      "cpu_user_s": 0.227,
+      "cpu_sys_s": 0.07,
+      "peak_rss_kb": 35316,
+      "exit_code": 0,
+      "timed_out": false,
+      "stdout_bytes": 2710,
+      "stderr_bytes": 0,
+      "raw_capped": false,
+      "items": 1,
+      "returned_chars": 2104,
+      "truncated": null,
+      "continuation": {
+        "state": "unknown",
+        "source": "absent"
+      },
+      "units": [
+        {
+          "id": "pr_identity",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "none of the declared values appear in body or metadata",
+          "state": "absent"
+        },
+        {
+          "id": "pr_state_metadata",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "none of the declared values appear in body or metadata",
+          "state": "absent"
+        },
+        {
+          "id": "pr_merge_metadata",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "none of the declared values appear in body or metadata",
+          "state": "absent"
+        },
+        {
+          "id": "pr_body_text",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "I added a function to return padded JSON",
+          "region": "body",
+          "offset": 23,
+          "context": "If you are interested, I added a function to return padded JSON. I needed it for a project I'm working",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_382640",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "That does look interesting, but where is callback coming from?",
+          "region": "body",
+          "offset": 245,
+          "context": "e awesome framework.  Tom   @mitsuhiko: That does look interesting, but where is callback coming from? Also, it would need unittests and an im",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_383274",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "The import in the init file is there",
+          "region": "body",
+          "offset": 384,
+          "context": "import in the **init** file.   @ghost: The import in the init file is there. The callback is generated on the clien",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_618181",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "+1 on this. Would play well with jQuery",
+          "region": "body",
+          "offset": 753,
+          "context": ".  Thanks for taking a look.   @galvez: +1 on this. Would play well with jQuery's getJSON() function (which uses JSONP",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_620332",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "I'll try to get on writing some unit tests",
+          "region": "body",
+          "offset": 928,
+          "context": "n guess how this works... :))   @ghost: I'll try to get on writing some unit tests.   @subtlepath: JSONP should be returne",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_650978",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "JSONP should be returned with MIME type",
+          "region": "body",
+          "offset": 987,
+          "context": "writing some unit tests.   @subtlepath: JSONP should be returned with MIME type 'text/javascript', not 'application/jso",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_scope_note",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "none of the declared values appear in body or metadata",
+          "state": "absent"
+        },
+        {
+          "id": "discussion_capture_disclosed",
+          "kind": "regex_distinct",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "0 distinct match(es) < min_distinct 1",
+          "distinct_found": 0,
+          "distinct_body": 0,
+          "distinct_metadata": 0,
+          "min_distinct": 1,
+          "state": "absent"
+        }
+      ],
+      "verdict": "incomplete",
+      "verdict_reasons": [
+        "required_unit_absent:pr_identity,pr_state_metadata,pr_merge_metadata,pr_scope_note,discussion_capture_disclosed",
+        "truncation_unverified: payload reports no truncation flag"
+      ],
+      "required_present": 6,
+      "required_total": 11,
+      "required_assessed": 11,
+      "artifacts": {
+        "unit_states": {
+          "pr_identity": "absent",
+          "pr_state_metadata": "absent",
+          "pr_merge_metadata": "absent",
+          "pr_body_text": "present",
+          "pr_comment_382640": "present",
+          "pr_comment_383274": "present",
+          "pr_comment_618181": "present",
+          "pr_comment_620332": "present",
+          "pr_comment_650978": "present",
+          "pr_scope_note": "absent",
+          "discussion_capture_disclosed": "absent"
+        },
+        "body_chars": 2104,
+        "metadata_chars": 74,
+        "body_sha256": "758ef951c21d2442"
+      },
+      "raw_files": {
+        "stdout": "agent_reach-cold-r1.stdout.json",
+        "stderr": "agent_reach-cold-r1.stderr.txt",
+        "rusage": "agent_reach-cold-r1.stdout.rusage.json"
+      },
+      "wrapper": {
+        "exit_code": 0,
+        "stderr": ""
+      }
+    },
+    {
+      "case_id": "public-github-flask-pr-112",
+      "tool": "trailhead",
+      "state": "warm",
+      "round": 1,
+      "sandbox_reused": true,
+      "sandbox_tree": "public-github-flask-pr-112/tree-trailhead-r1",
+      "loadavg": [
+        1.18,
+        1.01,
+        1.0
+      ],
+      "status": "ok",
+      "tool_ok": true,
+      "error_code": "",
+      "started_at": "2026-10-28T16:45:08Z",
+      "wall_s": 0.215,
+      "cpu_user_s": 0.155,
+      "cpu_sys_s": 0.02,
+      "peak_rss_kb": 28976,
+      "exit_code": 0,
+      "timed_out": false,
+      "stdout_bytes": 5633,
+      "stderr_bytes": 0,
+      "raw_capped": false,
+      "items": null,
+      "returned_chars": 3614,
+      "truncated": false,
+      "continuation": {
+        "state": "exhausted",
+        "source": "payload.pagination"
+      },
+      "units": [
+        {
+          "id": "pr_identity",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "GitHub pull request pallets/flask#112: JSONP",
+          "region": "body",
+          "offset": 0,
+          "context": "GitHub pull request pallets/flask#112: JSONP State: closed | Merged: no | Draft: no",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_state_metadata",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "State: closed",
+          "region": "body",
+          "offset": 45,
+          "context": "b pull request pallets/flask#112: JSONP State: closed | Merged: no | Draft: no | Author: ghos",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_merge_metadata",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "Merged: no",
+          "region": "body",
+          "offset": 61,
+          "context": "allets/flask#112: JSONP State: closed | Merged: no | Draft: no | Author: ghost | Created:",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_body_text",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "I added a function to return padded JSON",
+          "region": "body",
+          "offset": 341,
+          "context": "ll request body: If you are interested, I added a function to return padded JSON. I needed it for a project I'm working",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_382640",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "That does look interesting, but where is callback coming from?",
+          "region": "body",
+          "offset": 727,
+          "context": "t 1: mitsuhiko (2010-09-01) [id 382640] That does look interesting, but where is callback coming from? Also, it would need unittests and an im",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_383274",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "The import in the init file is there",
+          "region": "body",
+          "offset": 903,
+          "context": "mment 2: ghost (2010-09-01) [id 383274] The import in the init file is there. The callback is generated on the clien",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_618181",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "+1 on this. Would play well with jQuery",
+          "region": "body",
+          "offset": 1309,
+          "context": "ment 3: galvez (2010-12-17) [id 618181] +1 on this. Would play well with jQuery's getJSON() function (which uses JSONP",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_620332",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "I'll try to get on writing some unit tests",
+          "region": "body",
+          "offset": 1521,
+          "context": "mment 4: ghost (2010-12-18) [id 620332] I'll try to get on writing some unit tests.  --- comment 5: subtlepath (2011-01-04",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_650978",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "JSONP should be returned with MIME type",
+          "region": "body",
+          "offset": 1617,
+          "context": "5: subtlepath (2011-01-04) [id 650978] JSONP should be returned with MIME type 'text/javascript', not 'application/jso",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_scope_note",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "NOT the complete PR conversation",
+          "region": "body",
+          "offset": 3444,
+          "context": "views and inline review comments. It is NOT the complete PR conversation: timeline events, review-thread resolut",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "discussion_capture_disclosed",
+          "kind": "regex_distinct",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "body",
+          "offset": null,
+          "context": "",
+          "reason": "",
+          "distinct_found": 2,
+          "distinct_body": 2,
+          "distinct_metadata": 0,
+          "min_distinct": 1,
+          "state": "present"
+        }
+      ],
+      "verdict": "markers_present",
+      "verdict_reasons": [],
+      "required_present": 11,
+      "required_total": 11,
+      "required_assessed": 11,
+      "artifacts": {
+        "unit_states": {
+          "pr_identity": "present",
+          "pr_state_metadata": "present",
+          "pr_merge_metadata": "present",
+          "pr_body_text": "present",
+          "pr_comment_382640": "present",
+          "pr_comment_383274": "present",
+          "pr_comment_618181": "present",
+          "pr_comment_620332": "present",
+          "pr_comment_650978": "present",
+          "pr_scope_note": "present",
+          "discussion_capture_disclosed": "present"
+        },
+        "body_chars": 3614,
+        "metadata_chars": 56,
+        "body_sha256": "4d537c66976b72d9"
+      },
+      "raw_files": {
+        "stdout": "trailhead-warm-r1.stdout.json",
+        "stderr": "trailhead-warm-r1.stderr.txt",
+        "rusage": "trailhead-warm-r1.stdout.rusage.json"
+      },
+      "wrapper": {
+        "exit_code": 0,
+        "stderr": ""
+      }
+    },
+    {
+      "case_id": "public-github-flask-pr-112",
+      "tool": "agent_reach",
+      "state": "warm",
+      "round": 1,
+      "sandbox_reused": true,
+      "sandbox_tree": "public-github-flask-pr-112/tree-agent_reach-r1",
+      "loadavg": [
+        1.18,
+        1.01,
+        1.0
+      ],
+      "status": "ok",
+      "tool_ok": true,
+      "error_code": "",
+      "started_at": "2026-10-28T16:45:09Z",
+      "wall_s": 0.266,
+      "cpu_user_s": 0.199,
+      "cpu_sys_s": 0.036,
+      "peak_rss_kb": 35592,
+      "exit_code": 0,
+      "timed_out": false,
+      "stdout_bytes": 2752,
+      "stderr_bytes": 0,
+      "raw_capped": false,
+      "items": 1,
+      "returned_chars": 2104,
+      "truncated": null,
+      "continuation": {
+        "state": "unknown",
+        "source": "absent"
+      },
+      "units": [
+        {
+          "id": "pr_identity",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "none of the declared values appear in body or metadata",
+          "state": "absent"
+        },
+        {
+          "id": "pr_state_metadata",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "none of the declared values appear in body or metadata",
+          "state": "absent"
+        },
+        {
+          "id": "pr_merge_metadata",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "none of the declared values appear in body or metadata",
+          "state": "absent"
+        },
+        {
+          "id": "pr_body_text",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "I added a function to return padded JSON",
+          "region": "body",
+          "offset": 23,
+          "context": "If you are interested, I added a function to return padded JSON. I needed it for a project I'm working",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_382640",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "That does look interesting, but where is callback coming from?",
+          "region": "body",
+          "offset": 245,
+          "context": "e awesome framework.  Tom   @mitsuhiko: That does look interesting, but where is callback coming from? Also, it would need unittests and an im",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_383274",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "The import in the init file is there",
+          "region": "body",
+          "offset": 384,
+          "context": "import in the **init** file.   @ghost: The import in the init file is there. The callback is generated on the clien",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_618181",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "+1 on this. Would play well with jQuery",
+          "region": "body",
+          "offset": 753,
+          "context": ".  Thanks for taking a look.   @galvez: +1 on this. Would play well with jQuery's getJSON() function (which uses JSONP",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_620332",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "I'll try to get on writing some unit tests",
+          "region": "body",
+          "offset": 928,
+          "context": "n guess how this works... :))   @ghost: I'll try to get on writing some unit tests.   @subtlepath: JSONP should be returne",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_comment_650978",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": true,
+          "matched": "JSONP should be returned with MIME type",
+          "region": "body",
+          "offset": 987,
+          "context": "writing some unit tests.   @subtlepath: JSONP should be returned with MIME type 'text/javascript', not 'application/jso",
+          "reason": "",
+          "state": "present"
+        },
+        {
+          "id": "pr_scope_note",
+          "kind": "text_any_of",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "none of the declared values appear in body or metadata",
+          "state": "absent"
+        },
+        {
+          "id": "discussion_capture_disclosed",
+          "kind": "regex_distinct",
+          "required": true,
+          "whole_artifact": false,
+          "matched": "",
+          "region": "",
+          "offset": null,
+          "context": "",
+          "reason": "0 distinct match(es) < min_distinct 1",
+          "distinct_found": 0,
+          "distinct_body": 0,
+          "distinct_metadata": 0,
+          "min_distinct": 1,
+          "state": "absent"
+        }
+      ],
+      "verdict": "incomplete",
+      "verdict_reasons": [
+        "required_unit_absent:pr_identity,pr_state_metadata,pr_merge_metadata,pr_scope_note,discussion_capture_disclosed",
+        "truncation_unverified: payload reports no truncation flag"
+      ],
+      "required_present": 6,
+      "required_total": 11,
+      "required_assessed": 11,
+      "artifacts": {
+        "unit_states": {
+          "pr_identity": "absent",
+          "pr_state_metadata": "absent",
+          "pr_merge_metadata": "absent",
+          "pr_body_text": "present",
+          "pr_comment_382640": "present",
+          "pr_comment_383274": "present",
+          "pr_comment_618181": "present",
+          "pr_comment_620332": "present",
+          "pr_comment_650978": "present",
+          "pr_scope_note": "absent",
+          "discussion_capture_disclosed": "absent"
+        },
+        "body_chars": 2104,
+        "metadata_chars": 74,
+        "body_sha256": "758ef951c21d2442"
+      },
+      "raw_files": {
+        "stdout": "agent_reach-warm-r1.stdout.json",
+        "stderr": "agent_reach-warm-r1.stderr.txt",
+        "rusage": "agent_reach-warm-r1.stdout.rusage.json"
+      },
+      "wrapper": {
+        "exit_code": 0,
+        "stderr": ""
+      }
+    }
+  ],
+  "per_case_tool_state": {
+    "public-github-flask-issue-5": {
+      "trailhead": {
+        "cold": {
+          "attempts": 1,
+          "ok": 1,
+          "status_counts": {
+            "ok": 1
+          },
+          "verdict_counts": {
+            "markers_present": 1
+          },
+          "timeouts": 0,
+          "truncated_counts": {
+            "False": 1
+          },
+          "wall_s": {
+            "n": 1,
+            "min": 0.57,
+            "median": 0.57,
+            "max": 0.57
+          },
+          "cpu_total_s": {
+            "n": 1,
+            "min": 0.195,
+            "median": 0.195,
+            "max": 0.195
+          },
+          "cpu_user_s": {
+            "n": 1,
+            "min": 0.135,
+            "median": 0.135,
+            "max": 0.135
+          },
+          "cpu_sys_s": {
+            "n": 1,
+            "min": 0.06,
+            "median": 0.06,
+            "max": 0.06
+          },
+          "peak_rss_kb": {
+            "n": 1,
+            "min": 29104,
+            "median": 29104,
+            "max": 29104
+          },
+          "stdout_bytes": {
+            "n": 1,
+            "min": 2671,
+            "median": 2671,
+            "max": 2671
+          },
+          "stderr_bytes": {
+            "n": 1,
+            "min": 0,
+            "median": 0,
+            "max": 0
+          },
+          "required_unit_presence": {
+            "present": 6,
+            "total": 6,
+            "assessed": 6,
+            "unassessed": 0
+          },
+          "raw_capped": 0
+        },
+        "warm": {
+          "attempts": 1,
+          "ok": 1,
+          "status_counts": {
+            "ok": 1
+          },
+          "verdict_counts": {
+            "markers_present": 1
+          },
+          "timeouts": 0,
+          "truncated_counts": {
+            "False": 1
+          },
+          "wall_s": {
+            "n": 1,
+            "min": 0.216,
+            "median": 0.216,
+            "max": 0.216
+          },
+          "cpu_total_s": {
+            "n": 1,
+            "min": 0.157,
+            "median": 0.157,
+            "max": 0.157
+          },
+          "cpu_user_s": {
+            "n": 1,
+            "min": 0.138,
+            "median": 0.138,
+            "max": 0.138
+          },
+          "cpu_sys_s": {
+            "n": 1,
+            "min": 0.019,
+            "median": 0.019,
+            "max": 0.019
+          },
+          "peak_rss_kb": {
+            "n": 1,
+            "min": 29104,
+            "median": 29104,
+            "max": 29104
+          },
+          "stdout_bytes": {
+            "n": 1,
+            "min": 2671,
+            "median": 2671,
+            "max": 2671
+          },
+          "stderr_bytes": {
+            "n": 1,
+            "min": 0,
+            "median": 0,
+            "max": 0
+          },
+          "required_unit_presence": {
+            "present": 6,
+            "total": 6,
+            "assessed": 6,
+            "unassessed": 0
+          },
+          "raw_capped": 0
+        }
+      },
+      "agent_reach": {
+        "cold": {
+          "attempts": 1,
+          "ok": 1,
+          "status_counts": {
+            "ok": 1
+          },
+          "verdict_counts": {
+            "incomplete": 1
+          },
+          "timeouts": 0,
+          "truncated_counts": {
+            "None": 1
+          },
+          "wall_s": {
+            "n": 1,
+            "min": 0.465,
+            "median": 0.465,
+            "max": 0.465
+          },
+          "cpu_total_s": {
+            "n": 1,
+            "min": 0.28900000000000003,
+            "median": 0.289,
+            "max": 0.28900000000000003
+          },
+          "cpu_user_s": {
+            "n": 1,
+            "min": 0.228,
+            "median": 0.228,
+            "max": 0.228
+          },
+          "cpu_sys_s": {
+            "n": 1,
+            "min": 0.061,
+            "median": 0.061,
+            "max": 0.061
+          },
+          "peak_rss_kb": {
+            "n": 1,
+            "min": 35188,
+            "median": 35188,
+            "max": 35188
+          },
+          "stdout_bytes": {
+            "n": 1,
+            "min": 705,
+            "median": 705,
+            "max": 705
+          },
+          "stderr_bytes": {
+            "n": 1,
+            "min": 0,
+            "median": 0,
+            "max": 0
+          },
+          "required_unit_presence": {
+            "present": 3,
+            "total": 6,
+            "assessed": 6,
+            "unassessed": 0
+          },
+          "raw_capped": 0
+        },
+        "warm": {
+          "attempts": 1,
+          "ok": 1,
+          "status_counts": {
+            "ok": 1
+          },
+          "verdict_counts": {
+            "incomplete": 1
+          },
+          "timeouts": 0,
+          "truncated_counts": {
+            "None": 1
+          },
+          "wall_s": {
+            "n": 1,
+            "min": 0.267,
+            "median": 0.267,
+            "max": 0.267
+          },
+          "cpu_total_s": {
+            "n": 1,
+            "min": 0.238,
+            "median": 0.238,
+            "max": 0.238
+          },
+          "cpu_user_s": {
+            "n": 1,
+            "min": 0.193,
+            "median": 0.193,
+            "max": 0.193
+          },
+          "cpu_sys_s": {
+            "n": 1,
+            "min": 0.045,
+            "median": 0.045,
+            "max": 0.045
+          },
+          "peak_rss_kb": {
+            "n": 1,
+            "min": 35576,
+            "median": 35576,
+            "max": 35576
+          },
+          "stdout_bytes": {
+            "n": 1,
+            "min": 747,
+            "median": 747,
+            "max": 747
+          },
+          "stderr_bytes": {
+            "n": 1,
+            "min": 0,
+            "median": 0,
+            "max": 0
+          },
+          "required_unit_presence": {
+            "present": 3,
+            "total": 6,
+            "assessed": 6,
+            "unassessed": 0
+          },
+          "raw_capped": 0
+        }
+      }
+    },
+    "public-github-flask-pr-112": {
+      "trailhead": {
+        "cold": {
+          "attempts": 1,
+          "ok": 1,
+          "status_counts": {
+            "ok": 1
+          },
+          "verdict_counts": {
+            "markers_present": 1
+          },
+          "timeouts": 0,
+          "truncated_counts": {
+            "False": 1
+          },
+          "wall_s": {
+            "n": 1,
+            "min": 0.918,
+            "median": 0.918,
+            "max": 0.918
+          },
+          "cpu_total_s": {
+            "n": 1,
+            "min": 0.172,
+            "median": 0.172,
+            "max": 0.172
+          },
+          "cpu_user_s": {
+            "n": 1,
+            "min": 0.148,
+            "median": 0.148,
+            "max": 0.148
+          },
+          "cpu_sys_s": {
+            "n": 1,
+            "min": 0.024,
+            "median": 0.024,
+            "max": 0.024
+          },
+          "peak_rss_kb": {
+            "n": 1,
+            "min": 28712,
+            "median": 28712,
+            "max": 28712
+          },
+          "stdout_bytes": {
+            "n": 1,
+            "min": 5633,
+            "median": 5633,
+            "max": 5633
+          },
+          "stderr_bytes": {
+            "n": 1,
+            "min": 0,
+            "median": 0,
+            "max": 0
+          },
+          "required_unit_presence": {
+            "present": 11,
+            "total": 11,
+            "assessed": 11,
+            "unassessed": 0
+          },
+          "raw_capped": 0
+        },
+        "warm": {
+          "attempts": 1,
+          "ok": 1,
+          "status_counts": {
+            "ok": 1
+          },
+          "verdict_counts": {
+            "markers_present": 1
+          },
+          "timeouts": 0,
+          "truncated_counts": {
+            "False": 1
+          },
+          "wall_s": {
+            "n": 1,
+            "min": 0.215,
+            "median": 0.215,
+            "max": 0.215
+          },
+          "cpu_total_s": {
+            "n": 1,
+            "min": 0.175,
+            "median": 0.175,
+            "max": 0.175
+          },
+          "cpu_user_s": {
+            "n": 1,
+            "min": 0.155,
+            "median": 0.155,
+            "max": 0.155
+          },
+          "cpu_sys_s": {
+            "n": 1,
+            "min": 0.02,
+            "median": 0.02,
+            "max": 0.02
+          },
+          "peak_rss_kb": {
+            "n": 1,
+            "min": 28976,
+            "median": 28976,
+            "max": 28976
+          },
+          "stdout_bytes": {
+            "n": 1,
+            "min": 5633,
+            "median": 5633,
+            "max": 5633
+          },
+          "stderr_bytes": {
+            "n": 1,
+            "min": 0,
+            "median": 0,
+            "max": 0
+          },
+          "required_unit_presence": {
+            "present": 11,
+            "total": 11,
+            "assessed": 11,
+            "unassessed": 0
+          },
+          "raw_capped": 0
+        }
+      },
+      "agent_reach": {
+        "cold": {
+          "attempts": 1,
+          "ok": 1,
+          "status_counts": {
+            "ok": 1
+          },
+          "verdict_counts": {
+            "incomplete": 1
+          },
+          "timeouts": 0,
+          "truncated_counts": {
+            "None": 1
+          },
+          "wall_s": {
+            "n": 1,
+            "min": 0.727,
+            "median": 0.727,
+            "max": 0.727
+          },
+          "cpu_total_s": {
+            "n": 1,
+            "min": 0.29700000000000004,
+            "median": 0.297,
+            "max": 0.29700000000000004
+          },
+          "cpu_user_s": {
+            "n": 1,
+            "min": 0.227,
+            "median": 0.227,
+            "max": 0.227
+          },
+          "cpu_sys_s": {
+            "n": 1,
+            "min": 0.07,
+            "median": 0.07,
+            "max": 0.07
+          },
+          "peak_rss_kb": {
+            "n": 1,
+            "min": 35316,
+            "median": 35316,
+            "max": 35316
+          },
+          "stdout_bytes": {
+            "n": 1,
+            "min": 2710,
+            "median": 2710,
+            "max": 2710
+          },
+          "stderr_bytes": {
+            "n": 1,
+            "min": 0,
+            "median": 0,
+            "max": 0
+          },
+          "required_unit_presence": {
+            "present": 6,
+            "total": 11,
+            "assessed": 11,
+            "unassessed": 0
+          },
+          "raw_capped": 0
+        },
+        "warm": {
+          "attempts": 1,
+          "ok": 1,
+          "status_counts": {
+            "ok": 1
+          },
+          "verdict_counts": {
+            "incomplete": 1
+          },
+          "timeouts": 0,
+          "truncated_counts": {
+            "None": 1
+          },
+          "wall_s": {
+            "n": 1,
+            "min": 0.266,
+            "median": 0.266,
+            "max": 0.266
+          },
+          "cpu_total_s": {
+            "n": 1,
+            "min": 0.23500000000000001,
+            "median": 0.235,
+            "max": 0.23500000000000001
+          },
+          "cpu_user_s": {
+            "n": 1,
+            "min": 0.199,
+            "median": 0.199,
+            "max": 0.199
+          },
+          "cpu_sys_s": {
+            "n": 1,
+            "min": 0.036,
+            "median": 0.036,
+            "max": 0.036
+          },
+          "peak_rss_kb": {
+            "n": 1,
+            "min": 35592,
+            "median": 35592,
+            "max": 35592
+          },
+          "stdout_bytes": {
+            "n": 1,
+            "min": 2752,
+            "median": 2752,
+            "max": 2752
+          },
+          "stderr_bytes": {
+            "n": 1,
+            "min": 0,
+            "median": 0,
+            "max": 0
+          },
+          "required_unit_presence": {
+            "present": 6,
+            "total": 11,
+            "assessed": 11,
+            "unassessed": 0
+          },
+          "raw_capped": 0
+        }
+      }
+    }
+  },
+  "aggregates": {
+    "trailhead": {
+      "cold": {
+        "attempts": 2,
+        "ok": 2,
+        "status_counts": {
+          "ok": 2
+        },
+        "verdict_counts": {
+          "markers_present": 2
+        },
+        "timeouts": 0,
+        "truncated_counts": {
+          "False": 2
+        },
+        "wall_s": {
+          "n": 2,
+          "min": 0.57,
+          "median": 0.744,
+          "max": 0.918
+        },
+        "cpu_total_s": {
+          "n": 2,
+          "min": 0.172,
+          "median": 0.183,
+          "max": 0.195
+        },
+        "cpu_user_s": {
+          "n": 2,
+          "min": 0.135,
+          "median": 0.142,
+          "max": 0.148
+        },
+        "cpu_sys_s": {
+          "n": 2,
+          "min": 0.024,
+          "median": 0.042,
+          "max": 0.06
+        },
+        "peak_rss_kb": {
+          "n": 2,
+          "min": 28712,
+          "median": 28908.0,
+          "max": 29104
+        },
+        "stdout_bytes": {
+          "n": 2,
+          "min": 2671,
+          "median": 4152.0,
+          "max": 5633
+        },
+        "stderr_bytes": {
+          "n": 2,
+          "min": 0,
+          "median": 0.0,
+          "max": 0
+        },
+        "required_unit_presence": {
+          "present": 17,
+          "total": 17,
+          "assessed": 17,
+          "unassessed": 0
+        },
+        "raw_capped": 0
+      },
+      "warm": {
+        "attempts": 2,
+        "ok": 2,
+        "status_counts": {
+          "ok": 2
+        },
+        "verdict_counts": {
+          "markers_present": 2
+        },
+        "timeouts": 0,
+        "truncated_counts": {
+          "False": 2
+        },
+        "wall_s": {
+          "n": 2,
+          "min": 0.215,
+          "median": 0.215,
+          "max": 0.216
+        },
+        "cpu_total_s": {
+          "n": 2,
+          "min": 0.157,
+          "median": 0.166,
+          "max": 0.175
+        },
+        "cpu_user_s": {
+          "n": 2,
+          "min": 0.138,
+          "median": 0.147,
+          "max": 0.155
+        },
+        "cpu_sys_s": {
+          "n": 2,
+          "min": 0.019,
+          "median": 0.019,
+          "max": 0.02
+        },
+        "peak_rss_kb": {
+          "n": 2,
+          "min": 28976,
+          "median": 29040.0,
+          "max": 29104
+        },
+        "stdout_bytes": {
+          "n": 2,
+          "min": 2671,
+          "median": 4152.0,
+          "max": 5633
+        },
+        "stderr_bytes": {
+          "n": 2,
+          "min": 0,
+          "median": 0.0,
+          "max": 0
+        },
+        "required_unit_presence": {
+          "present": 17,
+          "total": 17,
+          "assessed": 17,
+          "unassessed": 0
+        },
+        "raw_capped": 0
+      }
+    },
+    "agent_reach": {
+      "cold": {
+        "attempts": 2,
+        "ok": 2,
+        "status_counts": {
+          "ok": 2
+        },
+        "verdict_counts": {
+          "incomplete": 2
+        },
+        "timeouts": 0,
+        "truncated_counts": {
+          "None": 2
+        },
+        "wall_s": {
+          "n": 2,
+          "min": 0.465,
+          "median": 0.596,
+          "max": 0.727
+        },
+        "cpu_total_s": {
+          "n": 2,
+          "min": 0.28900000000000003,
+          "median": 0.293,
+          "max": 0.29700000000000004
+        },
+        "cpu_user_s": {
+          "n": 2,
+          "min": 0.227,
+          "median": 0.228,
+          "max": 0.228
+        },
+        "cpu_sys_s": {
+          "n": 2,
+          "min": 0.061,
+          "median": 0.066,
+          "max": 0.07
+        },
+        "peak_rss_kb": {
+          "n": 2,
+          "min": 35188,
+          "median": 35252.0,
+          "max": 35316
+        },
+        "stdout_bytes": {
+          "n": 2,
+          "min": 705,
+          "median": 1707.5,
+          "max": 2710
+        },
+        "stderr_bytes": {
+          "n": 2,
+          "min": 0,
+          "median": 0.0,
+          "max": 0
+        },
+        "required_unit_presence": {
+          "present": 9,
+          "total": 17,
+          "assessed": 17,
+          "unassessed": 0
+        },
+        "raw_capped": 0
+      },
+      "warm": {
+        "attempts": 2,
+        "ok": 2,
+        "status_counts": {
+          "ok": 2
+        },
+        "verdict_counts": {
+          "incomplete": 2
+        },
+        "timeouts": 0,
+        "truncated_counts": {
+          "None": 2
+        },
+        "wall_s": {
+          "n": 2,
+          "min": 0.266,
+          "median": 0.267,
+          "max": 0.267
+        },
+        "cpu_total_s": {
+          "n": 2,
+          "min": 0.23500000000000001,
+          "median": 0.236,
+          "max": 0.238
+        },
+        "cpu_user_s": {
+          "n": 2,
+          "min": 0.193,
+          "median": 0.196,
+          "max": 0.199
+        },
+        "cpu_sys_s": {
+          "n": 2,
+          "min": 0.036,
+          "median": 0.04,
+          "max": 0.045
+        },
+        "peak_rss_kb": {
+          "n": 2,
+          "min": 35576,
+          "median": 35584.0,
+          "max": 35592
+        },
+        "stdout_bytes": {
+          "n": 2,
+          "min": 747,
+          "median": 1749.5,
+          "max": 2752
+        },
+        "stderr_bytes": {
+          "n": 2,
+          "min": 0,
+          "median": 0.0,
+          "max": 0
+        },
+        "required_unit_presence": {
+          "present": 9,
+          "total": 17,
+          "assessed": 17,
+          "unassessed": 0
+        },
+        "raw_capped": 0
+      }
+    }
+  },
+  "totals": {
+    "invocations": 8,
+    "planned_invocations": 8,
+    "by_tool": {
+      "trailhead": {
+        "invocations": 4,
+        "ok": 4,
+        "timeouts": 0,
+        "paid_calls": 0,
+        "auth_calls": 0,
+        "quota_calls": 0
+      },
+      "agent_reach": {
+        "invocations": 4,
+        "ok": 4,
+        "timeouts": 0,
+        "paid_calls": 0,
+        "auth_calls": 0,
+        "quota_calls": 0
+      }
+    },
+    "verdicts": {
+      "incomplete": 4,
+      "markers_present": 4
+    },
+    "status": {
+      "ok": 8
+    }
+  },
+  "claims": {
+    "per_tool_resources": "each row was measured in its own process by a wrapper that started exactly one child; no combined-tool RSS exists",
+    "artifact_verdicts": "marker presence with truncation and continuation gating; 'markers_present' is not a completeness claim",
+    "winner": "none — this record ranks nothing and names no faster or better tool",
+    "completeness": "none",
+    "superiority": "not established"
+  },
+  "limitations": [
+    "One host, one UTC window: latency and RSS here describe this host at this moment, not general performance.",
+    "3 public cases only; the wider public action surface is not exercised.",
+    "Warm means the same sandbox tree on a second immediate run: origin/CDN and tool-internal HTTP caches are not controlled.",
+    "Agent Reach stdout carries no truncation or pagination field, so its whole-artifact runs are recorded as truncation unverified and continuation unknown.",
+    "Child rusage includes any descendant process the measured tool itself waited for; the wrapper starts exactly one tool process and never a comparator.",
+    "Interpreter startup is inside the measured wall clock for both tools; RSS includes each tool's own interpreter.",
+    "V2EX node listing is a first page of topics: the case declares pagination 'page', so a first page cannot be recorded as an exhausted artifact.",
+    "No multi-day reliability (P2), consent lane, quota/ASR lane, GitHub issue/PR lane or account lifecycle is measured here."
+  ]
+}

@@ -1,0 +1,389 @@
+{
+  "schema": "trailhead.github-discussion-artifacts/1",
+  "generated_at": "2026-10-28T16:46:06Z",
+  "campaign": {
+    "evidence": "docs/evidence/github-discussion-campaign.json",
+    "manifest": "docs/evidence/github-discussion-manifest.json",
+    "manifest_sha256": "8167c395ec1cd508513a37f7e5a380c51e54ea4f7149dba7e835eb1212fef9b5",
+    "manifest_recomputed_match": true,
+    "frozen_at": "2026-10-28T16:45:02Z",
+    "frozen_by": "P5 executor (harness author; not an independent reviewer) — expectations taken from pre-existing frozen evidence",
+    "campaign_started_at": "2026-10-28T16:45:05Z",
+    "campaign_ended_at": "2026-10-28T16:45:09Z",
+    "invocations": 8,
+    "planned_invocations": 8
+  },
+  "provenance": {
+    "source": "per-run raw stdout preserved in the run scratch directory; this file keeps only identifiers, counts, capture-disclosure lines and body hashes, never payload text",
+    "expectations": "docs/evidence/github-artifact-depth.json frozen_before_any_code_change and docs/evidence/parent-github-artifact-verification.json (independent historical reads, recorded before this campaign)",
+    "expected_issue": {
+      "url": "https://github.com/pallets/flask/issues/5",
+      "issue_id": 170451,
+      "title": "Implement SQLAlchemy",
+      "comment_ids": [
+        308703,
+        308779
+      ]
+    },
+    "expected_pull": {
+      "url": "https://github.com/pallets/flask/pull/112",
+      "pull_id": 541,
+      "title": "JSONP",
+      "conversation_comment_ids": [
+        382640,
+        383274,
+        618181,
+        620332,
+        650978,
+        1050643,
+        2304151,
+        2308644,
+        3522442,
+        3529766,
+        3535071,
+        4275572,
+        4322406,
+        4489650
+      ],
+      "reviews": 0,
+      "review_comments": 0
+    },
+    "note": "historical values are expectations only; nothing here rewrites them"
+  },
+  "rows": [
+    {
+      "case_id": "public-github-flask-issue-5",
+      "tool": "trailhead",
+      "state": "cold",
+      "status": "ok",
+      "backend": null,
+      "body_chars": 714,
+      "body_sha256": "b2191546f4d203f7e5d49ce3d42ad1677bdd63b2d71bbd4cdadf612de87c0fc7",
+      "sha256_matches_historical": true,
+      "truncated": false,
+      "pagination": {
+        "more": false,
+        "next_offset": null,
+        "total_available_chars": 714,
+        "extractor_truncated": false,
+        "retrieval_capped": false
+      },
+      "comment_ids": [
+        308703,
+        308779
+      ],
+      "comment_id_count": 2,
+      "distinct_comment_ids": 2,
+      "comment_ids_all_historical_present": true,
+      "comment_ids_extra": [],
+      "capture_disclosures": [
+        "Conversation comments: captured 2 of 2 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint."
+      ],
+      "capture_note": "Capture note: this is the issue body plus a bounded public comment capture, not a complete issue-history export (timeline events, reactions, edits and hidden/deleted comments are not included).",
+      "reviews_disclosed": false,
+      "inline_review_disclosed": false
+    },
+    {
+      "case_id": "public-github-flask-issue-5",
+      "tool": "trailhead",
+      "state": "warm",
+      "status": "ok",
+      "backend": null,
+      "body_chars": 714,
+      "body_sha256": "b2191546f4d203f7e5d49ce3d42ad1677bdd63b2d71bbd4cdadf612de87c0fc7",
+      "sha256_matches_historical": true,
+      "truncated": false,
+      "pagination": {
+        "more": false,
+        "next_offset": null,
+        "total_available_chars": 714,
+        "extractor_truncated": false,
+        "retrieval_capped": false
+      },
+      "comment_ids": [
+        308703,
+        308779
+      ],
+      "comment_id_count": 2,
+      "distinct_comment_ids": 2,
+      "comment_ids_all_historical_present": true,
+      "comment_ids_extra": [],
+      "capture_disclosures": [
+        "Conversation comments: captured 2 of 2 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint."
+      ],
+      "capture_note": "Capture note: this is the issue body plus a bounded public comment capture, not a complete issue-history export (timeline events, reactions, edits and hidden/deleted comments are not included).",
+      "reviews_disclosed": false,
+      "inline_review_disclosed": false
+    },
+    {
+      "case_id": "public-github-flask-issue-5",
+      "tool": "agent_reach",
+      "state": "cold",
+      "status": "ok",
+      "backend": "github-api",
+      "attempts": [
+        {
+          "backend": "gh",
+          "result": "NEED_SETUP"
+        },
+        {
+          "backend": "github-api",
+          "result": "ok"
+        }
+      ],
+      "body_chars": 131,
+      "body_sha256": "775572b1a77de7ef2965062f4e43c47f698142ec7748eac1cafcc3ed55afd62a",
+      "truncated": null,
+      "pagination": {
+        "state": "unknown",
+        "source": "absent"
+      },
+      "comment_ids": [],
+      "comment_id_count": 0,
+      "comment_author_lines": 2,
+      "parent_reported_comment_total": 2,
+      "capture_disclosures": [],
+      "capture_note": "",
+      "reviews_disclosed": false,
+      "inline_review_disclosed": false
+    },
+    {
+      "case_id": "public-github-flask-issue-5",
+      "tool": "agent_reach",
+      "state": "warm",
+      "status": "ok",
+      "backend": "github-api",
+      "attempts": [
+        {
+          "backend": "gh",
+          "result": "NEED_SETUP"
+        },
+        {
+          "backend": "github-api",
+          "result": "ok"
+        }
+      ],
+      "body_chars": 131,
+      "body_sha256": "775572b1a77de7ef2965062f4e43c47f698142ec7748eac1cafcc3ed55afd62a",
+      "truncated": null,
+      "pagination": {
+        "state": "unknown",
+        "source": "absent"
+      },
+      "comment_ids": [],
+      "comment_id_count": 0,
+      "comment_author_lines": 2,
+      "parent_reported_comment_total": 2,
+      "capture_disclosures": [],
+      "capture_note": "",
+      "reviews_disclosed": false,
+      "inline_review_disclosed": false
+    },
+    {
+      "case_id": "public-github-flask-pr-112",
+      "tool": "trailhead",
+      "state": "cold",
+      "status": "ok",
+      "backend": null,
+      "body_chars": 3614,
+      "body_sha256": "4d537c66976b72d98ded2ea9e89408abc7c26b0e3bcdac71ec2be864eb1b0da4",
+      "sha256_matches_historical": true,
+      "truncated": false,
+      "pagination": {
+        "more": false,
+        "next_offset": null,
+        "total_available_chars": 3614,
+        "extractor_truncated": false,
+        "retrieval_capped": false
+      },
+      "comment_ids": [
+        382640,
+        383274,
+        618181,
+        620332,
+        650978,
+        1050643,
+        2304151,
+        2308644,
+        3522442,
+        3529766,
+        3535071,
+        4275572,
+        4322406,
+        4489650
+      ],
+      "comment_id_count": 14,
+      "distinct_comment_ids": 14,
+      "comment_ids_all_historical_present": true,
+      "comment_ids_extra": [],
+      "capture_disclosures": [
+        "Conversation comments: captured 14 of 14 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint.",
+        "Reviews: captured 0 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint.",
+        "Inline review comments: captured 0 of 0 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint."
+      ],
+      "capture_note": "Capture note: this is the pull-request body plus bounded public conversation comments, reviews and inline review comments. It is NOT the complete PR conversation: timeline events, review-thread resolution, reactions, force-push history, per-commit diffs and hidden/deleted comments are not captured.",
+      "reviews_disclosed": true,
+      "inline_review_disclosed": true
+    },
+    {
+      "case_id": "public-github-flask-pr-112",
+      "tool": "trailhead",
+      "state": "warm",
+      "status": "ok",
+      "backend": null,
+      "body_chars": 3614,
+      "body_sha256": "4d537c66976b72d98ded2ea9e89408abc7c26b0e3bcdac71ec2be864eb1b0da4",
+      "sha256_matches_historical": true,
+      "truncated": false,
+      "pagination": {
+        "more": false,
+        "next_offset": null,
+        "total_available_chars": 3614,
+        "extractor_truncated": false,
+        "retrieval_capped": false
+      },
+      "comment_ids": [
+        382640,
+        383274,
+        618181,
+        620332,
+        650978,
+        1050643,
+        2304151,
+        2308644,
+        3522442,
+        3529766,
+        3535071,
+        4275572,
+        4322406,
+        4489650
+      ],
+      "comment_id_count": 14,
+      "distinct_comment_ids": 14,
+      "comment_ids_all_historical_present": true,
+      "comment_ids_extra": [],
+      "capture_disclosures": [
+        "Conversation comments: captured 14 of 14 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint.",
+        "Reviews: captured 0 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint.",
+        "Inline review comments: captured 0 of 0 (1 page(s), per_page 100, body cap 4000 chars per item); complete for this endpoint."
+      ],
+      "capture_note": "Capture note: this is the pull-request body plus bounded public conversation comments, reviews and inline review comments. It is NOT the complete PR conversation: timeline events, review-thread resolution, reactions, force-push history, per-commit diffs and hidden/deleted comments are not captured.",
+      "reviews_disclosed": true,
+      "inline_review_disclosed": true
+    },
+    {
+      "case_id": "public-github-flask-pr-112",
+      "tool": "agent_reach",
+      "state": "cold",
+      "status": "ok",
+      "backend": "github-api",
+      "attempts": [
+        {
+          "backend": "gh",
+          "result": "NEED_SETUP"
+        },
+        {
+          "backend": "github-api",
+          "result": "ok"
+        }
+      ],
+      "body_chars": 2104,
+      "body_sha256": "758ef951c21d2442a117d11912f2725eac40e6ba6a7b20edf2543e35a57fb91c",
+      "truncated": null,
+      "pagination": {
+        "state": "unknown",
+        "source": "absent"
+      },
+      "comment_ids": [],
+      "comment_id_count": 0,
+      "comment_author_lines": 14,
+      "parent_reported_comment_total": 14,
+      "capture_disclosures": [],
+      "capture_note": "",
+      "reviews_disclosed": false,
+      "inline_review_disclosed": false
+    },
+    {
+      "case_id": "public-github-flask-pr-112",
+      "tool": "agent_reach",
+      "state": "warm",
+      "status": "ok",
+      "backend": "github-api",
+      "attempts": [
+        {
+          "backend": "gh",
+          "result": "NEED_SETUP"
+        },
+        {
+          "backend": "github-api",
+          "result": "ok"
+        }
+      ],
+      "body_chars": 2104,
+      "body_sha256": "758ef951c21d2442a117d11912f2725eac40e6ba6a7b20edf2543e35a57fb91c",
+      "truncated": null,
+      "pagination": {
+        "state": "unknown",
+        "source": "absent"
+      },
+      "comment_ids": [],
+      "comment_id_count": 0,
+      "comment_author_lines": 14,
+      "parent_reported_comment_total": 14,
+      "capture_disclosures": [],
+      "capture_note": "",
+      "reviews_disclosed": false,
+      "inline_review_disclosed": false
+    }
+  ],
+  "observation_summary": {
+    "trailhead_invocations": 4,
+    "trailhead_status_ok": 4,
+    "trailhead_verdicts": {
+      "markers_present": 4
+    },
+    "trailhead_required_units_present": 34,
+    "trailhead_required_units_total": 34,
+    "trailhead_body_sha256_matches_historical": true,
+    "trailhead_comment_ids_found": {
+      "public-github-flask-issue-5": [
+        308703,
+        308779
+      ],
+      "public-github-flask-pr-112": [
+        382640,
+        383274,
+        618181,
+        620332,
+        650978,
+        1050643,
+        2304151,
+        2308644,
+        3522442,
+        3529766,
+        3535071,
+        4275572,
+        4322406,
+        4489650
+      ]
+    },
+    "agent_reach_invocations": 4,
+    "agent_reach_status_ok": 4,
+    "agent_reach_verdicts": {
+      "incomplete": 4
+    },
+    "agent_reach_required_units_present": 18,
+    "agent_reach_required_units_total": 34,
+    "agent_reach_comment_ids_found": 0,
+    "agent_reach_comment_author_lines": {
+      "public-github-flask-issue-5": 2,
+      "public-github-flask-pr-112": 14
+    },
+    "agent_reach_capture_disclosures": 0,
+    "cold_warm_body_identity": {
+      "trailhead": true,
+      "agent_reach": true
+    },
+    "note": "counts are observations over 8 invocations in one window on one host; a markers_present verdict is marker presence, never artifact completeness"
+  }
+}

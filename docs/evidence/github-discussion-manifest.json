@@ -1,0 +1,265 @@
+{
+  "schema": "trailhead.public-remaining-manifest/1",
+  "frozen_at": "2026-10-28T16:45:02Z",
+  "frozen_by": "P5 executor (harness author; not an independent reviewer) — expectations taken from pre-existing frozen evidence",
+  "campaign": {
+    "rounds_per_case_tool_state": 1,
+    "states": [
+      "cold",
+      "warm"
+    ],
+    "timeout_s": 25.0,
+    "tools": [
+      "trailhead",
+      "agent_reach"
+    ],
+    "interleaved": true,
+    "asr_disabled": true,
+    "credentials": "none (public lane)"
+  },
+  "rules": {
+    "artifact_units": "requested outcomes; immutable after the first measured run",
+    "verdict_vocabulary": [
+      "markers_present",
+      "incomplete",
+      "unverified"
+    ],
+    "completeness_claim": "none — marker presence is never called completeness",
+    "pagination_unknown": "counts as not exhausted",
+    "expectation_source": "unit values come only from identities frozen before this campaign: docs/evidence/github-artifact-depth.json (frozen_before_any_code_change) and docs/evidence/parent-github-artifact-verification.json (independent parent reads)",
+    "unit_scope": "comment units sample the comment bodies quoted in that frozen evidence (2 of 2 issue comments, 5 of 14 PR comments); they are markers, not an enumeration of every comment"
+  },
+  "cases": [
+    {
+      "case_id": "public-github-flask-issue-5",
+      "compare_case": "github-flask-issue-5",
+      "lane": "public",
+      "language": "en",
+      "family": "github",
+      "url_or_action": "https://github.com/pallets/flask/issues/5",
+      "url": "https://github.com/pallets/flask/issues/5",
+      "requested_outcome": "pallets/flask issue #5: the issue body in full, every issue comment in the discussion, and the state/author metadata line",
+      "tool_argv": {
+        "trailhead": [
+          "python",
+          "-m",
+          "hermes_trailhead",
+          "read",
+          "https://github.com/pallets/flask/issues/5",
+          "--format",
+          "json",
+          "--timeout",
+          "25"
+        ],
+        "agent_reach": [
+          "<agent-reach>",
+          "github",
+          "read",
+          "https://github.com/pallets/flask/issues/5",
+          "--timeout",
+          "25"
+        ]
+      },
+      "artifact_units": [
+        {
+          "id": "issue_identity",
+          "kind": "text_any_of",
+          "values": [
+            "GitHub issue pallets/flask#5: Implement SQLAlchemy"
+          ],
+          "required": true,
+          "whole_artifact": true
+        },
+        {
+          "id": "issue_state_metadata",
+          "kind": "text_any_of",
+          "values": [
+            "State: closed"
+          ],
+          "required": true,
+          "whole_artifact": false
+        },
+        {
+          "id": "issue_body_text",
+          "kind": "text_any_of",
+          "values": [
+            "Use SQLAlchemy in the core framework as an ORM"
+          ],
+          "required": true,
+          "whole_artifact": false
+        },
+        {
+          "id": "issue_comment_308703",
+          "kind": "text_any_of",
+          "values": [
+            "Just use the Flask-SQLAlchemy extension"
+          ],
+          "required": true,
+          "whole_artifact": true
+        },
+        {
+          "id": "issue_comment_308779",
+          "kind": "text_any_of",
+          "values": [
+            "What dcolish said."
+          ],
+          "required": true,
+          "whole_artifact": true
+        },
+        {
+          "id": "discussion_capture_disclosed",
+          "kind": "regex_distinct",
+          "pattern": "captured \\d+ of \\d+",
+          "min_distinct": 1,
+          "required": true,
+          "whole_artifact": false
+        }
+      ],
+      "pagination_expectation": {
+        "whole_artifact": true,
+        "continuation": "none",
+        "max_units_known": 2
+      },
+      "truncation_matters": true
+    },
+    {
+      "case_id": "public-github-flask-pr-112",
+      "compare_case": "github-flask-pr-112",
+      "lane": "public",
+      "language": "en",
+      "family": "github",
+      "url_or_action": "https://github.com/pallets/flask/pull/112",
+      "url": "https://github.com/pallets/flask/pull/112",
+      "requested_outcome": "pallets/flask pull request #112: the PR body in full, every conversation comment plus reviews/inline review comments, the state/merge metadata, and an explicit statement of what the capture does not include",
+      "tool_argv": {
+        "trailhead": [
+          "python",
+          "-m",
+          "hermes_trailhead",
+          "read",
+          "https://github.com/pallets/flask/pull/112",
+          "--format",
+          "json",
+          "--timeout",
+          "25"
+        ],
+        "agent_reach": [
+          "<agent-reach>",
+          "github",
+          "read",
+          "https://github.com/pallets/flask/pull/112",
+          "--timeout",
+          "25"
+        ]
+      },
+      "artifact_units": [
+        {
+          "id": "pr_identity",
+          "kind": "text_any_of",
+          "values": [
+            "GitHub pull request pallets/flask#112: JSONP"
+          ],
+          "required": true,
+          "whole_artifact": true
+        },
+        {
+          "id": "pr_state_metadata",
+          "kind": "text_any_of",
+          "values": [
+            "State: closed"
+          ],
+          "required": true,
+          "whole_artifact": false
+        },
+        {
+          "id": "pr_merge_metadata",
+          "kind": "text_any_of",
+          "values": [
+            "Merged: no"
+          ],
+          "required": true,
+          "whole_artifact": false
+        },
+        {
+          "id": "pr_body_text",
+          "kind": "text_any_of",
+          "values": [
+            "I added a function to return padded JSON"
+          ],
+          "required": true,
+          "whole_artifact": false
+        },
+        {
+          "id": "pr_comment_382640",
+          "kind": "text_any_of",
+          "values": [
+            "That does look interesting, but where is callback coming from?"
+          ],
+          "required": true,
+          "whole_artifact": true
+        },
+        {
+          "id": "pr_comment_383274",
+          "kind": "text_any_of",
+          "values": [
+            "The import in the init file is there"
+          ],
+          "required": true,
+          "whole_artifact": true
+        },
+        {
+          "id": "pr_comment_618181",
+          "kind": "text_any_of",
+          "values": [
+            "+1 on this. Would play well with jQuery"
+          ],
+          "required": true,
+          "whole_artifact": true
+        },
+        {
+          "id": "pr_comment_620332",
+          "kind": "text_any_of",
+          "values": [
+            "I'll try to get on writing some unit tests"
+          ],
+          "required": true,
+          "whole_artifact": true
+        },
+        {
+          "id": "pr_comment_650978",
+          "kind": "text_any_of",
+          "values": [
+            "JSONP should be returned with MIME type"
+          ],
+          "required": true,
+          "whole_artifact": true
+        },
+        {
+          "id": "pr_scope_note",
+          "kind": "text_any_of",
+          "values": [
+            "NOT the complete PR conversation",
+            "not the complete PR conversation"
+          ],
+          "required": true,
+          "whole_artifact": false
+        },
+        {
+          "id": "discussion_capture_disclosed",
+          "kind": "regex_distinct",
+          "pattern": "captured \\d+ of \\d+",
+          "min_distinct": 1,
+          "required": true,
+          "whole_artifact": false
+        }
+      ],
+      "pagination_expectation": {
+        "whole_artifact": true,
+        "continuation": "none",
+        "max_units_known": 14
+      },
+      "truncation_matters": true
+    }
+  ],
+  "manifest_sha256": "8167c395ec1cd508513a37f7e5a380c51e54ea4f7149dba7e835eb1212fef9b5"
+}
