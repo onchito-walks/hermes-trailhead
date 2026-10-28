@@ -1,4 +1,18 @@
-# Public reliability (P2) — session state, day 1 cold only
+# Public reliability (P2) — day 1 cold and warm observed
+
+Latest verified update: warm actually ran **2026-10-28T17:00:06Z–17:00:10Z**,
+using the six persisted cold homes, after the required real 30-minute gap.
+[evidence/public-reliability-day1-warm.json](evidence/public-reliability-day1-warm.json)
+records six calls: all status `ok`, four `incomplete`, two `markers_present`.
+Product git objects were identical to the cold run; only docs/tests/harness HEAD
+changed. Across cold and warm, 12 calls were observed on **one** calendar day;
+this is not five-day reliability or completeness. Days October 29–November 1
+remain unobserved. The original cold-phase snapshot below is retained as history;
+its pending-warm language is superseded by this actual observation.
+
+Runtime limitation: goal-mode rejected `kanban_schedule`; no timer was created.
+Day 2 needs an orchestrator wake of this same card on October 29 at 16:00 UTC,
+then a new dated cold session and a warm round at least 30 minutes after it ends.
 
 Status: **one cold phase executed; the campaign is not complete and nothing here
 is a reliability claim.** Day 1 has 6 of 6 planned cold invocations recorded and
