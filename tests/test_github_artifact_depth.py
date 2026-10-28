@@ -171,6 +171,17 @@ def _install_api(
     return calls
 
 
+def _no_generic_tiers(monkeypatch) -> None:
+    """Make every non-GitHub fetch tier fail, so no test touches the network."""
+
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("tier unavailable")
+
+    monkeypatch.setattr(extract_mod, "_fetch_text_tiered", boom)
+    monkeypatch.setattr(extract_mod, "_fetch_jina", boom)
+    monkeypatch.setattr(extract_mod, "_fetch_hermes_web_extract", boom)
+
+
 # ── 1. Issue and pull URLs return their own artifact ──────────────────
 
 
@@ -412,13 +423,55 @@ def test_failed_issue_api_raises_and_never_returns_repository_metadata(monkeypat
         _fetch_github_summary(ISSUE_URL, timeout=10)
 
     # The native extraction path must not turn the failure into repo metadata.
-    def failing_tiered(url: str, timeout: int = 15):
-        raise RuntimeError("all public tiers failed")
-
-    monkeypatch.setattr(extract_mod, "_fetch_text_tiered", failing_tiered)
+    # Every generic tier is stubbed out as well: without this, a live direct or
+    # Jina fetch of the same URL would make the assertion network-dependent.
+    _no_generic_tiers(monkeypatch)
     result = extract_one(ISSUE_URL, timeout=1)
 
-    assert result.status != "ok"
+    assert result.status == "error"
+    assert result.content == ""
+    assert ISSUE_URL in result.error_message
+    assert "GitHub repository:" not in result.content
+    assert "Stars:" not in result.content
+
+
+def test_generic_page_fallback_serves_the_requested_issue_not_repository_metadata(
+    monkeypatch,
+):
+    """A real page fetch is a legitimate degraded read — but of the issue itself.
+
+    Only the GitHub API tier failed here; the generic tier returned the issue
+    page. That is the requested artifact, so ``ok`` is allowed — while
+    repository stats are still never substituted for the requested issue.
+    """
+
+    def failing(api: str, timeout: int = 15):
+        raise RuntimeError("HTTP Error 404: Not Found")
+
+    monkeypatch.setattr(extract_mod, "_github_api_json", failing)
+
+    page = (
+        f"Title: {ISSUE_TITLE}\n\nURL Source: {ISSUE_URL}\n\nMarkdown Content:\n"
+        "Use SQLAlchemy in the core framework as an ORM\n\n"
+        + "Just use the Flask-SQLAlchemy extension\n" * 20
+    )
+    monkeypatch.setattr(
+        extract_mod, "_fetch_text_tiered", lambda url, timeout=15: page
+    )
+
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("tier unavailable")
+
+    monkeypatch.setattr(extract_mod, "_fetch_jina", boom)
+    monkeypatch.setattr(extract_mod, "_fetch_hermes_web_extract", boom)
+
+    result = extract_one(ISSUE_URL, timeout=1)
+
+    assert result.status == "ok"
+    assert result.source_type == "github"
+    assert ISSUE_TITLE in result.content
+    assert "Just use the Flask-SQLAlchemy extension" in result.content
+    # The fallback is the requested issue page, never repository metadata.
     assert "GitHub repository:" not in result.content
     assert "Stars:" not in result.content
 

@@ -1130,7 +1130,7 @@ def _github_api_json(api: str, timeout: float = 15):
         return json.loads(resp.read().decode("utf-8", errors="replace"))
 
 
-def _github_readme_raw(owner: str, repo: str, timeout: int) -> str:
+def _github_readme_raw(owner: str, repo: str, timeout: float) -> str:
     """Full README body from GitHub's public README endpoint, unmodified.
 
     The endpoint accepts ``application/vnd.github.raw`` and then returns the
@@ -1159,17 +1159,27 @@ def _github_readme_raw(owner: str, repo: str, timeout: int) -> str:
 
 
 def _github_repo_metadata(
-    owner: str, repo: str, parts: list[str], timeout: int, *, full_readme: bool = False
+    owner: str,
+    repo: str,
+    parts: list[str],
+    timeout: int,
+    *,
+    full_readme: bool = False,
+    deadline: _GithubReadDeadline | None = None,
 ) -> str:
     """Repository-level metadata (the best non-auth evidence for a bare repo URL).
 
     ``full_readme`` is set for the exact ``github.com/<owner>/<repo>`` root,
     where the README *is* the requested artifact: it is fetched whole through
-    the public README endpoint, never sliced down to an excerpt.  Any other
-    page (issues, wiki, ...) keeps the bounded excerpt.
+    the public README endpoint, never sliced down to an excerpt, and a README
+    that cannot be read raises instead of degrading into metadata stats.  Any
+    other page (issues, wiki, ...) keeps the bounded excerpt and tolerates a
+    missing README.
     """
     api = f"https://api.github.com/repos/{owner}/{repo}"
-    data = _github_api_json(api, timeout)
+    data = _github_api_json(
+        api, _github_call_timeout(timeout, deadline, f"the repository {owner}/{repo}")
+    )
     full_name = data.get('full_name') or f"{owner}/{repo}"
     lines = [f"GitHub repository: {full_name}"]
     desc = data.get("description") or ""
@@ -1190,23 +1200,42 @@ def _github_repo_metadata(
             lines.append(f"License: {license_name}")
     if len(parts) >= 3:
         lines.append(f"Requested path: /{'/'.join(parts[2:])}")
-    # README — real content beyond stats (best-effort, never fatal).
+    # README — real content beyond stats.  For any other repository page this
+    # is best-effort and never fatal.  For the exact repository root the README
+    # *is* the requested artifact, so a failed or empty README fetch must be
+    # reported as a failure rather than silently degrading into metadata stats.
     readme_text = ""
+    readme_failures: list[str] = []
     if full_readme:
         try:
-            readme_text = _github_readme_raw(owner, repo, timeout)
-        except Exception:
-            readme_text = ""  # Fall back to the contents API below
-    if not readme_text:
+            readme_text = _github_readme_raw(
+                owner,
+                repo,
+                _github_call_timeout(
+                    timeout, deadline, f"the README of {owner}/{repo}"
+                ),
+            )
+        except Exception as exc:
+            readme_failures.append(f"raw readme endpoint: {_github_reason(exc)}")
+    if not readme_text.strip():
+        contents_failed = False
         try:
             import base64
 
-            readme = _github_api_json(f"{api}/readme", timeout)
+            readme = _github_api_json(
+                f"{api}/readme",
+                _github_call_timeout(
+                    timeout, deadline, f"the README of {owner}/{repo}"
+                ),
+            )
             readme_text = base64.b64decode(
                 readme.get("content") or "", validate=False
             ).decode("utf-8", "replace")
-        except Exception:
-            readme_text = ""
+        except Exception as exc:
+            contents_failed = True
+            readme_failures.append(f"readme contents API: {_github_reason(exc)}")
+        if not contents_failed and not readme_text.strip():
+            readme_failures.append("the README body came back empty")
     if full_readme:
         readme_text = readme_text.replace("\r\n", "\n").replace("\r", "\n").strip()
     else:
@@ -1215,6 +1244,15 @@ def _github_repo_metadata(
         lines.append("")
         lines.append("README:" if full_readme else "README excerpt:")
         lines.append(readme_text if full_readme else readme_text[:1200])
+    elif full_readme:
+        raise RuntimeError(
+            f"GitHub repository README for {owner}/{repo} could not be read "
+            f"({'; '.join(readme_failures) or 'no README body was returned'}); "
+            "the repository root README is the requested artifact, so the "
+            "repository metadata above is NOT a successful read. Retry with a "
+            f"larger timeout, or read the README directly: "
+            f"https://raw.githubusercontent.com/{owner}/{repo}/HEAD/README.md"
+        )
     return "\n".join(lines)
 
 
@@ -1347,7 +1385,11 @@ def _github_paginated_list(
     When the read deadline expires mid-capture the pages already fetched are
     returned marked ``complete=False`` / ``deadline_exhausted=True`` instead of
     being discarded or presented as a full capture; if nothing was fetched at
-    all the deadline error is raised for the caller to disclose.
+    all the deadline error is raised for the caller to disclose.  The same
+    holds for any other failure of a later page (socket timeout, HTTP error):
+    the captured pages are kept, ``error`` carries the real endpoint failure
+    and ``next_url`` the page that still needs reading, so a partial capture is
+    never lost and never reported as complete.
     """
     per_page = int(_GITHUB_LIST_PAGE_SIZE)
     separator = "&" if "?" in api else "?"
@@ -1355,6 +1397,7 @@ def _github_paginated_list(
     pages = 0
     complete = False
     deadline_exhausted = False
+    error = ""
     next_url = ""
     url = f"{api}{separator}per_page={per_page}"
     while pages < int(_GITHUB_LIST_MAX_PAGES):
@@ -1367,6 +1410,15 @@ def _github_paginated_list(
             if not pages:
                 raise
             deadline_exhausted = True
+            next_url = url
+            break
+        except Exception as exc:
+            if not pages:
+                raise
+            # A later page failed for a reason other than our own deadline
+            # (e.g. a socket timeout).  Keep what was already captured and
+            # report the real failure instead of dropping every fetched page.
+            error = _github_reason(exc)
             next_url = url
             break
         if not isinstance(data, list):
@@ -1388,6 +1440,7 @@ def _github_paginated_list(
         "complete": complete,
         "next_url": "" if complete else next_url,
         "deadline_exhausted": deadline_exhausted,
+        "error": error,
     }
 
 
@@ -1409,6 +1462,12 @@ def _github_capture_summary(label: str, capture: dict, total=None) -> str:
             f"{label}: {count} ({detail}); NOT complete — the read deadline "
             f"expired before the remaining pages were requested; next page: "
             f"{next_url}"
+        )
+    if capture.get("error"):
+        return (
+            f"{label}: {count} ({detail}); NOT complete — the request for the "
+            f"next page failed ({capture['error']}), so the pages above are a "
+            f"partial capture; next page to retry: {next_url}"
         )
     return (
         f"{label}: {count} ({detail}); NOT complete — more exist beyond this "
@@ -1745,8 +1804,17 @@ def _fetch_github_summary(url: str, timeout: int = 15) -> str:
     rest = parts[2:]
 
     if not rest:
-        # Exact repository root: the README is the requested artifact.
-        return _github_repo_metadata(owner, repo, parts, timeout, full_readme=True)
+        # Exact repository root: the README is the requested artifact, so the
+        # whole root read (repo metadata + README) shares one deadline and a
+        # missing README raises instead of returning metadata-only evidence.
+        return _github_repo_metadata(
+            owner,
+            repo,
+            parts,
+            timeout,
+            full_readme=True,
+            deadline=_GithubReadDeadline(timeout),
+        )
     if rest and rest[0] == "releases":
         return _fetch_github_releases(owner, repo, rest, timeout)
     if len(rest) >= 2 and rest[0] in {"issues", "pull", "pulls"} and rest[1].isdigit():
