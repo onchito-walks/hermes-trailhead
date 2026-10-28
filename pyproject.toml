@@ -18,6 +18,10 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["hermes_trailhead"]
 
+# README art is 10 MB of PNGs that no code reads; keep it out of the package.
+[tool.hatch.build.targets.sdist]
+exclude = ["/assets", "/dist", "/.venv"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
