@@ -69,10 +69,15 @@ Landed locally:
   explicit auth consent, empty public homes and forced-public-route verification.
 - Public V2EX, Bilibili, Xueqiu and GitHub actions independently exercised.
 
-Under integration:
-- Matched-outcome comparison CLI with clean environment, cold/warm labeling,
-  honest historical scorecards and per-case results rather than an overall win.
-- Exact-host classification and readable generic HTML extraction regressions.
+Also landed locally:
+- Matched-outcome comparison CLI with environment isolation, equal killable
+  wall-clock budgets, cold/warm labels, ASR disabled and per-case outcomes.
+  The environment isolation is not a filesystem security sandbox.
+- Honest historical scorecards; exact-host classification and readable generic
+  HTML extraction regressions.
+- Final integrated verification: 546 tests passed. Three matched cold public
+  cases returned evidence on both tools for GitHub/V2EX and blocked transcripts
+  on both for YouTube; no overall superiority is established.
 
 Still required before whole-product completion:
 - Complete 40-action live parity matrix, including consented authenticated cases.
