@@ -1,0 +1,222 @@
+{
+  "utc": "2026-10-28T15:43:47.629653+00:00",
+  "commit": "9096cda9a7265d9858cc977b68cbdbeeeaee5db2",
+  "rows": [
+    {
+      "url": "https://github.com/psf/requests",
+      "exit": 0,
+      "result": {
+        "command": "read",
+        "schema_version": 1,
+        "ok": true,
+        "url": "https://github.com/psf/requests",
+        "source_type": "github",
+        "timeout_seconds": 15,
+        "asr": {
+          "enabled": false,
+          "env": "TRAILHEAD_DISABLE_ASR",
+          "note": "read never invokes paid ASR"
+        },
+        "policy": {
+          "agent_reach": "not_used",
+          "asr": "disabled",
+          "hermes_web_extract": "disabled",
+          "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+        },
+        "extraction_status": "ok",
+        "content_length": 3118,
+        "returned_chars": 3118,
+        "truncated": false,
+        "truncation_note": "",
+        "content": "GitHub repository: psf/requests\nA simple, yet elegant, HTTP library.\nHomepage: https://requests.readthedocs.io/en/latest/\nStars: 54589 | Forks: 12105 | Open issues: 244 | Language: Python\nLicense: Apache License 2.0\n\nREADME:\n# Requests\n\n[![Version](https://img.shields.io/pypi/v/requests.svg?maxAge=86400)](https://pypi.org/project/requests/)\n[![Supported Versions](https://img.shields.io/pypi/pyversions/requests.svg)](https://pypi.org/project/requests)\n[![Downloads](https://static.pepy.tech/badge/requests/month)](https://pepy.tech/project/requests)\n[![Contributors](https://img.shields.io/github/contributors/psf/requests.svg)](https://github.com/psf/requests/graphs/contributors)\n[![Documentation](https://readthedocs.org/projects/requests/badge/?version=latest)](https://requests.readthedocs.io)\n\n**Requests** is a simple, yet elegant, HTTP library.\n\n```python\n>>> import requests\n>>> r = requests.get('https://httpbin.org/basic-auth/user/pass', auth=('user', 'pass'))\n>>> r.status_code\n200\n>>> r.headers['content-type']\n'application/json; charset=utf8'\n>>> r.encoding\n'utf-8'\n>>> r.text\n'{\"authenticated\": true, ...'\n>>> r.json()\n{'authenticated': True, ...}\n```\n\nRequests allows you to send HTTP/1.1 requests extremely easily. There’s no need to manually add query strings to your URLs, or to form-encode your `PUT` & `POST` data — but nowadays, just use the `json` method!\n\nRequests is one of the most downloaded Python packages today, pulling in around `300M downloads / week` — according to GitHub, Requests is currently [depended upon](https://github.com/psf/requests/network/dependents?package_id=UGFja2FnZS01NzA4OTExNg%3D%3D) by `4,000,000+` repositories.\n\n## Installing Requests and Supported Versions\n\nRequests is available on PyPI:\n\n```console\n$ python -m pip install requests\n```\n\nRequests officially supports Python 3.10+.\n\n## Supported Features & Best–Practices\n\nRequests is ready for the demands of building robust and reliable HTTP–speaking applications, for the needs of today.\n\n- Keep-Alive & Connection Pooling\n- International Domains and URLs\n- Sessions with Cookie Persistence\n- Browser-style TLS/SSL Verification\n- Basic & Digest Authentication\n- Familiar `dict`–like Cookies\n- Automatic Content Decompression and Decoding\n- Multi-part File Uploads\n- SOCKS Proxy Support\n- Connection Timeouts\n- Streaming Downloads\n- Automatic honoring of `.netrc`\n- Chunked HTTP Requests\n\n## Cloning the repository\n\nWhen cloning the Requests repository, you may need to add the `-c\nfetch.fsck.badTimezone=ignore` flag to avoid an error about a bad commit timestamp (see\n[this issue](https://github.com/psf/requests/issues/2690) for more background):\n\n```shell\ngit clone -c fetch.fsck.badTimezone=ignore https://github.com/psf/requests.git\n```\n\nYou can also apply this setting to your global Git config:\n\n```shell\ngit config --global fetch.fsck.badTimezone ignore\n```\n\n---\n\n[![Kenneth Reitz](https://raw.githubusercontent.com/psf/requests/main/ext/kr.png)](https://kennethreitz.org) [![Python Software Foundation](https://raw.githubusercontent.com/psf/requests/main/ext/psf.png)](https://www.python.org/psf)",
+        "pagination": {
+          "schema_version": 1,
+          "offset": 0,
+          "max_chars": 20000,
+          "start": 0,
+          "end": 3118,
+          "returned_chars": 3118,
+          "next_offset": null,
+          "more": false,
+          "total_available_chars": 3118,
+          "document_sha256": "c73f142f8a09ef7b1e198fb56afbcb772d017947d398ba5b2ec7dd2c2c318667",
+          "window_empty": false,
+          "retrieval_char_cap": 1000000,
+          "extractor_truncated": false,
+          "retrieval_capped": false,
+          "transport_byte_cap": 8388608,
+          "transport_capped": false,
+          "note": ""
+        },
+        "completeness": {
+          "extracted_document_complete": true,
+          "raw_page_complete": false,
+          "note": "content is readable text extracted from the page, not the raw HTML; markup, scripts and repeated chrome are removed, so completeness never means a byte-identical copy of the fetched page, and a later read may refetch a changed version — compare pagination.document_sha256 before chaining offsets across calls"
+        },
+        "error": null,
+        "evidence": {
+          "usable": true,
+          "transport_ok": true,
+          "relevance": "unknown",
+          "reasons": [],
+          "source_quality": {
+            "quality": "canonical",
+            "score": 75,
+            "reasons": [
+              "GitHub repo root",
+              "Successfully extracted (long content)"
+            ],
+            "label": "GitHub repo root"
+          }
+        },
+        "video_evidence": null
+      }
+    },
+    {
+      "url": "https://www.zhipin.com/job_detail/c1039e39ba83b73e0nd639i_FFJR.html?_security_check=1_1783322651289",
+      "exit": 1,
+      "result": {
+        "command": "read",
+        "schema_version": 1,
+        "ok": false,
+        "url": "https://www.zhipin.com/job_detail/c1039e39ba83b73e0nd639i_FFJR.html?_security_check=1_1783322651289",
+        "source_type": "web",
+        "timeout_seconds": 15,
+        "asr": {
+          "enabled": false,
+          "env": "TRAILHEAD_DISABLE_ASR",
+          "note": "read never invokes paid ASR"
+        },
+        "policy": {
+          "agent_reach": "not_used",
+          "asr": "disabled",
+          "hermes_web_extract": "disabled",
+          "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+        },
+        "extraction_status": "blocked",
+        "content_length": 0,
+        "returned_chars": 0,
+        "truncated": false,
+        "truncation_note": "",
+        "content": "",
+        "pagination": {
+          "schema_version": 1,
+          "offset": 0,
+          "max_chars": 20000,
+          "start": 0,
+          "end": 0,
+          "returned_chars": 0,
+          "next_offset": null,
+          "more": false,
+          "total_available_chars": 0,
+          "document_sha256": "",
+          "window_empty": true,
+          "retrieval_char_cap": 1000000,
+          "extractor_truncated": false,
+          "retrieval_capped": false,
+          "transport_byte_cap": 8388608,
+          "transport_capped": false,
+          "note": "no extracted text is available to page"
+        },
+        "completeness": {
+          "extracted_document_complete": false,
+          "raw_page_complete": false,
+          "note": "content is readable text extracted from the page, not the raw HTML; markup, scripts and repeated chrome are removed, so completeness never means a byte-identical copy of the fetched page, and a later read may refetch a changed version — compare pagination.document_sha256 before chaining offsets across calls"
+        },
+        "error": {
+          "code": "extraction_blocked",
+          "message": "Fetched web page is a shell with no readable source text (client-rendered app shell, access gate or missing-page interstitial); the requested content was not served."
+        },
+        "evidence": {
+          "usable": false,
+          "transport_ok": false,
+          "relevance": "unknown",
+          "reasons": [
+            "extraction transport failed — discovery lead only"
+          ],
+          "source_quality": {
+            "quality": "platform_shell",
+            "score": 0,
+            "reasons": [
+              "Content blocked — requires browser or account session"
+            ],
+            "label": "Platform shell (discovery only)"
+          }
+        },
+        "video_evidence": null
+      }
+    },
+    {
+      "url": "https://docs.python.org/3/library/typing.html",
+      "exit": 0,
+      "result": {
+        "command": "read",
+        "schema_version": 1,
+        "ok": true,
+        "url": "https://docs.python.org/3/library/typing.html",
+        "source_type": "docs",
+        "timeout_seconds": 15,
+        "asr": {
+          "enabled": false,
+          "env": "TRAILHEAD_DISABLE_ASR",
+          "note": "read never invokes paid ASR"
+        },
+        "policy": {
+          "agent_reach": "not_used",
+          "asr": "disabled",
+          "hermes_web_extract": "disabled",
+          "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs"
+        },
+        "extraction_status": "ok",
+        "content_length": 120318,
+        "returned_chars": 20000,
+        "truncated": true,
+        "truncation_note": "window covers characters 0-20000 of 120318 available; more text is available at offset 20000",
+        "content": "Theme\nAuto\nLight\nDark\nTable of Contents — https://docs.python.org/3/contents.html\ntyping — Support for type hints\nSpecification for the Python Type System\nType aliases\nNewType\nAnnotating callable objects\nGenerics\nAnnotating tuples\nThe type of class objects\nAnnotating generators and coroutines\nUser-defined generic types\nThe Any type\nNominal vs structural subtyping\nModule contents\nSpecial typing primitives\nSpecial types\nSpecial forms\nBuilding generic types and type aliases\nOther special directives\nProtocols\nABCs and Protocols for working with I/O\nFunctions and decorators\nIntrospection helpers\nConstant\nDeprecated aliases\nAliases to built-in types\nAliases to types in collections\nAliases to other concrete types\nAliases to container ABCs in collections.abc\nAliases to asynchronous ABCs in collections.abc\nAliases to other ABCs in collections.abc\nAliases to contextlib ABCs\nDeprecation Timeline of Major Features\nPrevious topic\nDevelopment Tools — https://docs.python.org/3/library/development.html\nNext topic\npydoc — Documentation generator and online help system — https://docs.python.org/3/library/pydoc.html\nThis page\nReport a bug — https://docs.python.org/3/bugs.html\nImprove this page — https://docs.python.org/3/improve-page-nojs.html\nShow source\n— https://github.com/python/cpython/blob/3.15/Doc/library/typing.rst?plain=1\nNavigation\nindex — https://docs.python.org/3/genindex.html\nmodules — https://docs.python.org/3/py-modindex.html |\nnext — https://docs.python.org/3/library/pydoc.html |\nprevious — https://docs.python.org/3/library/development.html |\nPython — https://www.python.org/ »\n3.15.2 documentation — https://docs.python.org/3/index.html »\nThe Python standard library — https://docs.python.org/3/library/index.html »\n»\n|\ntyping — Support for type hints¶\nAdded in version 3.5.\nSource code: Lib/typing.py — https://github.com/python/cpython/tree/3.15/Lib/typing.py\nNote\nThe Python runtime does not enforce function and variable type annotations.\nThey can be used by third party tools such as type checkers — https://docs.python.org/3/glossary.html#term-static-type-checker,\nIDEs, linters, etc.\nThis module provides runtime support for type hints.\nConsider the function below:\ndef surface_area_of_cube(edge_length: float) -> str:\nreturn f\"The surface area of the cube is {6 * edge_length ** 2}.\"\nThe function surface_area_of_cube takes an argument expected to\nbe an instance of float — https://docs.python.org/3/builtins/functions.html#float, as indicated by the type hint — https://docs.python.org/3/glossary.html#term-type-hint\nedge_length: float. The function is expected to return an instance\nof str — https://docs.python.org/3/builtins/stdtypes.html#str, as indicated by the -> str hint.\nWhile type hints can be simple classes like or ,\nthey can also be more complex. The typing module provides a vocabulary of\nmore advanced type hints.\nNew features are frequently added to the typing module.\nThe typing_extensions — https://pypi.org/project/typing_extensions/ package\nprovides backports of these new features to older versions of Python.\nSee also\nTyping cheat sheet — https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html\nA quick overview of type hints (hosted at the mypy docs)\nType System Reference section of the mypy docs — https://mypy.readthedocs.io/en/stable/index.html\nThe Python typing system is standardised via PEPs, so this reference\nshould broadly apply to most Python type checkers. (Some parts may still\nbe specific to mypy.)\nStatic Typing with Python — https://typing.python.org/en/latest/\nType-checker-agnostic documentation written by the community detailing\ntype system features, useful typing related tools and typing best\npractices.\nSpecification for the Python Type System¶\nThe canonical, up-to-date specification of the Python type system can be\nfound at Specification for the Python type system — https://typing.python.org/en/latest/spec/index.html.\nType aliases¶\nA type alias is defined using the type — https://docs.python.org/3/reference/simple_stmts.html#type statement, which creates\nan instance of TypeAliasType. In this example,\nVector and list[float] will be treated equivalently by static type\ncheckers:\ntype Vector = list[float]\ndef scale(scalar: float, vector: Vector) -> Vector:\nreturn [scalar * num for num in vector]\n# passes type checking; a list of floats qualifies as a Vector.\nnew_vector = scale(2.0, [1.0, -4.2, 5.4])\nType aliases are useful for simplifying complex type signatures. For example:\nfrom collections.abc import Sequence\ntype ConnectionOptions = dict[str, str]\ntype Address = tuple[str, int]\ntype Server = tuple[Address, ConnectionOptions]\ndef broadcast_message(message: str, servers: Sequence[Server]) -> None:\n...\n# The static type checker will treat the previous type signature as\n# being exactly equivalent to this one.\ndef broadcast_message(\nmessage: str,\nservers: Sequence[tuple[tuple[str, int], dict[str, str]]]\n) -> None:\nThe statement is new in Python 3.12. For backwards\ncompatibility, type aliases can also be created through simple assignment:\nVector = list[float]\nOr marked with TypeAlias to make it explicit that this is a type alias,\nnot a normal variable assignment:\nfrom typing import TypeAlias\nVector: TypeAlias = list[float]\nNewType¶\nUse the NewType helper to create distinct types:\nfrom typing import NewType\nUserId = NewType('UserId', int)\nsome_id = UserId(524313)\nThe static type checker will treat the new type as if it were a subclass\nof the original type. This is useful in helping catch logical errors:\ndef get_user_name(user_id: UserId) -> str:\n# passes type checking\nuser_a = get_user_name(UserId(42351))\n# fails type checking; an int is not a UserId\nuser_b = get_user_name(-1)\nYou may still perform all int operations on a variable of type UserId,\nbut the result will always be of type int. This lets you pass in a\nUserId wherever an int might be expected, but will prevent you from\naccidentally creating a UserId in an invalid way:\n# 'output' is of type 'int', not 'UserId'\noutput = UserId(23413) + UserId(54341)\nNote that these checks are enforced only by the static type checker. At runtime,\nthe statement Derived = NewType('Derived', Base) will make Derived a\ncallable that immediately returns whatever parameter you pass it. That means\nthe expression Derived(some_value) does not create a new class or introduce\nmuch overhead beyond that of a regular function call.\nMore precisely, the expression some_value is Derived(some_value) is always\ntrue at runtime.\nIt is invalid to create a subtype of Derived:\n# Fails at runtime and does not pass type checking\nclass AdminUserId(UserId): pass\nHowever, it is possible to create a NewType based on a ‘derived’ NewType:\nProUserId = NewType('ProUserId', UserId)\nand typechecking for ProUserId will work as expected.\nSee PEP 484 — https://peps.python.org/pep-0484/ for more details.\nRecall that the use of a type alias declares two types to be equivalent to\none another. Doing type Alias = Original will make the static type checker\ntreat Alias as being exactly equivalent to Original in all cases.\nThis is useful when you want to simplify complex type signatures.\nIn contrast, NewType declares one type to be a subtype of another.\nDoing Derived = NewType('Derived', Original) will make the static type\nchecker treat Derived as a subclass of Original, which means a\nvalue of type Original cannot be used in places where a value of type\nDerived is expected. This is useful when you want to prevent logic\nerrors with minimal runtime cost.\nAdded in version 3.5.2.\nChanged in version 3.10: NewType is now a class rather than a function. As a result, there is\nsome additional runtime cost when calling NewType over a regular\nfunction.\nChanged in version 3.11: The performance of calling NewType has been restored to its level in\nPython 3.9.\nAnnotating callable objects¶\nFunctions – or other callable — https://docs.python.org/3/glossary.html#term-callable objects – can be annotated using\ncollections.abc.Callable — https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable or deprecated typing.Callable.\nCallable[[int], str] signifies a function that takes a single parameter\nof type int — https://docs.python.org/3/builtins/functions.html#int and returns a .\nFor example:\nfrom collections.abc import Callable, Awaitable\ndef feeder(get_next_item: Callable[[], str]) -> None:\n... # Body\ndef async_query(on_success: Callable[[int], None],\non_error: Callable[[int, Exception], None]) -> None:\nasync def on_update(value: str) -> None:\ncallback: Callable[[str], Awaitable[None]] = on_update\nThe subscription syntax must always be used with exactly two values: the\nargument list and the return type. The argument list must be a list of types,\na ParamSpec, Concatenate, or an ellipsis (...). The return type must\nbe a single type.\nIf a literal ellipsis ... is given as the argument list, it indicates that\na callable with any arbitrary parameter list would be acceptable:\ndef concat(x: str, y: str) -> str:\nreturn x + y\nx: Callable[..., str]\nx = str # OK\nx = concat # Also OK\nCallable cannot express complex signatures such as functions that take a\nvariadic number of arguments, overloaded functions, or\nfunctions that have keyword-only parameters. However, these signatures can be\nexpressed by defining a Protocol class with a\n__call__() — https://docs.python.org/3/reference/datamodel.html#object.__call__ method:\nfrom collections.abc import Iterable\nfrom typing import Protocol\nclass Combiner(Protocol):\ndef __call__(self, *vals: bytes, maxlen: int | None = None) -> list[bytes]: ...\ndef batch_proc(data: Iterable[bytes], cb_results: Combiner) -> bytes:\nfor item in data:\ndef good_cb(*vals: bytes, maxlen: int | None = None) -> list[bytes]:\ndef bad_cb(*vals: bytes, maxitems: int | None) -> list[bytes]:\nbatch_proc([], good_cb) # OK\nbatch_proc([], bad_cb) # Error! Argument 2 has incompatible type because of\n# different name and kind in the callback\nCallables which take other callables as arguments may indicate that their\nparameter types are dependent on each other using ParamSpec.\nAdditionally, if that callable adds or removes arguments from other\ncallables, the Concatenate operator may be used. They\ntake the form Callable[ParamSpecVariable, ReturnType] and\nCallable[Concatenate[Arg1Type, Arg2Type, ..., ParamSpecVariable], ReturnType]\nrespectively.\nChanged in version 3.10: Callable now supports ParamSpec and Concatenate.\nSee PEP 612 — https://peps.python.org/pep-0612/ for more details.\nThe documentation for ParamSpec and Concatenate provides\nexamples of usage in Callable.\nGenerics¶\nSince type information about objects kept in containers cannot be statically\ninferred in a generic way, many container classes in the standard library support\nsubscription to denote the expected types of container elements.\nfrom collections.abc import Mapping, Sequence\nclass Employee: ...\n# Sequence[Employee] indicates that all elements in the sequence\n# must be instances of \"Employee\".\n# Mapping[str, str] indicates that all keys and all values in the mapping\n# must be strings.\ndef notify_by_email(employees: Sequence[Employee],\noverrides: Mapping[str, str]) -> None: ...\nGeneric functions and classes can be parameterized by using\ntype parameter syntax — https://docs.python.org/3/reference/compound_stmts.html#type-params:\ndef first[T](l: Sequence[T]) -> T: # Function is generic over the TypeVar \"T\"\nreturn l[0]\nOr by using the TypeVar factory directly:\nfrom typing import TypeVar\nU = TypeVar('U') # Declare type variable \"U\"\ndef second(l: Sequence[U]) -> U: # Function is generic over the TypeVar \"U\"\nreturn l[1]\nChanged in version 3.12: Syntactic support for generics is new in Python 3.12.\nAnnotating tuples¶\nFor most containers in Python, the typing system assumes that all elements in\nthe container will be of the same type. For example:\nfrom collections.abc import Mapping\n# Type checker will infer that all elements in ``x`` are meant to be ints\nx: list[int] = []\n# Type checker error: ``list`` only accepts a single type argument:\ny: list[int, str] = [1, 'foo']\n# Type checker will infer that all keys in ``z`` are meant to be strings,\n# and that all values in ``z`` are meant to be either strings or ints\nz: Mapping[str, str | int] = {}\nlist — https://docs.python.org/3/builtins/stdtypes.html#list only accepts one type argument, so a type checker would emit an\nerror on the y assignment above. Similarly,\nMapping — https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping only accepts two type arguments: the first\nindicates the type of the keys, and the second indicates the type of the\nvalues.\nUnlike most other Python containers, however, it is common in idiomatic Python\ncode for tuples to have elements which are not all of the same type. For this\nreason, tuples are special-cased in Python’s typing system. tuple — https://docs.python.org/3/builtins/stdtypes.html#tuple\naccepts any number of type arguments:\n# OK: ``x`` is assigned to a tuple of length 1 where the sole element is an int\nx: tuple[int] = (5,)\n# OK: ``y`` is assigned to a tuple of length 2;\n# element 1 is an int, element 2 is a str\ny: tuple[int, str] = (5, \"foo\")\n# Error: the type annotation indicates a tuple of length 1,\n# but ``z`` has been assigned to a tuple of length 3\nz: tuple[int] = (1, 2, 3)\nTo denote a tuple which could be of any length, and in which all elements are\nof the same type T, use the literal ellipsis ...: tuple[T, ...].\nTo denote an empty tuple, use\ntuple[()]. Using plain tuple as an annotation is equivalent to using\ntuple[Any, ...]:\nx: tuple[int, ...] = (1, 2)\n# These reassignments are OK: ``tuple[int, ...]`` indicates x can be of any length\nx = (1, 2, 3)\nx = ()\n# This reassignment is an error: all elements in ``x`` must be ints\nx = (\"foo\", \"bar\")\n# ``y`` can only ever be assigned to an empty tuple\ny: tuple[()] = ()\nz: tuple = (\"foo\", \"bar\")\n# These reassignments are OK: plain ``tuple`` is equivalent to ``tuple[Any, ...]``\nz = (1, 2, 3)\nz = ()\nThe type of class objects¶\nA variable annotated with C may accept a value of type C. In\ncontrast, a variable annotated with type[C] (or deprecated\ntyping.Type[C]) may accept values that are classes\nthemselves – specifically, it will accept the class object of C. For\nexample:\na = 3 # Has type ``int``\nb = int # Has type ``type[int]``\nc = type(a) # Also has type ``type[int]``\nNote that type[C] is covariant:\nclass User: ...\nclass ProUser(User): ...\nclass TeamUser(User): ...\ndef make_new_user(user_class: type[User]) -> User:\n# ...\nreturn user_class()\nmake_new_user(User) # OK\nmake_new_user(ProUser) # Also OK: ``type[ProUser]`` is a subtype of ``type[User]``\nmake_new_user(TeamUser) # Still fine\nmake_new_user(User()) # Error: expected ``type[User]`` but got ``User``\nmake_new_user(int) # Error: ``type[int]`` is not a subtype of ``type[User]``\nThe only legal parameters for type — https://docs.python.org/3/builtins/functions.html#type are classes, Any,\ntype variables, and unions of any of these types.\ndef new_non_team_user(user_class: type[BasicUser | ProUser]): ...\nnew_non_team_user(BasicUser) # OK\nnew_non_team_user(ProUser) # OK\nnew_non_team_user(TeamUser) # Error: ``type[TeamUser]`` is not a subtype\n# of ``type[BasicUser | ProUser]``\nnew_non_team_user(User) # Also an error\ntype[Any] is equivalent to , which is the root of Python’s\nmetaclass hierarchy — https://docs.python.org/3/reference/datamodel.html#metaclasses.\nAnnotating generators and coroutines¶\nA generator can be annotated using the generic type\nGenerator[YieldType, SendType, ReturnType] — https://docs.python.org/3/library/collections.abc.html#collections.abc.Generator.\ndef echo_round() -> Generator[int, float, str]:\nsent = yield 0\nwhile sent >= 0:\nsent = yield round(sent)\nreturn 'Done'\nNote that unlike many other generic classes in the standard library,\nthe SendType of Generator — https://docs.python.org/3/library/collections.abc.html#collections.abc.Generator behaves\ncontravariantly, not covariantly or invariantly.\nThe SendType and ReturnType parameters default to None:\ndef infinite_stream(start: int) -> Generator[int]:\nwhile True:\nyield start\nstart += 1\nIt is also possible to set these types explicitly:\ndef infinite_stream(start: int) -> Generator[int, None, None]:\nSimple generators that only ever yield values can also be annotated\nas having a return type of either\nIterable[YieldType] — https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterable\nor Iterator[YieldType] — https://docs.python.org/3/library/collections.abc.html#collections.abc.Iterator:\ndef infinite_stream(start: int) -> Iterator[int]:\nAsync generators are handled in a similar fashion, but don’t\nexpect a ReturnType type argument\n(AsyncGenerator[YieldType, SendType] — https://docs.python.org/3/library/collections.abc.html#collections.abc.AsyncGenerator).\nThe SendType argument defaults to None, so the following definitions\nare equivalent:\nasync def infinite_stream(start: int) -> AsyncGenerator[int]:\nstart = await increment(start)\nasync def infinite_stream(start: int) -> AsyncGenerator[int, None]:\nAs in the synchronous case,\nAsyncIterable[YieldType] — https://docs.python.org/3/library/collections.abc.html#collections.abc.AsyncIterable\nand AsyncIterator[YieldType] — https://docs.python.org/3/library/collections.abc.html#collections.abc.AsyncIterator are\navailable as well:\nasync def infinite_stream(start: int) -> AsyncIterator[int]:\nCoroutines can be annotated using\nCoroutine[YieldType, SendType, ReturnType] — https://docs.python.org/3/library/collections.abc.html#collections.abc.Coroutine.\nGeneric arguments correspond to those of ,\nfor example:\nfrom collections.abc import Coroutine\nc: Coroutine[list[str], str, int] # Some coroutine defined elsewhere\nx = c.send('hi') # Inferred type of 'x' is list[str]\nasync def bar() -> None:\ny = await c # Inferred type of 'y' is int\nUser-defined generic types¶\nA user-defined class can be defined as a generic class.\nfrom logging import Logger\nclass LoggedVar[T]:\ndef __init__(self, value: T, name: str, logger: Logger) -> None:\nself.name = name\nself.logger = logger\nself.value = value\ndef set(self, new: T) -> None:\nself.log('Set ' + repr(self.value))\nself.value = new\ndef get(self) -> T:\nself.log('Get ' + repr(self.value))\nreturn self.value\ndef log(self, message: str) -> None:\nself.logger.info('%s: %s', self.name, message)\nThis syntax indicates that the class LoggedVar is parameterised around a\nsingle type variable T . This also makes T valid as\na type within the class body.\nGeneric classes implicitly inherit from Generic. For compatibility\nwith Python 3.11 and lower, it is also possible to inherit explicitly from\nGeneric to indicate a generic class:\nfrom typing import TypeVar, Generic\nT = TypeVar('T')\nclass LoggedVar(Generic[T]):\nGeneric classes have __class_getitem__() — https://docs.python.org/3/reference/datamodel.html#object.__class_getitem__ methods, meaning they\ncan be parameterised at runtime (e.g. LoggedVar[int] below):\ndef zero_all_vars(vars: Iterable[LoggedVar[int]]) -> None:\nfor var in vars:\nvar.set(0)\nA generic type can have any number of type variables. All varieties of\nTypeVar are permissible as parameters for a generic type:\nfrom typing import TypeVar, Generic, Sequence\nclass WeirdTrio[T, B: Sequence[bytes], S: (int, str)]:\nOldT = TypeVar('OldT', contravariant=True)\nOldB = TypeVar('OldB', bound=Sequence[bytes], covariant=True)\nOldS = TypeVar('OldS', int, str)\nclass OldWeirdTrio(Generic[OldT, OldB, OldS]):\nEach type variable argument to Generic must be distinct.\nThis is thus invalid:\nclass Pair[M, M]: # SyntaxError\nclass Pair(Generic[T, T]): # INVALID\nGeneric classes can also inherit from other classes:\nfrom collections.abc import Sized\nclass LinkedList[T](Sized):\nWhen inheriting from generic classes, some type parameters could be fixed:\nclass MyDict[T](Mapping[str, T]):\nIn this case MyDict has a single parameter, T.\nUsing a generic class without specifying type parameters assumes\nAny for each position. In the following example, MyIterable is\nnot g",
+        "pagination": {
+          "schema_version": 1,
+          "offset": 0,
+          "max_chars": 20000,
+          "start": 0,
+          "end": 20000,
+          "returned_chars": 20000,
+          "next_offset": 20000,
+          "more": true,
+          "total_available_chars": 120318,
+          "document_sha256": "dafa516ad5f4dd4b60907c8297116c07a308424b81a5aac94013d64b02df2086",
+          "window_empty": false,
+          "retrieval_char_cap": 1000000,
+          "extractor_truncated": false,
+          "retrieval_capped": false,
+          "transport_byte_cap": 8388608,
+          "transport_capped": false,
+          "note": ""
+        },
+        "completeness": {
+          "extracted_document_complete": false,
+          "raw_page_complete": false,
+          "note": "content is readable text extracted from the page, not the raw HTML; markup, scripts and repeated chrome are removed, so completeness never means a byte-identical copy of the fetched page, and a later read may refetch a changed version — compare pagination.document_sha256 before chaining offsets across calls"
+        },
+        "error": null,
+        "evidence": {
+          "usable": true,
+          "transport_ok": true,
+          "relevance": "unknown",
+          "reasons": [],
+          "source_quality": {
+            "quality": "canonical",
+            "score": 80,
+            "reasons": [
+              "Documentation site",
+              "Successfully extracted (long content)"
+            ],
+            "label": "Documentation site"
+          }
+        },
+        "video_evidence": null
+      }
+    }
+  ],
+  "search_exit": 0,
+  "scope": "Fresh empty homes; no credentials; ASR veto; native reads plus default search smoke; no superiority claim."
+}
