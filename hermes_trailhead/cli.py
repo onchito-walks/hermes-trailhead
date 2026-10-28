@@ -254,6 +254,211 @@ def cmd_score(args: argparse.Namespace) -> int:
     return 0
 
 
+def _reach_text_inventory(payload: dict) -> str:
+    lines = ["Agent Reach forwarding layer (optional, read-only, attributed)", ""]
+    exe = payload.get("executable") or "(not found)"
+    lines.append(f"  Executable: {exe}")
+    if not payload.get("found"):
+        lines.append(f"  Status:     unavailable ({payload.get('reason')})")
+    else:
+        lines.append(f"  Status:     available (registry schema {payload.get('schema_version')})")
+    mode = "public-only (no browser fallback, no credentials)" if payload.get("public_only") else "authenticated forwarding allowed for this run"
+    lines.append(f"  Mode:       {mode}")
+    caps = payload.get("capabilities") or []
+    channels = sorted({row["channel"] for row in caps})
+    lines.append(f"  Forwarded:  {len(caps)} read-only action(s) across {len(channels)} channel(s)")
+    lines.append("")
+    if caps:
+        width = max(len(row["channel"]) for row in caps)
+        awidth = max(len(row["action"]) for row in caps)
+        for row in caps:
+            gate = "" if row["public"] else "  [needs --allow-authenticated]"
+            backends = ", ".join(row.get("backends") or []) or "-"
+            lines.append(
+                f"  {row['channel']:<{width}}  {row['action']:<{awidth}}  "
+                f"{row['mode']:<12} {backends}{gate}"
+            )
+        lines.append("")
+    error = payload.get("error")
+    if error:
+        lines.append(f"  Error: {error.get('code')}: {error.get('message')}")
+    lines.append("  Not forwarded: transcribe (paid/key-consuming) and every management verb")
+    lines.append("  (setup, add, remove, login, browser, configure, update, uninstall, skill).")
+    return "\n".join(lines)
+
+
+def cmd_reach(args: argparse.Namespace) -> int:
+    """Capability inventory for the optional Agent Reach forwarding layer."""
+    from .reach_backend import AgentReachBackend
+
+    backend = AgentReachBackend(
+        args.agent_reach,
+        timeout=args.timeout,
+        allow_authenticated=args.allow_authenticated,
+    )
+    payload = backend.describe()
+    if args.format == "json":
+        print(json.dumps(payload, indent=2))
+        return 0
+    print(_reach_text_inventory(payload))
+    return 0
+
+
+def _reach_text_result(result) -> str:
+    payload = result.to_dict()
+    prov = payload.get("provenance") or {}
+    head = f"agent-reach {payload.get('channel')} {payload.get('action')}"
+    if payload.get("ok"):
+        head += f" — ok in {payload.get('elapsed_ms')}ms"
+    else:
+        err = payload.get("error") or {}
+        head += f" — {err.get('code')}: {err.get('message')}"
+    lines = [head, ""]
+    lines.append(f"  Attribution: {prov.get('attribution') or 'Agent Reach (third-party CLI)'}")
+    lines.append(f"  Route:       {prov.get('route') or 'unknown'}"
+                 + (f" | forced backend: {prov['forced_backend']}" if prov.get("forced_backend") else ""))
+    lines.append(f"  Backend:     {payload.get('backend') or '(upstream did not report one)'}")
+    items = payload.get("items") or []
+    lines.append(f"  Items:       {len(items)}")
+    for index, item in enumerate(items[:5], start=1):
+        text = item.get("text") or ""
+        title = (item.get("title") or item.get("url") or "(untitled)")[:90]
+        lines.append(f"    {index}. {title} — {len(text)} chars")
+        if text:
+            lines.append("       " + " ".join(text.split())[:160])
+    if len(items) > 5:
+        lines.append(f"    ... {len(items) - 5} more item(s) in --format json")
+    limitations = payload.get("limitations") or []
+    if limitations:
+        lines.append("")
+        lines.append("  Limitations:")
+        for item in limitations:
+            lines.append(f"    - {item}")
+    return "\n".join(lines)
+
+
+def cmd_reach_call(args: argparse.Namespace) -> int:
+    """Forward one allowlisted read-only channel/action to Agent Reach."""
+    from .reach_backend import AgentReachBackend, ReachBackendError
+
+    backend = AgentReachBackend(
+        args.agent_reach,
+        timeout=args.timeout,
+        allow_authenticated=False,
+    )
+    params: dict[str, object] = {}
+    for raw in args.param or []:
+        if "=" not in raw:
+            print(f"--param expects NAME=VALUE, got: {raw}", file=sys.stderr)
+            return 2
+        name, value = raw.split("=", 1)
+        if not name.strip():
+            print(f"--param expects a name before '=', got: {raw}", file=sys.stderr)
+            return 2
+        params[name.strip()] = value
+
+    # Positional extras fill the action's required params in declared order.
+    if args.arguments:
+        declared: list[str] = []
+        try:
+            registry = backend.registry()
+            channel = registry.channels.get(args.channel)
+            action = channel.actions.get(args.action) if channel else None
+            if action is not None:
+                declared = [param.name for param in action.required_params]
+        except ReachBackendError:
+            declared = []
+        extras = list(args.arguments)
+        if declared:
+            if len(extras) > len(declared):
+                print(
+                    f"{args.channel} {args.action} takes {len(declared)} positional "
+                    f"argument(s) ({', '.join(declared)}); got {len(extras)}",
+                    file=sys.stderr,
+                )
+                return 2
+            for name, value in zip(declared, extras):
+                params.setdefault(name, value)
+        elif len(extras) == 1:
+            params.setdefault("target", extras[0])
+        else:
+            print(
+                "could not map positional arguments to declared params; use --param NAME=VALUE",
+                file=sys.stderr,
+            )
+            return 2
+
+    result = backend.execute(
+        args.channel,
+        args.action,
+        params,
+        allow_authenticated=args.allow_authenticated,
+        max_items=args.limit,
+    )
+    if args.format == "json":
+        print(json.dumps(result.to_dict(), indent=2))
+    else:
+        print(_reach_text_result(result))
+    return 0 if result.ok else 1
+
+
+def cmd_compare(args: argparse.Namespace) -> int:
+    """Measured head-to-head case benchmark against an optional Agent Reach CLI."""
+    from .comparative import (
+        CASES,
+        format_compare_markdown,
+        format_compare_text,
+        run_compare,
+        write_report,
+    )
+
+    if args.list_cases:
+        if args.format == "json":
+            print(json.dumps({"cases": [case.to_dict() for case in CASES]}, indent=2))
+            return 0
+        print("Case manifest (both tools are asked for the same outcome)")
+        print()
+        for case in CASES:
+            gate = " [auth-gated, needs --include-auth]" if case.requires_auth else ""
+            print(f"  {case.id:<28} {case.kind:<8} {case.family:<10}{gate}")
+            print(f"      prompt:    {case.prompt}")
+            print(f"      agent-reach: {' '.join(case.agent_reach_command)}"
+                  f"   (requirement: {case.evidence_requirement})")
+        return 0
+
+    try:
+        report = run_compare(
+            case_ids=args.case,
+            include_auth=args.include_auth,
+            timeout_s=args.timeout,
+            agent_reach=args.agent_reach,
+            with_agent_reach=not args.no_agent_reach,
+            search_limit=args.limit,
+            sandbox_dir=args.sandbox,
+        )
+    except KeyError as exc:
+        print(str(exc).strip("'\""), file=sys.stderr)
+        print("Known cases: " + ", ".join(case.id for case in CASES), file=sys.stderr)
+        return 2
+
+    if args.out:
+        path = write_report(report, args.out)
+        if args.format == "json":
+            print(f"Report saved: {path}", file=sys.stderr)
+
+    if args.format == "json":
+        print(json.dumps(report, indent=2))
+        return 0
+    if args.format == "markdown":
+        print(format_compare_markdown(report))
+        return 0
+    print(format_compare_text(report))
+    if args.out:
+        print()
+        print(f"Report saved: {args.out}")
+    return 0
+
+
 def cmd_search(args: argparse.Namespace) -> int:
     if args.execute:
         executed = search_execute_data(args.platform, args.query, live=args.live, limit=args.limit)
@@ -461,10 +666,85 @@ def build_parser() -> argparse.ArgumentParser:
     gauntlet.add_argument("--format", choices=["text", "json"], default="text")
     gauntlet.set_defaults(func=cmd_gauntlet)
 
-    score = sub.add_parser("score", help="Per-lane product scorecard (grades + live route probes with --live)")
+    score = sub.add_parser("score", help="Per-lane product scorecard (historical static claims + measured route probes with --live)")
     score.add_argument("--format", choices=["text", "json"], default="text")
     score.add_argument("--live", action="store_true", help="Probe each lane's key route from this host")
     score.set_defaults(func=cmd_score)
+
+    reach = sub.add_parser(
+        "reach",
+        help="Inventory the optional Agent Reach forwarding layer (read-only, attributed)",
+        description=(
+            "Print which read-only Agent Reach channel/action pairs Trailhead can "
+            "forward, how each one can be reached (public API, forced public-web, or "
+            "authenticated with explicit consent), and why the rest are excluded. "
+            "Discovery order: --agent-reach, TRAILHEAD_AGENT_REACH_BIN, PATH. Nothing "
+            "is installed, configured, logged in to, or copied."
+        ),
+    )
+    reach.add_argument("--agent-reach", metavar="PATH", help="Path to an installed agent-reach CLI")
+    reach.add_argument("--timeout", type=float, default=30, help="Registry/diagnostic timeout in seconds")
+    reach.add_argument("--allow-authenticated", action="store_true", help="Report modes as if authenticated forwarding were consented")
+    reach.add_argument("--format", choices=["text", "json"], default="text")
+    reach.set_defaults(func=cmd_reach)
+
+    reach_call = sub.add_parser(
+        "reach-call",
+        help="Forward one allowlisted read-only channel/action to Agent Reach (attributed)",
+        description=(
+            "Run a single read-only Agent Reach action and print the result with its "
+            "Agent Reach attribution. Public mode forces --backend public-web where the "
+            "upstream declares a public route and never falls back to a browser; "
+            "session-only actions return auth_required unless --allow-authenticated is "
+            "passed explicitly. Positional ARGS fill the action's required params in "
+            "declared order; use --param NAME=VALUE for anything else."
+        ),
+    )
+    reach_call.add_argument("channel", help="Channel name, e.g. github, v2ex, web")
+    reach_call.add_argument("action", help="Read-only action, e.g. read, search, hot")
+    reach_call.add_argument("arguments", nargs="*", help="Positional arguments for the action's required params")
+    reach_call.add_argument("--param", action="append", metavar="NAME=VALUE", help="Action parameter (repeatable)")
+    reach_call.add_argument("--limit", type=int, default=10, help="Max items returned (default: 10)")
+    reach_call.add_argument("--timeout", type=float, default=30, help="Upstream timeout in seconds (default: 30)")
+    reach_call.add_argument("--allow-authenticated", action="store_true", help="Consent to use the operator's existing Agent Reach login")
+    reach_call.add_argument("--agent-reach", metavar="PATH", help="Path to an installed agent-reach CLI")
+    reach_call.add_argument("--format", choices=["text", "json"], default="text")
+    reach_call.set_defaults(func=cmd_reach_call)
+
+    compare = sub.add_parser(
+        "compare",
+        help="Run the same URL/question cases against Trailhead and an installed Agent Reach CLI",
+        description=(
+            "Measured head-to-head benchmark over an explicit case manifest. Both "
+            "tools are asked for the same outcome (a transcript case uses "
+            "`youtube subtitle`, a node listing uses `v2ex node`). Records status, "
+            "duration, raw and cleaned characters, evidence verdict, and upstream "
+            "errors per side; no A/A- grades and no aggregate winner. Both sides "
+            "run in killable subprocesses with equal wall-clock budgets and "
+            "temporary homes; environment credentials, sessions and proxies "
+            "are withheld, not filesystem-sandboxed. ASR is disabled. Auth-shaped "
+            "cases are skipped unless --include-auth is passed; those remain "
+            "unauthenticated attempts, not a configured-account comparison."
+        ),
+    )
+    compare.add_argument("--case", action="append", metavar="ID", help="Case id to run (repeatable; default: all public cases)")
+    compare.add_argument("--include-auth", action="store_true", help="Include auth-shaped cases (explicit opt-in)")
+    compare.add_argument("--timeout", type=float, default=30, help="Per-side timeout in seconds (default: 30)")
+    compare.add_argument("--limit", type=int, default=3, help="Hits per lane for question cases (default: 3)")
+    compare.add_argument("--agent-reach", metavar="PATH", help="Path to an installed agent-reach CLI (default: PATH lookup)")
+    compare.add_argument("--no-agent-reach", action="store_true", help="Skip the Agent Reach side (recorded as not_run)")
+    compare.add_argument("--out", metavar="PATH", help="Write the JSON report to this path")
+    compare.add_argument("--list-cases", action="store_true", help="List the case manifest and exit")
+    compare.add_argument(
+        "--sandbox",
+        metavar="DIR",
+        help=(
+            "Reuse an existing sandbox directory to measure a warm run "
+            "(default: a fresh cold sandbox under TMPDIR)"
+        ),
+    )
+    compare.add_argument("--format", choices=["text", "json", "markdown"], default="text")
+    compare.set_defaults(func=cmd_compare)
 
     search = sub.add_parser(
         "search",
