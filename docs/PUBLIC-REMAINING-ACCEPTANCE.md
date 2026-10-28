@@ -161,6 +161,13 @@ minute.
   not reuse a recorded response from a previous round unless the procedure says
   "cached" and the cache age is recorded.
 
+Execution state for this campaign is tracked in
+[PUBLIC-RELIABILITY-STATE.md](PUBLIC-RELIABILITY-STATE.md). The harness runs it
+as `--phase cold|warm` with persisted private state under
+`.git/trailhead-reliability-p2` (never committed); one phase is 3 cases × 2 tools
+= 6 calls, and the warm phase is gated on ≥30 min after the cold phase ended.
+Day 1 cold is recorded there; day 1 warm and days 2–5 are still open gaps.
+
 Claim rule: "k of n attempts succeeded in this window". Never "always works",
 never "reliable" without the denominator and window, never a 100 % claim from a
 single day.

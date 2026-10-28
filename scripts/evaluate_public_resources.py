@@ -57,6 +57,21 @@ Usage
         --scratch "$TMPDIR/public-resource-campaign" \
         --out docs/evidence/public-resource.json \
         --rounds 5 --timeout 25
+
+    # 3. P2 (resumable, one phase per invocation; state in .git/, never committed)
+    python3 scripts/evaluate_public_resources.py --phase cold \
+        --session p2-2026-10-28 \
+        --state-dir .git/trailhead-reliability-p2 \
+        --window-start 16:00 --window-end 18:00 \
+        --agent-reach <pinned>/bin/agent-reach \
+        --out docs/evidence/public-reliability-day1-cold.json
+    # ... at least 30 min after the cold phase ended:
+    python3 scripts/evaluate_public_resources.py --phase warm \
+        --session p2-2026-10-28 \
+        --state-dir .git/trailhead-reliability-p2 \
+        --agent-reach <pinned>/bin/agent-reach \
+        --out docs/evidence/public-reliability-day1-warm.json
+    # --show-next prints the pending command, its earliest timestamp, and the gap list.
 """
 
 from __future__ import annotations
@@ -70,7 +85,7 @@ import re
 import statistics
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -206,8 +221,26 @@ SENSITIVE_MARKERS = (
 
 # ── small helpers ────────────────────────────────────────────────────────────
 
+#: Wall clock for every timestamp this harness writes. Tests replace it to
+#: inject time; nothing else in the module calls ``datetime.now`` directly, so
+#: the P2 warm gap is testable without sleeping.
+_CLOCK = lambda: datetime.now(timezone.utc)
+
+
+def utc_now() -> datetime:
+    return _CLOCK()
+
+
+def iso(dt: datetime) -> str:
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def parse_iso(text: str) -> datetime:
+    return datetime.strptime(text, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+
+
 def now_utc() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return iso(utc_now())
 
 
 def canonical_json(obj) -> str:
@@ -1159,6 +1192,865 @@ def dependency_surface(agent_reach: str) -> dict:
     }
 
 
+# ── P2: resumable daily cold / warm phases over the same frozen manifest ─────
+#
+# The P1/P3 campaign above measures many rounds inside one contiguous window.
+# P2 asks a different question — does a result survive another *day* — so one
+# process cannot hold it: the warm round starts at least 30 minutes after the
+# cold round ends, and the five-day campaign spans calendar days. State
+# therefore lives on disk under a private, never-committed path (``.git/…``),
+# and each phase is its own CLI invocation that refuses to overwrite an
+# observation already recorded.
+#
+# What the state directory holds
+# ------------------------------
+#   <state-dir>/<session>/session.json          frozen window, manifest hash,
+#                                               tool fingerprint, phase rows
+#   <state-dir>/<session>/homes/<case>/<tool>/  the exact sandbox trees cold
+#                                               built; warm reuses these paths
+#   <state-dir>/<session>/raw/<phase>/          raw stdout/stderr/rusage
+#
+# The state directory lives inside ``.git``, so it is never committed. The
+# published evidence file carries sanitized rows only — never homes, never raw
+# bytes, never absolute paths.
+#
+# Committing this harness and its docs moves HEAD, which would otherwise look
+# like a product change. The warm gate therefore compares git *tree objects*
+# for ``hermes_trailhead/`` and ``pyproject.toml`` at the recorded cold commit
+# and at HEAD: identical objects are accepted and the decision (both commit ids
+# plus the per-path object ids) is recorded; a differing tree, or a commit that
+# cannot be resolved locally, refuses the warm round.
+
+STATE_SCHEMA = "trailhead.public-reliability-session/1"
+PHASE_SCHEMA = "trailhead.public-reliability-day/1"
+PHASES = ("cold", "warm")
+#: P2 §4: the warm round must start at least 30 minutes after the cold round
+#: ends. The gate enforces it *before* any measured call.
+WARM_MIN_GAP_S = 30 * 60
+CAMPAIGN_MIN_DAYS = 5
+DEFAULT_STATE_DIR = REPO / ".git" / "trailhead-reliability-p2"
+#: Only used when a cold run is started without explicit window flags; the
+#: source is recorded so a reader can tell a declared window from a default.
+DEFAULT_WINDOW = ("16:00", "18:00")
+
+
+def _parse_hhmm(text: str) -> time:
+    match = re.fullmatch(r"\s*(\d{1,2}):(\d{2})\s*", text or "")
+    if not match:
+        raise ValueError(f"window time must be HH:MM, got {text!r}")
+    hour, minute = int(match.group(1)), int(match.group(2))
+    if hour > 23 or minute > 59:
+        raise ValueError(f"window time out of range: {text!r}")
+    return time(hour, minute)
+
+
+def build_window(day: str, start: str, end: str, declared_at: str,
+                 source: str = "cli") -> dict:
+    """Freeze one UTC window for a calendar day, before the first measured call."""
+    start_t, end_t = _parse_hhmm(start), _parse_hhmm(end)
+    if start_t >= end_t:
+        raise ValueError("window start must precede window end")
+    day_date = date.fromisoformat(day)
+    return {
+        "utc_date": day,
+        "start": start,
+        "end": end,
+        "start_at": iso(datetime.combine(day_date, start_t, tzinfo=timezone.utc)),
+        "end_at": iso(datetime.combine(day_date, end_t, tzinfo=timezone.utc)),
+        "declared_at": declared_at,
+        "declared_source": source,
+        "note": ("declared before the first measured call; a run outside this "
+                 "window is labelled late, never pooled silently"),
+    }
+
+
+def in_window(now: datetime, window: dict) -> bool:
+    try:
+        start = parse_iso(window["start_at"])
+        end = parse_iso(window["end_at"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    return start <= now.astimezone(timezone.utc) <= end
+
+
+def _assert_safe_state_path(path: Path, root: Path) -> None:
+    """Fail closed on a state path that is, or resolves through, a symlink.
+
+    A symlinked state directory would let a later phase read someone else's
+    observations — or write outside the private tree — so the check refuses
+    before anything is measured or persisted.
+    """
+    root_p, path_p = Path(root).absolute(), Path(path).absolute()
+    # The root itself must be a real directory chain end: a symlinked root
+    # resolves "inside" itself trivially, so the containment check below would
+    # otherwise pass while reading someone else's tree.
+    if root_p.is_symlink():
+        raise SystemExit("refusing state root that is a symlink")
+    try:
+        root_resolved = root_p.resolve(strict=False)
+        path_resolved = path_p.resolve(strict=False)
+    except OSError as exc:  # pragma: no cover - unreadable parents
+        raise SystemExit(f"refusing unreadable state path: {exc}") from exc
+    if path_resolved != root_resolved and root_resolved not in path_resolved.parents:
+        raise SystemExit("refusing state path outside the private state root")
+    try:
+        relative = path_p.relative_to(root_p)
+    except ValueError:
+        raise SystemExit("refusing state path outside the private state root")
+    current = root_p
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise SystemExit(f"refusing state path through a symlink: {current.name}")
+
+
+def _assert_reusable_home(home: Path, session_dir: Path) -> None:
+    """A warm run may only reuse a cold sandbox tree that is a real directory."""
+    _assert_safe_state_path(home, session_dir)
+    if home.is_symlink() or not home.is_dir():
+        raise SystemExit(f"cold home is missing or not a directory: {home.name}")
+    for child in ("home", "agent-reach-home", "tmp"):
+        node = home / child
+        if node.is_symlink():
+            raise SystemExit(f"cold home child is a symlink ({child}): {home.name}")
+        if not node.is_dir():
+            raise SystemExit(f"cold home is incomplete ({child}): {home.name}")
+
+
+def tools_fingerprint(inventory: dict) -> dict:
+    """The manifest's tool/source identity, as recorded at phase time."""
+    trailhead = inventory.get("trailhead") or {}
+    agent_reach = inventory.get("agent_reach") or {}
+    return {
+        "trailhead_commit": trailhead.get("commit", ""),
+        "trailhead_python": trailhead.get("python", ""),
+        "agent_reach_version": agent_reach.get("version", ""),
+        "agent_reach_pinned_commit": agent_reach.get("pinned_commit", ""),
+        "agent_reach_executable_sha256": agent_reach.get("executable_sha256", ""),
+    }
+
+
+def fingerprint_mismatch(recorded: dict, current: dict) -> list[str]:
+    recorded = recorded or {}
+    return sorted(key for key in current if recorded.get(key) != current[key])
+
+
+#: What a warm round actually re-executes. A commit that only adds harness,
+#: test or doc files moves HEAD without touching any of these, so the gate
+#: compares *git object ids* per path instead of commit ids.
+PRODUCT_PATHS = ("hermes_trailhead", "pyproject.toml")
+_GIT_OID_RE = re.compile(r"^[0-9a-f]{40}$")
+#: Strict session tag: one path segment, no separators, no ``..``.
+SESSION_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+
+
+def valid_session_name(name: str) -> bool:
+    name = name or ""
+    return bool(SESSION_NAME_RE.fullmatch(name)) and ".." not in name
+
+
+def git_object_id(commit: str, path: str, repo: Path = REPO) -> str:
+    """Git object id of ``path`` at ``commit``, or ``""`` when unavailable.
+
+    ``""`` means "cannot be resolved here" — a missing commit, a path absent at
+    that commit, no git binary, or a malformed ref. Callers must treat it as
+    unprovable, never as equal.
+    """
+    commit = (commit or "").strip()
+    if not _GIT_OID_RE.match(commit):
+        return ""
+    try:
+        proc = subprocess.run(
+            ["git", "-C", str(repo), "rev-parse", "--verify", "--quiet",
+             f"{commit}:{path}"],
+            capture_output=True, text=True, timeout=20,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return ""
+    object_id = proc.stdout.strip()
+    return object_id if proc.returncode == 0 and _GIT_OID_RE.match(object_id) else ""
+
+
+def commit_compatibility(recorded_commit: str, current_commit: str,
+                         repo: Path = REPO) -> dict:
+    """May a warm round reuse a cold round measured at ``recorded_commit``?
+
+    Allowed only when every product path has the *same* git object id in both
+    commits — i.e. the harness/docs commit that moved HEAD changed nothing the
+    measured product executes. A differing tree, an unresolvable ref or an
+    unreadable repository is a refusal, and the decision itself is returned so
+    it is recorded with both commit ids instead of being silently swallowed.
+    """
+    recorded_commit = (recorded_commit or "").strip()
+    current_commit = (current_commit or "").strip()
+    decision = {
+        "recorded_commit": recorded_commit,
+        "current_commit": current_commit,
+        "product_paths": list(PRODUCT_PATHS),
+        "objects": {},
+        "equivalent": False,
+        "reason": "",
+    }
+    if recorded_commit and recorded_commit == current_commit:
+        decision["equivalent"] = True
+        decision["reason"] = "same commit at cold and now"
+        decision["objects"] = {
+            path: {"recorded": git_object_id(current_commit, path, repo),
+                   "current": None}
+            for path in PRODUCT_PATHS
+        }
+        return decision
+    for path in PRODUCT_PATHS:
+        recorded_id = git_object_id(recorded_commit, path, repo)
+        current_id = git_object_id(current_commit, path, repo)
+        decision["objects"][path] = {"recorded": recorded_id, "current": current_id}
+        if not recorded_id or not current_id:
+            missing = []
+            if not recorded_id:
+                missing.append(f"recorded {recorded_commit[:12] or '<empty>'}")
+            if not current_id:
+                missing.append(f"current {current_commit[:12] or '<empty>'}")
+            decision["reason"] = (
+                f"cannot compare {path}: git object unavailable for "
+                f"{' and '.join(missing)}; an unproven product tree is a refusal")
+            return decision
+        if recorded_id != current_id:
+            decision["reason"] = (
+                f"product source changed at {path} "
+                f"({recorded_id[:12]} -> {current_id[:12]})")
+            return decision
+    decision["equivalent"] = True
+    decision["reason"] = (
+        "product tree identical at both commits: HEAD moved for harness, test "
+        "or docs only, nothing the measured product executes changed")
+    return decision
+
+
+def ensure_fingerprint_compatible(recorded: dict, current: dict,
+                                  repo: Path = REPO) -> tuple[bool, str, dict | None]:
+    """Fingerprint gate that tolerates a docs-only HEAD move.
+
+    Any non-commit field that changed is still a hard refusal; the commit field
+    is allowed to differ only through :func:`commit_compatibility`.
+    """
+    mismatch = fingerprint_mismatch(recorded, current)
+    if "trailhead_commit" not in mismatch:
+        return (not mismatch,
+                f"tool/source version changed since cold: {', '.join(mismatch)}"
+                if mismatch else "",
+                None)
+    decision = commit_compatibility((recorded or {}).get("trailhead_commit", ""),
+                                    (current or {}).get("trailhead_commit", ""),
+                                    repo)
+    remaining = [key for key in mismatch if key != "trailhead_commit"]
+    if remaining:
+        return (False,
+                f"tool/source version changed since cold: {', '.join(remaining)}",
+                decision)
+    if not decision["equivalent"]:
+        return (False,
+                "product source changed since cold (HEAD "
+                f"{(recorded or {}).get('trailhead_commit', '')[:12] or 'unknown'} -> "
+                f"{(current or {}).get('trailhead_commit', '')[:12] or 'unknown'}): "
+                f"{decision['reason']}",
+                decision)
+    return True, "", decision
+
+
+def session_file(state_dir: str | Path, session: str) -> Path:
+    return Path(state_dir) / session / "session.json"
+
+
+def load_session(path: str | Path) -> dict | None:
+    path = Path(path)
+    # A symlinked state file is somebody else's observation set; refuse before
+    # reading instead of following it.
+    if path.is_symlink():
+        raise SystemExit(f"refusing symlinked session state: {path.name}")
+    if not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except json.JSONDecodeError:
+        raise SystemExit(f"refusing unreadable session state: {path.name}")
+
+
+def save_session(state: dict, state_dir: str | Path, session: str) -> None:
+    path = session_file(state_dir, session)
+    tmp = path.with_suffix(".json.tmp")
+    if path.is_symlink() or tmp.is_symlink():
+        raise SystemExit(f"refusing symlinked session state: {path.name}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp.write_text(json.dumps(state, indent=2, ensure_ascii=False) + "\n")
+    os.replace(tmp, path)
+
+
+def check_phase_gate(*, phase: str, state_dir: str | Path, session: str,
+                     manifest: dict, fingerprint: dict,
+                     now: datetime | None = None) -> tuple[bool, str, dict]:
+    """Preconditions for one phase. Runs before any measured call.
+
+    Every refusal here is a refusal to *silently* do the wrong thing: rerun a
+    missing cold row, overwrite a recorded observation, start the warm round
+    early, or reuse state from a different manifest/tool build.
+    """
+    if phase not in PHASES:
+        return False, f"unknown phase {phase!r}", {}
+    if not valid_session_name(session):
+        return (False,
+                f"unsafe session name {session!r}: use letters, digits, '.', "
+                "'_', '-' (no separators, no '..', not absolute)", {})
+    now = now or utc_now()
+    state_dir = Path(state_dir)
+    session_dir = state_dir / session
+    try:
+        # Root, session directory and every component under it must be real
+        # paths before the state file is read.
+        _assert_safe_state_path(session_dir, state_dir)
+    except SystemExit as exc:
+        return False, str(exc), {}
+    try:
+        state = load_session(session_file(state_dir, session))
+    except SystemExit as exc:
+        return False, str(exc), {}
+
+    if phase == "cold":
+        phases = (state or {}).get("phases") or {}
+        if phases.get("cold"):
+            return (False,
+                    "cold phase already recorded for this session; refusing to "
+                    "rerun or overwrite its observations", state or {})
+        if session_dir.exists() and any(session_dir.iterdir()):
+            return (False,
+                    "session directory already holds state but no cold phase; a "
+                    "partial cold is reported as a gap, never repaired in place",
+                    state or {})
+        return True, "", state or {}
+
+    # ── warm ────────────────────────────────────────────────────────────────
+    if not state:
+        return (False,
+                f"no persisted cold state for session {session!r}; run the cold "
+                "phase first", {})
+    phases = state.get("phases") or {}
+    cold = phases.get("cold")
+    if not cold:
+        return False, "session has no cold phase; there is nothing to be warm from", state
+    observations = cold.get("observations") or []
+    expected = len(manifest["cases"]) * len(TOOLS)
+    if len(observations) != expected:
+        return (False,
+                f"cold phase recorded {len(observations)} of {expected} "
+                "observations; a partial cold is a reported gap and is not "
+                "completed by a rerun", state)
+    if phases.get("warm"):
+        return False, "warm phase already recorded; refusing to overwrite it", state
+    recorded_hash = (state.get("manifest") or {}).get("manifest_sha256")
+    if recorded_hash != manifest.get(MANIFEST_HASH_FIELD):
+        return (False,
+                "manifest hash differs from the frozen cold session; this is a "
+                "different campaign, not a warm round of the same one", state)
+    compatible, reason, decision = ensure_fingerprint_compatible(
+        state.get("tools_fingerprint") or {}, fingerprint)
+    if decision is not None:
+        # Record the decision, both commits and the per-path object ids: a
+        # docs-only HEAD move is allowed and *shown*, never hidden.
+        state = dict(state)
+        state["compatibility"] = decision
+    if not compatible:
+        return False, reason, state
+    try:
+        cold_end = parse_iso(cold["ended_at"])
+    except (KeyError, TypeError, ValueError):
+        return (False,
+                "cold phase has no parsable ended_at; warm timing cannot be "
+                "verified", state)
+    earliest = cold_end + timedelta(seconds=WARM_MIN_GAP_S)
+    if now.astimezone(timezone.utc) < earliest:
+        return (False,
+                f"premature warm: earliest permitted start is {iso(earliest)} "
+                f"({WARM_MIN_GAP_S // 60} min after cold end {iso(cold_end)}); "
+                "no call was made", state)
+    for row in observations:
+        relative = row.get("home") or ""
+        if not relative:
+            return (False,
+                    f"cold observation {row.get('case_id')}/{row.get('tool')} "
+                    "records no home to reuse", state)
+        try:
+            _assert_reusable_home(session_dir / relative, session_dir)
+        except SystemExit as exc:
+            return False, str(exc), state
+    return True, "", state
+
+
+def _phase_row(measured: dict, payload: dict, units: list[dict], verdict: dict,
+               *, case_id: str, tool: str, phase: str, home: str,
+               late: bool) -> dict:
+    """One observation row: P1 assessment plus its cold/warm provenance."""
+    return {
+        "case_id": case_id,
+        "tool": tool,
+        "state": phase,
+        "phase": phase,
+        "round": 1,
+        "sandbox_reused": phase == "warm",
+        "home": home,
+        "window_late": late,
+        "loadavg": _loadavg(),
+        "status": classify(measured["status"], payload),
+        "tool_ok": bool(payload.get("ok")),
+        "error_code": payload.get("error_code", ""),
+        "started_at": measured["started_at"],
+        "wall_s": measured["wall_s"],
+        "cpu_user_s": measured["cpu_user_s"],
+        "cpu_sys_s": measured["cpu_sys_s"],
+        "peak_rss_kb": measured["peak_rss_kb"],
+        "exit_code": measured["exit_code"],
+        "timed_out": measured["timed_out"],
+        "stdout_bytes": measured["stdout_bytes"],
+        "stderr_bytes": measured["stderr_bytes"],
+        "raw_capped": measured["raw_capped"],
+        "items": payload.get("items"),
+        "returned_chars": payload.get("returned_chars"),
+        "truncated": payload.get("truncated"),
+        "continuation": payload.get("continuation"),
+        "units": units,
+        "verdict": verdict["verdict"],
+        "verdict_reasons": verdict["reasons"],
+        "required_present": verdict.get("required_present"),
+        "required_total": verdict.get("required_total"),
+        "required_assessed": verdict.get("required_assessed"),
+        "artifacts": {
+            "unit_states": {u["id"]: u["state"] for u in units},
+            "body_chars": len(payload.get("body") or ""),
+            "metadata_chars": len(payload.get("metadata") or ""),
+            "body_sha256": hashlib.sha256(
+                (payload.get("body") or "").encode("utf-8")).hexdigest()[:16],
+        },
+        "raw_files": measured["file_names"],
+        "wrapper": measured["wrapper"],
+    }
+
+
+def run_phase(manifest: dict, *, phase: str, session_state: dict,
+              agent_reach: str, state_dir: str | Path, session: str,
+              timeout_s: float, max_raw_bytes: int, persist) -> dict:
+    """One observation per case/tool (3 cases × 2 tools = 6 calls) for a phase.
+
+    Cold builds a fresh sandbox tree per case/tool and leaves it in the state
+    directory; warm rebuilds the environment around those exact same paths, so
+    'warm' means the same homes half an hour later, not a new throwaway tree.
+    """
+    from hermes_trailhead import comparative as comp
+
+    session_dir = Path(state_dir) / session
+    homes_root = session_dir / "homes"
+    raw_root = session_dir / "raw" / phase
+    raw_root.mkdir(parents=True, exist_ok=True)
+    window = session_state.get("window") or {}
+    planned = len(manifest["cases"]) * len(TOOLS)
+
+    if phase == "cold" and homes_root.exists() and any(homes_root.iterdir()):
+        raise SystemExit("refusing cold: session already holds sandbox homes")
+
+    started_dt = utc_now()
+    started_at = iso(started_dt)
+    late = not in_window(started_dt, window)
+    record = {
+        "phase": phase,
+        "started_at": started_at,
+        "ended_at": None,
+        "late": late,
+        "window": {k: window.get(k) for k in ("utc_date", "start_at", "end_at")},
+        "planned": planned,
+        "recorded": 0,
+        "observations": [],
+    }
+    session_state.setdefault("phases", {})[phase] = record
+    persist(session_state)
+
+    for case in manifest["cases"]:
+        for tool in TOOLS:
+            home = homes_root / case["case_id"] / tool
+            if phase == "warm":
+                _assert_reusable_home(home, session_dir)
+            sandbox = comp.build_sandbox(home)
+            env = sandbox["env"]
+            check_env(env)
+            argv = tool_argv(tool, case, agent_reach, timeout_s)
+            stem = f"{case['case_id']}-{tool}"
+            out_path = raw_root / f"{stem}.stdout.json"
+            err_path = raw_root / f"{stem}.stderr.txt"
+            measured = measure_once(
+                argv, env=env, cwd=str(REPO), timeout_s=timeout_s,
+                stdout_path=out_path, stderr_path=err_path,
+                max_raw_bytes=max_raw_bytes,
+            )
+            raw_stdout = out_path.read_text(errors="replace") if out_path.exists() else ""
+            payload = read_payload(tool, raw_stdout)
+            units = assess_units(case["artifact_units"], payload)
+            verdict = case_verdict(units, payload, case["pagination_expectation"])
+            row = _phase_row(
+                measured, payload, units, verdict,
+                case_id=case["case_id"], tool=tool, phase=phase,
+                home=str(Path("homes") / case["case_id"] / tool), late=late,
+            )
+            record["observations"].append(row)
+            record["recorded"] = len(record["observations"])
+            # Persist after every row: a crash leaves a visible partial phase
+            # that the gates refuse to top up, not a silent hole.
+            persist(session_state)
+            print(
+                f"[{phase} {case['case_id']} {tool}] status={row['status']} "
+                f"wall={row['wall_s']}s rss={row['peak_rss_kb']}kB "
+                f"units={row['required_present']}/{row['required_total']} "
+                f"verdict={row['verdict']}",
+                file=sys.stderr,
+            )
+
+    ended_dt = utc_now()
+    record["ended_at"] = iso(ended_dt)
+    record["recorded"] = len(record["observations"])
+    if phase == "cold":
+        record["warm_earliest_at"] = iso(
+            ended_dt + timedelta(seconds=WARM_MIN_GAP_S))
+    session_state["phases"][phase] = record
+    persist(session_state)
+    return record
+
+
+def coverage_block(session_state: dict, window: dict) -> dict:
+    """Explicit calendar coverage: observed days, and every day that is a gap.
+
+    A campaign day is a day with a *cold* round. A warm round landing on a
+    different date is a late re-measurement of day 1, not a second day: it is
+    listed in ``warm_late_days`` and never counted in ``days_observed_count``.
+    """
+    phases = session_state.get("phases") or {}
+    cold = phases.get("cold") or {}
+    warm = phases.get("warm") or {}
+    day_one = (cold.get("started_at") or "")[:10]
+    try:
+        first = date.fromisoformat(day_one)
+    except ValueError:
+        first = None
+    required = ([first + timedelta(days=i) for i in range(CAMPAIGN_MIN_DAYS)]
+                if first else [])
+    def _day(record: dict) -> str:
+        return (record.get("started_at") or "")[:10]
+
+    observed = sorted({_day(rec) for rec in (cold,) if _day(rec)})
+    measured_days = sorted({_day(rec) for rec in phases.values() if _day(rec)})
+    warm_days = sorted({_day(warm)} - {""}) if warm else []
+    warm_late_days = [day for day in warm_days if day not in observed]
+    gaps = [
+        {"utc_date": day.isoformat(), "state": "not_observed",
+         "reason": "no cold measured round on this calendar day"}
+        for day in required if day.isoformat() not in observed
+    ]
+    return {
+        "campaign_min_days": CAMPAIGN_MIN_DAYS,
+        "days_required": [day.isoformat() for day in required],
+        "days_observed": observed,
+        "days_observed_count": len(observed),
+        "campaign_days_observed": len(observed),
+        "days_with_any_round": measured_days,
+        "warm_days": warm_days,
+        "warm_late_days": warm_late_days,
+        "warm_late": bool(warm_late_days),
+        "warm_late_note": (
+            "the warm round ran on a different UTC date than the cold round: it "
+            "re-measures day 1 late and does not count as a second campaign day"
+            if warm_late_days else ""
+        ),
+        "gaps": gaps,
+        "phases_recorded": sorted(name for name in phases if phases.get(name)),
+        "warm_pending": not bool(warm),
+        "warm_earliest_at": cold.get("warm_earliest_at"),
+        "multi_day_complete": False,
+        "claim": (
+            "not a multi-day reliability result: only the calendar days listed "
+            "in days_observed carry a cold measured round, a warm round on "
+            "another date is late day-1 (not a new day), and every other "
+            "required day is an explicit gap"
+        ),
+    }
+
+
+def build_phase_evidence(*, session_state: dict, phase_record: dict,
+                         manifest: dict, manifest_path: Path, inventory: dict,
+                         args, phase: str) -> dict:
+    runs = phase_record["observations"]
+    window = session_state.get("window") or {}
+    coverage = coverage_block(session_state, window)
+    cases = manifest["cases"]
+    per_case = {}
+    for case in cases:
+        per_case[case["case_id"]] = {
+            "requested_outcome": case["requested_outcome"],
+            "pagination_expectation": case["pagination_expectation"],
+            "tools": {
+                tool: _summarize([r for r in runs
+                                  if r["case_id"] == case["case_id"]
+                                  and r["tool"] == tool])
+                for tool in TOOLS
+            },
+        }
+    return {
+        "schema": PHASE_SCHEMA,
+        "generated_at": now_utc(),
+        "session": session_state.get("session"),
+        "phase": phase,
+        "phase_window": {
+            "declared": window,
+            "started_at": phase_record.get("started_at"),
+            "ended_at": phase_record.get("ended_at"),
+            "late": phase_record.get("late"),
+        },
+        "manifest": {
+            "path": f"docs/evidence/{manifest_path.name}",
+            "schema": manifest.get("schema"),
+            "frozen_at": manifest.get("frozen_at"),
+            "frozen_by": manifest.get("frozen_by"),
+            "manifest_sha256": manifest.get(MANIFEST_HASH_FIELD),
+            "recomputed_match": verify_manifest(manifest)[0],
+            "cases": len(cases),
+        },
+        "host": host_inventory(),
+        "tools": inventory,
+        "tools_fingerprint": session_state.get("tools_fingerprint") or {},
+        "compatibility": session_state.get("compatibility"),
+        "design": {
+            "phase": phase,
+            "tools_per_invocation": 1,
+            "deadline": f"{args.timeout:g}s killable process group, equal for both tools",
+            "observations_per_case_tool": 1,
+            "planned_invocations": phase_record.get("planned"),
+            "recorded_invocations": phase_record.get("recorded"),
+            "cold": "fresh sandbox tree per case/tool, persisted in the private state dir",
+            "warm": (f"same exact homes, started no earlier than {WARM_MIN_GAP_S // 60} "
+                     "min after the cold phase ended"),
+            "window_rule": ("one declared UTC window per day; a run outside it is "
+                            "labelled late and never pooled silently"),
+            "sandbox": ("comparative.build_sandbox: environment isolation only, "
+                        "not a filesystem sandbox"),
+            "asr": "TRAILHEAD_DISABLE_ASR=1 exported and asserted for every child",
+            "credentials": "none supplied; env keys validated against an allowlist",
+            "state": ("private local state under the repository .git directory; "
+                      "never committed"),
+        },
+        "runs": runs,
+        "per_case_tool": per_case,
+        "aggregates": {
+            tool: _summarize([r for r in runs if r["tool"] == tool])
+            for tool in TOOLS
+        },
+        "totals": {
+            "invocations": len(runs),
+            "planned_invocations": phase_record.get("planned"),
+            "by_tool": {
+                tool: {
+                    "invocations": sum(1 for r in runs if r["tool"] == tool),
+                    "ok": sum(1 for r in runs
+                              if r["tool"] == tool and r["status"] == "ok"),
+                    "timeouts": sum(1 for r in runs
+                                    if r["tool"] == tool and r["timed_out"]),
+                    "paid_calls": 0,
+                    "auth_calls": 0,
+                    "quota_calls": 0,
+                }
+                for tool in TOOLS
+            },
+            "verdicts": _counts(r["verdict"] for r in runs),
+            "status": _counts(r["status"] for r in runs),
+        },
+        "coverage": coverage,
+        "claims": {
+            "multi_day_reliability": (
+                "none — this record is one phase on one calendar day and does not "
+                "satisfy the 5-consecutive-day P2 campaign"
+            ),
+            "artifact_verdicts": (
+                "marker presence with truncation and continuation gating; "
+                "'markers_present' is not a completeness claim"
+            ),
+            "winner": "none — this record ranks nothing and names no better tool",
+            "completeness": "none",
+            "superiority": "not established",
+        },
+        "not_measured": [
+            *(["the day-1 warm round (earliest permitted start is recorded in "
+               "coverage)"] if coverage["warm_pending"] else []),
+            *[f"calendar day {gap['utc_date']} (no measured round)"
+              for gap in coverage["gaps"]],
+            "consent-gated lanes and quota/ASR lanes (never run in a public campaign)",
+            "GitHub issue/PR lane under this runbook (no frozen manifest case)",
+        ],
+        "limitations": [
+            "One host, one phase: latency and RSS describe this host at this moment.",
+            "3 public cases only; the wider public action surface is not exercised.",
+            "Warm reuse means the same homes, not the same HTTP cache: origin/CDN and tool-internal caches are not controlled or measured.",
+            "Agent Reach stdout carries no truncation or pagination field, so its whole-artifact runs stay truncation unverified and continuation unknown.",
+            "Child rusage includes any descendant process the measured tool waited for; the wrapper starts exactly one tool process.",
+            "A phase is 6 invocations, so no per-tool number here is a distribution over days.",
+        ],
+    }
+
+
+def next_phase_command(*, phase: str, session: str, state_dir: str | Path,
+                       manifest_path: str | Path, agent_reach: str,
+                       out: str, timeout_s: float) -> str:
+    return (
+        "python3 scripts/evaluate_public_resources.py "
+        f"--phase {phase} --session {session} --state-dir {Path(state_dir)} "
+        f"--manifest {Path(manifest_path)} --agent-reach {agent_reach} "
+        f"--out {out} --timeout {timeout_s:g}"
+    )
+
+
+def _run_phase_cli(args, manifest: dict, manifest_path: Path) -> int:
+    """Entry point for ``--phase cold|warm`` and ``--show-next``."""
+    session = args.session or f"p2-{utc_now().date().isoformat()}"
+    if not valid_session_name(session):
+        print(f"refusing: unsafe session name {session!r}; use one path segment "
+              "of letters, digits, '.', '_' or '-' (no '/', no '..', not "
+              "absolute)", file=sys.stderr)
+        return 2
+    state_dir = Path(args.state_dir).expanduser().absolute()
+    try:
+        _assert_safe_state_path(state_dir / session, state_dir)
+    except SystemExit as exc:
+        print(f"refusing: {exc}", file=sys.stderr)
+        return 2
+    state_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        _assert_safe_state_path(state_dir / session, state_dir)
+    except SystemExit as exc:
+        print(f"refusing: {exc}", file=sys.stderr)
+        return 2
+
+    if args.show_next:
+        state = load_session(session_file(state_dir, session))
+        if not state:
+            print(f"no session state at {session_file(state_dir, session)}",
+                  file=sys.stderr)
+            return 2
+        cold = (state.get("phases") or {}).get("cold") or {}
+        warm = (state.get("phases") or {}).get("warm") or {}
+        next_phase = None if warm else "warm"
+        print(json.dumps({
+            "session": session,
+            "phases_recorded": [k for k in PHASES
+                                if (state.get("phases") or {}).get(k)],
+            "window": state.get("window"),
+            "compatibility": state.get("compatibility"),
+            "next_phase": next_phase,
+            "earliest_at": cold.get("warm_earliest_at"),
+            "command": (next_phase_command(
+                phase="warm", session=session, state_dir=state_dir,
+                manifest_path=manifest_path,
+                agent_reach=args.agent_reach or "<agent-reach>",
+                out=args.out or str(REPO / "docs" / "evidence"
+                                    / "public-reliability-day1-warm.json"),
+                timeout_s=args.timeout) if next_phase else None),
+            "coverage": coverage_block(state, state.get("window") or {}),
+        }, indent=2))
+        return 0
+
+    if not args.agent_reach or not args.out:
+        print("missing required for a phase run: --agent-reach, --out",
+              file=sys.stderr)
+        return 2
+    agent_reach = str(Path(args.agent_reach).expanduser().resolve())
+    if not Path(agent_reach).is_file() or not os.access(agent_reach, os.X_OK):
+        print(f"agent-reach is not an executable file: {agent_reach}",
+              file=sys.stderr)
+        return 2
+
+    inventory = tool_inventory(agent_reach)
+    fingerprint = tools_fingerprint(inventory)
+    now = utc_now()
+    try:
+        ok, reason, state = check_phase_gate(
+            phase=args.phase, state_dir=state_dir, session=session,
+            manifest=manifest, fingerprint=fingerprint, now=now)
+    except SystemExit as exc:
+        print(f"refusing {args.phase}: {exc}", file=sys.stderr)
+        return 2
+    if not ok:
+        print(f"refusing {args.phase}: {reason}", file=sys.stderr)
+        return 2
+    decision = state.get("compatibility")
+    if decision:
+        print(f"note: HEAD differs from the cold round "
+              f"({decision['recorded_commit'][:12]} -> "
+              f"{decision['current_commit'][:12]}); allowed because "
+              f"{decision['reason']}", file=sys.stderr)
+
+    if args.phase == "cold":
+        day = args.window_date or now.date().isoformat()
+        start = args.window_start or DEFAULT_WINDOW[0]
+        end = args.window_end or DEFAULT_WINDOW[1]
+        source = "cli" if (args.window_start and args.window_end) else "default"
+        try:
+            window = build_window(day, start, end, iso(now), source)
+        except ValueError as exc:
+            print(f"refusing cold: {exc}", file=sys.stderr)
+            return 2
+        state = {
+            "schema": STATE_SCHEMA,
+            "session": session,
+            "created_at": iso(now),
+            "window": window,
+            "manifest": {
+                "path": f"docs/evidence/{manifest_path.name}",
+                "manifest_sha256": manifest.get(MANIFEST_HASH_FIELD),
+                "cases": len(manifest["cases"]),
+            },
+            "tools_fingerprint": fingerprint,
+            "phases": {},
+        }
+    else:
+        window = state.get("window") or {}
+        if not in_window(now, window):
+            print("note: warm start is outside the declared window; the record "
+                  "is labelled late", file=sys.stderr)
+
+    try:
+        record = run_phase(
+            manifest, phase=args.phase, session_state=state,
+            agent_reach=agent_reach, state_dir=state_dir, session=session,
+            timeout_s=args.timeout, max_raw_bytes=args.max_raw_bytes,
+            persist=lambda current: save_session(current, state_dir, session),
+        )
+    except SystemExit as exc:
+        print(f"refusing {args.phase}: {exc}", file=sys.stderr)
+        return 2
+
+    evidence = build_phase_evidence(
+        session_state=state, phase_record=record, manifest=manifest,
+        manifest_path=manifest_path, inventory=inventory, args=args,
+        phase=args.phase)
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(evidence, indent=2, ensure_ascii=False) + "\n")
+
+    print(f"evidence written: {out_path} ({len(record['observations'])} "
+          f"observations, phase {args.phase})", file=sys.stderr)
+    print(f"coverage: {evidence['coverage']['days_observed_count']} of "
+          f"{CAMPAIGN_MIN_DAYS} required calendar days observed; "
+          f"warm_pending={evidence['coverage']['warm_pending']}", file=sys.stderr)
+    if args.phase == "cold" and record.get("warm_earliest_at"):
+        print(f"warm earliest start: {record['warm_earliest_at']}", file=sys.stderr)
+        print("next: " + next_phase_command(
+            phase="warm", session=session, state_dir=state_dir,
+            manifest_path=manifest_path, agent_reach=agent_reach,
+            out=str(out_path.with_name(out_path.name.replace("cold", "warm"))),
+            timeout_s=args.timeout), file=sys.stderr)
+    return 0
+
+
 # ── main ─────────────────────────────────────────────────────────────────────
 
 def main(argv: list[str] | None = None) -> int:
@@ -1180,6 +2072,16 @@ def main(argv: list[str] | None = None) -> int:
                         help="who froze the manifest, recorded verbatim")
     parser.add_argument("--verify-only", action="store_true",
                         help="verify the frozen manifest hash and exit")
+    parser.add_argument("--phase", choices=PHASES,
+                        help="P2: run one resumable cold|warm round (6 calls)")
+    parser.add_argument("--session", help="P2 session tag, e.g. p2-2026-10-28")
+    parser.add_argument("--state-dir", default=str(DEFAULT_STATE_DIR),
+                        help="private persisted state (default: .git/trailhead-reliability-p2)")
+    parser.add_argument("--window-start", help="P2 UTC window start HH:MM, frozen before the cold run")
+    parser.add_argument("--window-end", help="P2 UTC window end HH:MM")
+    parser.add_argument("--window-date", help="P2 UTC calendar date YYYY-MM-DD (default: cold day)")
+    parser.add_argument("--show-next", action="store_true",
+                        help="print the next phase command and earliest timestamp; no call")
     args = parser.parse_args(argv)
 
     manifest_path = Path(args.manifest)
@@ -1218,6 +2120,9 @@ def main(argv: list[str] | None = None) -> int:
                           "cases": len(manifest["cases"]),
                           "verified": True}, indent=2))
         return 0
+
+    if args.phase or args.show_next:
+        return _run_phase_cli(args, manifest, manifest_path)
 
     missing = [name for name, value in
                (("--agent-reach", args.agent_reach), ("--scratch", args.scratch),
