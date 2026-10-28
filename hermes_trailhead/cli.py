@@ -348,7 +348,11 @@ def _reach_text_parity(payload: dict) -> str:
 
 
 def _reach_text_inventory(payload: dict) -> str:
-    lines = ["Agent Reach forwarding layer (optional, read-only, attributed)", ""]
+    lines = [
+        "Agent Reach forwarding layer (optional, attributed; read-only actions "
+        "plus opt-in quota transcription)",
+        "",
+    ]
     exe = payload.get("executable") or "(not found)"
     lines.append(f"  Executable: {exe}")
     if not payload.get("found"):
@@ -487,7 +491,7 @@ def _reach_text_result(result) -> str:
 
 
 def cmd_reach_call(args: argparse.Namespace) -> int:
-    """Forward one allowlisted read-only channel/action to Agent Reach."""
+    """Forward one allowlisted channel/action: read-only, or quota-gated transcription."""
     from .reach_backend import AgentReachBackend, ReachBackendError, asr_disabled
 
     backend = AgentReachBackend(
@@ -1675,10 +1679,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     reach = sub.add_parser(
         "reach",
-        help="Inventory the optional Agent Reach forwarding layer (read-only, attributed)",
+        help="Inventory the optional Agent Reach forwarding layer (read-only actions plus opt-in quota transcription, attributed)",
         description=(
-            "Print which read-only Agent Reach channel/action pairs Trailhead can "
-            "forward, how each one can be reached (public API, forced public-web, or "
+            "Print which Agent Reach channel/action pairs Trailhead can forward — "
+            "read-only actions, plus the two quota-gated transcription actions behind "
+            "explicit opt-in — and how each one can be reached (public API, forced public-web, or "
             "authenticated with explicit consent), the pinned 40-action parity "
             "inventory, and why the rest are excluded. Paid transcription is listed "
             "but needs --allow-quota-consuming and --allow-authenticated, and "
@@ -1703,10 +1708,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     reach_call = sub.add_parser(
         "reach-call",
-        help="Forward one allowlisted read-only channel/action to Agent Reach (attributed)",
+        help="Forward one allowlisted Agent Reach channel/action (read-only, or opt-in quota transcription; attributed)",
         description=(
-            "Run a single read-only Agent Reach action and print the result with its "
-            "Agent Reach attribution. Public mode forces --backend public-web where the "
+            "Run a single allowlisted Agent Reach action — read-only by default, or a "
+            "quota-gated transcription only with explicit opt-in — and print the result "
+            "with its Agent Reach attribution. Public mode forces --backend public-web where the "
             "upstream declares a public route and never falls back to a browser; "
             "session-only actions return auth_required unless --allow-authenticated is "
             "passed explicitly. Paid transcription additionally needs "
@@ -1716,7 +1722,7 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     reach_call.add_argument("channel", help="Channel name, e.g. github, v2ex, web")
-    reach_call.add_argument("action", help="Read-only action, e.g. read, search, hot")
+    reach_call.add_argument("action", help="Action, e.g. read, search, hot, transcribe")
     reach_call.add_argument("arguments", nargs="*", help="Positional arguments for the action's required params")
     reach_call.add_argument("--param", action="append", metavar="NAME=VALUE", help="Action parameter (repeatable)")
     reach_call.add_argument("--limit", type=int, default=10, help="Max items returned (default: 10)")

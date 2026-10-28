@@ -207,6 +207,23 @@ def test_reach_inventory_text_marks_auth_gated_actions(tmp_path, capsys):
     assert "xiaoyuzhou" in out and "transcribe" in out
 
 
+def test_reach_help_and_banner_do_not_claim_a_read_only_only_surface(tmp_path, capsys):
+    """Two quota actions are surfaced, so no banner/help line may call the whole
+    forwarding surface read-only."""
+    exe = _fake_cli(tmp_path)
+    for argv in (["reach", "--help"], ["reach-call", "--help"]):
+        with pytest.raises(SystemExit) as exc:
+            main(argv)
+        assert exc.value.code == 0
+        text = capsys.readouterr().out
+        assert "read-only" in text and "quota" in text.lower()
+
+    assert main(["reach", "--agent-reach", exe]) == 0
+    banner = capsys.readouterr().out.splitlines()[0]
+    assert "read-only" in banner and "quota" in banner.lower()
+    assert "optional, read-only, attributed" not in banner
+
+
 def test_reach_inventory_parity_survives_a_missing_executable(tmp_path, capsys):
     rc = main(["reach", "--agent-reach", str(tmp_path / "nope"), "--format", "json"])
     payload = _json(capsys)
@@ -384,15 +401,24 @@ def test_reach_call_transcription_runs_with_both_flags(tmp_path, capsys, monkeyp
     assert any("quota" in line.lower() for line in payload["limitations"])
 
 
-def test_reach_call_asr_veto_wins_over_both_cli_flags(tmp_path, capsys, monkeypatch):
+@pytest.mark.parametrize(
+    ("channel", "target"),
+    [
+        ("youtube", "https://youtu.be/x"),
+        ("xiaoyuzhou", "https://www.xiaoyuzhoufm.com/episode/x"),
+    ],
+)
+def test_reach_call_asr_veto_wins_over_both_cli_flags(
+    channel, target, tmp_path, capsys, monkeypatch
+):
     monkeypatch.setenv("TRAILHEAD_DISABLE_ASR", "1")
     exe = _fake_cli(tmp_path)
     rc = main(
         [
             "reach-call",
-            "youtube",
+            channel,
             "transcribe",
-            "https://youtu.be/x",
+            target,
             "--allow-quota-consuming",
             "--allow-authenticated",
             "--agent-reach",
