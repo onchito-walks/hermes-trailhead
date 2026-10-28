@@ -1120,7 +1120,7 @@ def _camofox_session_fetch(url: str, timeout: int = 30) -> str:
             pass
 
 
-def _github_api_json(api: str, timeout: int = 15):
+def _github_api_json(api: str, timeout: float = 15):
     """GET a GitHub JSON API URL and decode it (raises on failure).
 
     Uses GITHUB_TOKEN when present (5,000 req/hr vs 60 anonymous).
@@ -1254,6 +1254,65 @@ _GITHUB_BODY_CHAR_CAP = 20000
 _GITHUB_COMMENT_CHAR_CAP = 4000
 _GITHUB_ARTIFACT_CHAR_CAP = 400_000
 
+#: Clock used by the GitHub read deadline (injected by tests, real elsewhere).
+_github_monotonic: Callable[[], float] = time.monotonic
+
+
+class _GithubReadTimeout(RuntimeError):
+    """Raised when one native GitHub read's aggregate time budget is spent."""
+
+    def __init__(self, budget: float, where: str) -> None:
+        self.budget = float(budget)
+        self.where = where
+        super().__init__(
+            f"GitHub read deadline of {self.budget:g}s exhausted before {where}; "
+            "the read stopped instead of requesting further pages. Retry with a "
+            "larger timeout budget (e.g. --timeout) to capture the rest."
+        )
+
+
+class _GithubReadDeadline:
+    """One aggregate monotonic deadline shared by every HTTP call of a read.
+
+    A single ``read --timeout N`` must bound the *whole* issue/PR capture
+    (artifact + comments + reviews), not each request: eight 15s requests are
+    a 2-minute read.  Each call is therefore granted only the time that is
+    actually left, and no call starts once the deadline has passed.
+    """
+
+    def __init__(self, seconds: float, *, clock: Callable[[], float] | None = None) -> None:
+        self._clock = clock or _github_monotonic
+        self.budget = max(float(seconds), 0.0)
+        self._expires_at = self._clock() + self.budget
+
+    def remaining(self) -> float:
+        """Seconds left before the deadline (never negative)."""
+        return max(0.0, self._expires_at - self._clock())
+
+    def expired(self) -> bool:
+        return self.remaining() <= 0.0
+
+    def timeout_for_call(self, where: str = "the next GitHub request") -> float:
+        """Per-call timeout window; raises instead of starting a late request."""
+        remaining = self.remaining()
+        if remaining <= 0.0:
+            raise _GithubReadTimeout(self.budget, where)
+        return remaining
+
+
+def _github_call_timeout(
+    timeout: float, deadline: _GithubReadDeadline | None, where: str
+) -> float:
+    """Timeout for one GitHub request: the caller's window or the time left.
+
+    ``deadline`` is ``None`` for callers that did not open a read budget (and
+    for the historical per-request contract), in which case ``timeout`` is
+    passed through unchanged exactly as before.
+    """
+    if deadline is None:
+        return timeout
+    return deadline.timeout_for_call(where)
+
 
 def _github_login(value) -> str:
     """Login name from a GitHub user/author object (never a token or e-mail)."""
@@ -1275,23 +1334,41 @@ def _github_reason(exc: Exception) -> str:
     return f"{type(exc).__name__}: {' '.join(str(exc).split())[:160]}"
 
 
-def _github_paginated_list(api: str, timeout: int) -> dict:
+def _github_paginated_list(
+    api: str, timeout: float, *, deadline: _GithubReadDeadline | None = None
+) -> dict:
     """Capture a bounded number of pages from a public GitHub REST list endpoint.
 
     The public API exposes no total for these collections beyond the parent
     payloads, so the caller reports exactly what it captured, the page/cap it
     used, and the next page URL when more exists.  A response that is not a
     list (an API error object) raises rather than being rendered as evidence.
+
+    When the read deadline expires mid-capture the pages already fetched are
+    returned marked ``complete=False`` / ``deadline_exhausted=True`` instead of
+    being discarded or presented as a full capture; if nothing was fetched at
+    all the deadline error is raised for the caller to disclose.
     """
     per_page = int(_GITHUB_LIST_PAGE_SIZE)
     separator = "&" if "?" in api else "?"
     items: list[dict] = []
     pages = 0
     complete = False
+    deadline_exhausted = False
     next_url = ""
     url = f"{api}{separator}per_page={per_page}"
     while pages < int(_GITHUB_LIST_MAX_PAGES):
-        data = _github_api_json(url, timeout)
+        try:
+            call_timeout = _github_call_timeout(
+                timeout, deadline, f"list page {pages + 1} of {api}"
+            )
+            data = _github_api_json(url, call_timeout)
+        except _GithubReadTimeout:
+            if not pages:
+                raise
+            deadline_exhausted = True
+            next_url = url
+            break
         if not isinstance(data, list):
             raise RuntimeError(
                 f"GitHub list endpoint did not return a list: {api}"
@@ -1310,6 +1387,7 @@ def _github_paginated_list(api: str, timeout: int) -> dict:
         "per_page": per_page,
         "complete": complete,
         "next_url": "" if complete else next_url,
+        "deadline_exhausted": deadline_exhausted,
     }
 
 
@@ -1326,6 +1404,12 @@ def _github_capture_summary(label: str, capture: dict, total=None) -> str:
     if capture["complete"]:
         return f"{label}: {count} ({detail}); complete for this endpoint."
     next_url = capture.get("next_url") or "(next page URL unavailable)"
+    if capture.get("deadline_exhausted"):
+        return (
+            f"{label}: {count} ({detail}); NOT complete — the read deadline "
+            f"expired before the remaining pages were requested; next page: "
+            f"{next_url}"
+        )
     return (
         f"{label}: {count} ({detail}); NOT complete — more exist beyond this "
         f"capture; next page: {next_url}"
@@ -1372,15 +1456,26 @@ def _github_section(
     lines: list[str],
     label: str,
     api: str,
-    timeout: int,
+    timeout: float,
     *,
     total,
     kind: str,
     budget: int,
+    deadline: _GithubReadDeadline | None = None,
 ) -> int:
     """Append one bounded collection section; a secondary failure is disclosed."""
     try:
-        capture = _github_paginated_list(api, timeout)
+        capture = _github_paginated_list(api, timeout, deadline=deadline)
+    except _GithubReadTimeout as exc:
+        lines.append("")
+        lines.append(
+            f"{label}: not captured ({_github_reason(exc)}); the read deadline "
+            f"({exc.budget:g}s for the whole artifact) ran out before this "
+            "secondary collection could be requested, so this capture is "
+            "incomplete and must not be reported as full. The requested "
+            "artifact above is unaffected by this secondary endpoint failure."
+        )
+        return budget
     except Exception as exc:
         lines.append("")
         lines.append(
@@ -1429,18 +1524,26 @@ def _github_body_block(data: dict, kind: str) -> list[str]:
 
 
 def _github_fetch_issue(
-    owner: str, repo: str, number: str, timeout: int
+    owner: str,
+    repo: str,
+    number: str,
+    timeout: float,
+    *,
+    deadline: _GithubReadDeadline | None = None,
 ) -> str:
     """The requested issue: title, body and bounded discussion comments."""
     api = f"https://api.github.com/repos/{owner}/{repo}/issues/{number}"
-    data = _github_api_json(api, timeout)
+    data = _github_api_json(
+        api, _github_call_timeout(timeout, deadline, f"the issue {owner}/{repo}#{number}")
+    )
     if not isinstance(data, dict) or not _github_number_matches(data, number):
         raise RuntimeError(
             f"GitHub issue API returned no issue {owner}/{repo}#{number}"
         )
     if isinstance(data.get("pull_request"), dict):
         # ``/issues/<n>`` addresses a pull request when that number is a PR.
-        return _github_fetch_pull(owner, repo, number, timeout)
+        # The same deadline carries over: this is still one read.
+        return _github_fetch_pull(owner, repo, number, timeout, deadline=deadline)
 
     title = str(data.get("title") or "").strip()
     lines = [f"GitHub issue {owner}/{repo}#{number}: {title or '(untitled)'}"]
@@ -1475,6 +1578,7 @@ def _github_fetch_issue(
         total=data.get("comments"),
         kind="comment",
         budget=budget,
+        deadline=deadline,
     )
     lines.append("")
     lines.append(
@@ -1486,7 +1590,12 @@ def _github_fetch_issue(
 
 
 def _github_fetch_pull(
-    owner: str, repo: str, number: str, timeout: int
+    owner: str,
+    repo: str,
+    number: str,
+    timeout: float,
+    *,
+    deadline: _GithubReadDeadline | None = None,
 ) -> str:
     """The requested pull request: description plus bounded discussion evidence.
 
@@ -1495,7 +1604,9 @@ def _github_fetch_pull(
     labelled; nothing here claims the complete PR conversation.
     """
     api = f"https://api.github.com/repos/{owner}/{repo}/pulls/{number}"
-    data = _github_api_json(api, timeout)
+    data = _github_api_json(
+        api, _github_call_timeout(timeout, deadline, f"the pull {owner}/{repo}#{number}")
+    )
     if not isinstance(data, dict) or not _github_number_matches(data, number):
         raise RuntimeError(
             f"GitHub pull API returned no pull request {owner}/{repo}#{number}"
@@ -1542,6 +1653,7 @@ def _github_fetch_pull(
         total=data.get("comments"),
         kind="comment",
         budget=budget,
+        deadline=deadline,
     )
     # Reviews have no total in the public pull payload; review comments do.
     budget = _github_section(
@@ -1552,6 +1664,7 @@ def _github_fetch_pull(
         total=None,
         kind="review",
         budget=budget,
+        deadline=deadline,
     )
     budget = _github_section(
         lines,
@@ -1561,6 +1674,7 @@ def _github_fetch_pull(
         total=data.get("review_comments"),
         kind="inline review comment",
         budget=budget,
+        deadline=deadline,
     )
     lines.append("")
     lines.append(
@@ -1616,6 +1730,10 @@ def _fetch_github_summary(url: str, timeout: int = 15) -> str:
     discussion capture.  When the specifically requested resource cannot be
     retrieved we raise rather than silently returning repository metadata,
     which would misrepresent the page as the evidence that was asked for.
+
+    ``timeout`` is an aggregate wall-clock budget for an issue/pull read: the
+    artifact body and every discussion page share one deadline, so the read
+    cannot take ``timeout`` seconds per request.
     """
     parsed = urlparse(url)
     if parsed.netloc.lower() != "github.com":
@@ -1635,9 +1753,15 @@ def _fetch_github_summary(url: str, timeout: int = 15) -> str:
         # Issue/pull numbers are the requested artifact.  A number-shaped path
         # must never fall back to repository metadata: that would report a
         # different artifact as success.
+        #
+        # ``timeout`` is the budget for the whole artifact, not per request:
+        # the body, the comment pages and (for a pull) the review collections
+        # all draw from this one monotonic deadline, so a read cannot outlive
+        # the window the caller asked for.
+        deadline = _GithubReadDeadline(timeout)
         if rest[0] == "issues":
-            return _github_fetch_issue(owner, repo, rest[1], timeout)
-        return _github_fetch_pull(owner, repo, rest[1], timeout)
+            return _github_fetch_issue(owner, repo, rest[1], timeout, deadline=deadline)
+        return _github_fetch_pull(owner, repo, rest[1], timeout, deadline=deadline)
     if len(rest) >= 3 and rest[0] in {"blob", "raw"}:
         return _fetch_github_file(owner, repo, rest[1], "/".join(rest[2:]), timeout)
     if len(rest) >= 2 and rest[0] == "tree":
@@ -2299,6 +2423,26 @@ _READER_METADATA_RE = re.compile(
     r"^(?:Title|URL Source|Published Time|Warning|Markdown Content)\s*:"
 )
 
+
+def _strip_reader_metadata(text: str) -> str:
+    """Drop a reader tier's leading transport header, returning the page text.
+
+    Used where the *body* is what matters (loading-gate detection): a 54-char
+    interstitial arrives as ~435 chars of ``Title:``/``URL Source:``/warning
+    scaffolding in front of the same three lines.  Only the header is removed —
+    a document that happens to contain one of these keys mid-page keeps it.
+    """
+    lines = (text or "").splitlines()
+    index = 0
+    while index < len(lines):
+        stripped = lines[index].strip()
+        if not stripped or _READER_METADATA_RE.match(stripped):
+            index += 1
+            continue
+        break
+    return "\n".join(lines[index:])
+
+
 #: Control labels that an app surface repeats.  Positive evidence only: a
 #: document that merely mentions one of them is never condemned for it, so the
 #: list deliberately stays a vocabulary of chrome rather than a blocklist.
@@ -2483,7 +2627,11 @@ def _is_html_shell(content: str) -> bool:
 
 def _is_shell_payload(content: str) -> bool:
     """Shell verdict for a fetched payload, whether markup or rendered text."""
-    return _is_html_shell(content) or _is_interface_shell_text(content)
+    return (
+        _is_html_shell(content)
+        or _is_interface_shell_text(content)
+        or classify_page_shell(content) is not None
+    )
 
 
 #: Bodies that mean the fetch was refused by an interstitial, not that the page
@@ -2547,13 +2695,118 @@ _MISSING_PAGE_MARKERS: tuple[str, ...] = tuple(
 _SHELL_MAX_CHARS = 800
 _BLOCKED_SHELL_MAX_CHARS = 2000
 
+#: A loading interstitial (BOSS直聘's ``_security_check`` page and its kin) is a
+#: platform *template*: the brand mark, a "loading / please wait" notice, and the
+#: site's legal footer — and nothing else.  It is not a block notice (no security
+#: wording) and not a 404 (the URL exists), so it slipped through as a
+#: successful 54-character read.  Three independent facts must all hold before
+#: such a body is condemned, and each one is something a real document has:
+#:
+#: * it is short — a document with this little text is rare, a gate page is not;
+#: * it carries a loading notice *and* a page-footer/legal marker — the template
+#:   stamp, which an article quoting "Loading..." does not carry;
+#: * stripping the notice and the footer leaves almost nothing — an article
+#:   that merely *discusses* loading still has its own words left.
+#:
+#: Wording alone therefore never condemns prose in any language, and a short
+#: Chinese note or a short code snippet (no footer, or no loading notice) is
+#: untouched.
+_LOADING_SHELL_MAX_CHARS = 400
+#: Content characters allowed to survive the notice + footer strip above.
+_LOADING_SHELL_MAX_RESIDUE_CHARS = 8
+
+_LOADING_NOTICE_MARKERS: tuple[str, ...] = (
+    "正在加载中",
+    "正在加载",
+    "正在载入",
+    "加载中",
+    "載入中",
+    "正在載入",
+    "読み込み中",
+    "ローディング",
+    "로딩 중",
+    "불러오는 중",
+    "请稍候",
+    "請稍候",
+    "請稍後",
+    "processing",
+    "please wait",
+    "loading",
+)
+
+#: Footer stamps that mark a page *template* rather than a document body.
+_PAGE_FOOTER_MARKERS: tuple[str, ...] = (
+    "©",
+    "copyright",
+    "版权所有",
+    "版權所有",
+    "all rights reserved",
+    "icp备",
+    "icp備",
+    "icp 备",
+    "备案",
+    "備案",
+)
+
+#: ASCII notices match whole words so "preloading" is not read as "loading".
+_LOADING_NOTICE_RES: tuple[tuple[str, re.Pattern[str]], ...] = tuple(
+    (
+        marker,
+        re.compile(rf"(?<!\w){re.escape(marker)}(?!\w)")
+        if marker.isascii()
+        else re.compile(re.escape(marker)),
+    )
+    for marker in _LOADING_NOTICE_MARKERS
+)
+
+
+#: A sentence boundary before the footer proves the body is prose, not a
+#: template.  A template's own notice ends in an ellipsis ("正在加载中...",
+#: "Loading..."), which is not a sentence boundary, so this veto cannot rescue
+#: the gate page it exists to reject.
+_LOADING_PROSE_RE = re.compile(r"[。！？；]|[.!?]\s+[A-Z0-9]")
+
+
+def _pre_footer_text(normalised: str) -> str:
+    """Body text before the page footer (the whole body when no footer stamp)."""
+    cut = min(
+        (normalised.find(marker) for marker in _PAGE_FOOTER_MARKERS if marker in normalised),
+        default=-1,
+    )
+    return normalised if cut == -1 else normalised[:cut]
+
+
+def _is_loading_interstitial(normalised: str) -> bool:
+    """Is this body only a platform's loading gate (brand + notice + footer)?
+
+    Three facts must all hold: the body is short, it carries a loading notice
+    *and* a page-footer stamp, and removing the notice from the pre-footer text
+    leaves almost nothing.  Any sentence boundary before the footer vetoes the
+    verdict, so a short document that *describes* a loading state — in Chinese
+    or in English — keeps its words and is never condemned for the wording.
+    """
+    if len(normalised) > _LOADING_SHELL_MAX_CHARS:
+        return False
+    if not any(pattern.search(normalised) for _marker, pattern in _LOADING_NOTICE_RES):
+        return False
+    if not any(marker in normalised for marker in _PAGE_FOOTER_MARKERS):
+        return False
+    body = _pre_footer_text(normalised)
+    if _LOADING_PROSE_RE.search(body):
+        return False
+    text = body
+    for _marker, pattern in _LOADING_NOTICE_RES:
+        text = pattern.sub(" ", text)
+    return len([ch for ch in text if ch.isalnum()]) <= _LOADING_SHELL_MAX_RESIDUE_CHARS
+
 
 def classify_page_shell(text: str) -> str | None:
     """Classify fetched page text as a block / missing-page shell.
 
     Returns ``"blocked"`` when the body is an access interstitial (network
-    security block, traffic challenge), ``"missing_page"`` when the target is
-    gone (404 in any localization), else ``None``.
+    security block, traffic challenge, or a platform's loading gate — see
+    ``_is_loading_interstitial``), ``"missing_page"`` when the target is gone
+    (404 in any localization), else ``None``.
 
     Deliberately conservative: a marker alone never condemns a long body,
     because legitimate articles discuss 404 pages and blocked requests.  A
@@ -2570,6 +2823,17 @@ def classify_page_shell(text: str) -> str | None:
         return None
     normalised = re.sub(r"\s+", " ", raw).lower()
     length = len(normalised)
+
+    # The same gate reaches us through a reader tier as ``Title: 请稍候 -
+    # BOSS直聘`` + ``URL Source: ...`` + warnings in front of the three body
+    # lines, so the gate test runs on the page text with that transport header
+    # removed.  Every other rule below keeps judging the text as delivered.
+    body = re.sub(r"\s+", " ", _strip_reader_metadata(raw)).lower()
+    if _is_loading_interstitial(body):
+        # The fetched text is the platform's own "please wait" template, not the
+        # artifact: the fetch was gated, so it is reported as blocked rather
+        # than forwarded (or scored) as a successful read.
+        return "blocked"
 
     if length <= _BLOCKED_SHELL_MAX_CHARS and any(
         marker in normalised for marker in _BLOCKED_PAGE_MARKERS
@@ -4168,8 +4432,9 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
             status="blocked",
             source_type=source_type,
             error_message=(
-                f"Fetched {source_type} HTML is a client-rendered app shell with no "
-                "readable source text; requires browser extraction."
+                f"Fetched {source_type} page is a shell with no readable source "
+                "text (client-rendered app shell, access gate or missing-page "
+                "interstitial); the requested content was not served."
             ),
         )
 

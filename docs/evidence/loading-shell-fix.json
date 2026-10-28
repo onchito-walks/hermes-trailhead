@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "kind": "loading_shell_fix_evidence",
+  "generated_at_utc": "2026-10-28T15:36Z",
+  "task": "Reject the reproducible BOSS直聘 loading-gate false success in extract.classify_page_shell, without rejecting documents that discuss loading/请稍候, short Chinese prose, or code.",
+  "defect": {
+    "source": "docs/ACTION-ARTIFACT-EVIDENCE.md §9 item 1 and docs/evidence/action-artifacts-live.json rows[28] (boss read)",
+    "channel": "boss",
+    "action": "read",
+    "target": "https://www.zhipin.com/job_detail/c1039e39ba83b73e0nd639i_FFJR.html?_security_check=1_1783322651289",
+    "recorded_title": "请稍候 - BOSS直聘",
+    "recorded_body_flat": "B O S S  正在加载中...  © copyright BOSS直聘 京ICP备14013441号-5",
+    "recorded_body_flat_chars": 54,
+    "recorded_body_flat_sha256": "cdfa2af7c54e6c43d8739b9764ed075b58ce5bdc86421bacf26e88cb6901b4bd",
+    "recorded_body_multiline": "B O S S\n正在加载中...\n© copyright BOSS直聘 京ICP备14013441号-5",
+    "documented_body_sha256": "f7dba9e2db1ed96f187a40e79a57f26050c2736304bc2c31155bd4fb8286ace4",
+    "documented_body_chars": 54,
+    "before": {
+      "classify_page_shell": null,
+      "is_usable_page_text": true,
+      "reach_backend_result": "ok=true, items=1, 54-char body forwarded",
+      "note": "probe run in this session before the edit: classify_page_shell(body) -> None, _is_usable_page_text(body) -> True"
+    }
+  },
+  "public_recheck": {
+    "attempted": true,
+    "attempts": 1,
+    "command": "python3 -m hermes_trailhead read \"<target>\" --format json --timeout 20",
+    "credentials_used": false,
+    "paid_api_used": false,
+    "agent_reach_used": false,
+    "asr": "disabled (policy: read never invokes paid ASR)",
+    "observed_at_utc": "2026-10-28T15:20Z (approx, same session)",
+    "result_before_fix": {
+      "ok": true,
+      "extraction_status": "ok",
+      "content_length": 435,
+      "document_sha256": "f23b7084613b5e5b3f66961772081e6e12abf3aea35c158c0472cb20f9cda24b",
+      "evidence_usable": true,
+      "body_after_header_strip_chars": 54,
+      "note": "the same page is still serving the loading gate; the reader tier adds a 435-char transport header in front of the 54-char body"
+    },
+    "replay_verification": {
+      "content_chars": 435,
+      "content_sha256": "f23b7084613b5e5b3f66961772081e6e12abf3aea35c158c0472cb20f9cda24b",
+      "sha256_matches_reported_document_sha256": true,
+      "note": "all later assertions replay this exact captured document; no further live calls were made"
+    },
+    "agent_reach_backend_recheck": {
+      "possible": false,
+      "reason": "agent-reach executable is not installed on this host (reach_backend.discover_agent_reach -> not_installed, TRAILHEAD_AGENT_REACH_BIN unset); installing or logging in is out of scope, so the backend path was exercised by replaying the exact recorded upstream envelope through the real AgentReachBackend."
+    }
+  },
+  "fix": {
+    "file": "hermes_trailhead/extract.py",
+    "reused_existing_service": "same classifier and same reach_backend content_unusable guard; no new service, no new dependency, no network, no credentials",
+    "reason_value": "blocked (an access gate: the platform served its own 'please wait' template instead of the job description); keeps reach_backend's withheld-reason counters and limitation wording accurate without editing reach_backend",
+    "not_touched": [
+      "hermes_trailhead/reach_backend.py",
+      "hermes_trailhead/scoring.py",
+      "tests/fixtures/reach_page_shells.json",
+      "other agents' files (o.txt, docs/ACTION-ARTIFACT-EVIDENCE.md, docs/evidence/action-artifacts-live.json, scripts/*, tests/test_action_artifacts.py, tests/test_public_resources.py, tests/test_github_read_deadline.py)"
+    ],
+    "symbols": {
+      "_strip_reader_metadata": "extract.py:2427 — drop a reader tier's leading transport header before gate detection",
+      "_is_shell_payload": "extract.py:2626-2634 — also consults classify_page_shell, so a native read reports blocked",
+      "_LOADING_SHELL_MAX_CHARS / _LOADING_SHELL_MAX_RESIDUE_CHARS": "extract.py:2714-2716",
+      "_LOADING_NOTICE_MARKERS / _LOADING_NOTICE_RES": "extract.py:2719-2735",
+      "_PAGE_FOOTER_MARKERS": "extract.py:2738-2749",
+      "_LOADING_PROSE_RE": "extract.py:2767",
+      "_pre_footer_text / _is_loading_interstitial": "extract.py:2770-2797",
+      "classify_page_shell loading-gate branch": "extract.py:2831-2837"
+    },
+    "summary": "classify_page_shell now reports \"blocked\" for a platform loading gate: body short (<=400 chars) AND a loading notice AND a page footer/legal stamp AND almost nothing left (<=8 content chars) once the notice and the footer are removed, with any sentence boundary in the pre-footer text vetoing the verdict. Detection runs on the page text with a reader tier's leading transport header (Title/URL Source/Published Time/Warning/Markdown Content) stripped, so a 54-char gate is not hidden by a 435-char header. _is_shell_payload also consults the classifier so the native read reports status \"blocked\" instead of a mislabelled generic extraction error."
+  },
+  "after": {
+    "classify_page_shell": {
+      "recorded_body_flat": "blocked",
+      "recorded_body_multiline": "blocked",
+      "live_reader_capture_435_chars": "blocked",
+      "is_usable_page_text(recorded and live capture)": false,
+      "native_read_status(live capture replay)": "blocked",
+      "native_read_error": "Fetched web page is a shell with no readable source text (client-rendered app shell, access gate or missing-page interstitial); the requested content was not served."
+    },
+    "public_backend_spy": {
+      "how": "real AgentReachBackend with an injected runner returning the pinned envelope (ok:true, 1 item, the exact recorded body and title)",
+      "ok": false,
+      "items": [],
+      "error_code": "content_unusable",
+      "reasons": [
+        "blocked"
+      ],
+      "withheld_items": 1,
+      "attribution_preserved": "Agent Reach (third-party CLI), forwarded by Hermes Trailhead",
+      "attempts_preserved": [
+        {
+          "backend": "public-web/jina",
+          "result": "ok",
+          "message": null
+        }
+      ]
+    },
+    "guard_needs_all_three_signals": {
+      "loading_notice_without_footer": "not a shell (None)",
+      "footer_without_loading_notice": "not a shell (None)",
+      "gate_wording_plus_footer_in_a_400_char_plus_body": "not a shell (None)"
+    }
+  },
+  "false_positive_corpus": {
+    "tested_in": "tests/test_loading_shell_regression.py::DOCUMENT_BODIES",
+    "kept_readable": [
+      "zh docs article about a page stuck on 正在加载中 (with 版权所有 footer)",
+      "zh short page about 请稍候 wording, sentence punctuation present",
+      "zh short prose with no punctuation",
+      "zh prose quoting 版权所有",
+      "en article about loading states, ends with 'Copyright 2024 UX Weekly.'",
+      "en lazy-loading docs",
+      "code snippet (setLoading/fetch)",
+      "ja prose about 読み込み中 with © footer",
+      "ko prose about 로딩 중 with © footer",
+      "zh article behind a reader transport header (strip must not over-reach)"
+    ],
+    "verdict": "classify_page_shell -> None and _is_usable_page_text -> True for every entry"
+  },
+  "tests": {
+    "new_file": "tests/test_loading_shell_regression.py",
+    "new_file_sha256": "9c6da9dcb03cde039f82e5e54b789472bde47c76a4859cc70126ef980dd1a154",
+    "new_file_tests": 32,
+    "new_file_command": ".venv/bin/python -m pytest tests/test_loading_shell_regression.py -q",
+    "new_file_result": "32 passed",
+    "full_suite_command": ".venv/bin/python -m pytest -q",
+    "full_suite_result": "1037 passed",
+    "network_used_by_tests": false,
+    "full_suite_note": "the suite total includes test modules other agents added concurrently in this workspace; the new file's own 32 tests are the ones this change added",
+    "gauntlet": "100/100 (4 pass, 0 partial, 0 fail)"
+  },
+  "limitations": [
+    "Only one live public read was made (the allowed recheck); every later assertion replays that exact 435-char capture, sha256-matched to the read's own document_sha256.",
+    "The Agent Reach public backend could not be re-run live: the executable is absent on this host. The backend assertions use the real backend code with the pinned upstream envelope replayed, which is the same shape the 2026-10-28 sweep recorded.",
+    "The classifier cannot see the item title (请稍候 - BOSS直聘): reach_backend forwards text only. The body alone is decisive here, and the title is recorded in the tests as context.",
+    "The gate is defined by the body's own template (loading notice + legal footer + short). A loading page that omits its footer stamp is not condemned by this rule; no such reproduction exists.",
+    "No claim is made that the page is now extractable: the fix makes the failure honest (blocked / content_unusable), it does not obtain the job description."
+  ],
+  "verdict": "fixed_and_verified"
+}
