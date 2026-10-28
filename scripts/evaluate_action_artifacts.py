@@ -71,6 +71,9 @@ if str(REPO) not in sys.path:
 
 from hermes_trailhead.reach_backend import (  # noqa: E402
     AgentReachBackend,
+    BODY_READ_ACTIONS,
+    MAX_TEXT_CHARS,
+    MAX_TOTAL_BODY_CHARS,
     PARITY_ACTIONS,
     PINNED_UPSTREAM,
     asr_disabled,
@@ -82,9 +85,12 @@ from hermes_trailhead.reach_backend import (  # noqa: E402
 SCHEMA = "trailhead.action-artifacts/1"
 MANIFEST_VERSION = 1
 
-#: The documented forwarding bound in ``reach_backend`` (MAX_TEXT_CHARS). An
-#: artifact at this length was clipped by Trailhead, not by the page.
-MAX_TEXT_CHARS = 4000
+#: Forwarding bounds are imported from ``reach_backend`` instead of re-typed
+#: here.  ``MAX_TEXT_CHARS`` (4000) bounds *discovery* snippets per item;
+#: ``MAX_TOTAL_BODY_CHARS`` (250 000) is the budget shared across the items of
+#: one ``read``/``thread``/``comments`` result.  A body read clipped at the
+#: snippet bound used to be reported as though 4000 were its cap, which
+#: over-stated truncation for every forwarded body.
 
 #: Frozen generic "this is an error/anti-bot/empty shell page, not the
 #: requested artifact" markers. Deliberately multilingual and generic; each
@@ -854,6 +860,7 @@ def build_row(frozen: dict, *, status: str, result: Mapping[str, Any] | None,
               error: Mapping[str, Any] | None, wall_ms: int | None,
               raw_file: str | None, gate_probe: Mapping[str, Any] | None) -> dict:
     items = list((result or {}).get("items") or [])
+    body_read = frozen["action"] in BODY_READ_ACTIONS
     units = [dict(unit) for unit in frozen["units"]]
     for unit in units:
         if unit["kind"] == "target_match":
@@ -942,8 +949,24 @@ def build_row(frozen: dict, *, status: str, result: Mapping[str, Any] | None,
             "requested_limit": (frozen["params"].get("limit")
                                 if isinstance(frozen["params"], dict) else None),
             "items_returned": len(items),
-            "max_text_chars_per_item": MAX_TEXT_CHARS,
             "text_truncated_items": artifact["text_truncated_items"],
+            # Report the bound that actually governed this action instead of
+            # assuming the 4000-char snippet bound applies everywhere.  A body
+            # read shares one MAX_TOTAL_BODY_CHARS budget across the result, so
+            # its per-item text cap is not MAX_TEXT_CHARS and claiming it was
+            # over-stated truncation.
+            **(
+                {
+                    "max_body_chars_per_result": MAX_TOTAL_BODY_CHARS,
+                    "body_budget_shared_across_items": True,
+                    "text_truncated_scope": "local_body_budget_cut",
+                }
+                if body_read
+                else {
+                    "max_text_chars_per_item": MAX_TEXT_CHARS,
+                    "text_truncated_scope": "discovery_snippet_clip",
+                }
+            ),
         },
         **frozen["caps"],
     }

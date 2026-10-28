@@ -512,6 +512,48 @@ def test_reach_call_text_mode_prints_attribution(tmp_path, capsys):
     assert "Items:" in out
 
 
+def test_reach_call_text_shows_body_cut_and_unknown_continuation(tmp_path, capsys):
+    """Text mode must not let a locally cut body look whole or complete."""
+    payload = {
+        "schema_version": 1,
+        "ok": True,
+        "channel": "v2ex",
+        "action": "read",
+        "backend": "v2ex-api",
+        "items": [
+            {
+                "title": "a long topic",
+                "url": "https://www.v2ex.com/t/1",
+                "author": "someone",
+                "published_at": "2026-01-01T00:00:00Z",
+                "text": "line " * 60_000,  # 300 000 chars: past the shared budget
+                "raw": None,
+            }
+        ],
+        "meta": {"elapsed_ms": 1, "attempts": []},
+        "error": None,
+    }
+    body = (
+        "import json, sys\n"
+        "argv = sys.argv[1:]\n"
+        'if argv and argv[0] == "channels":\n'
+        f"    print(json.dumps({REGISTRY!r}))\n"
+        "    sys.exit(0)\n"
+        f"print(json.dumps({payload!r}))\n"
+    )
+    exe = _fake_cli(tmp_path, body=body)
+    rc = main(["reach-call", "v2ex", "read", "https://www.v2ex.com/t/1", "--agent-reach", exe])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    assert "250000 of 300000 chars" in out
+    assert "[cut at Trailhead's shared body budget]" in out
+    assert "Upstream:    continuation unknown" in out
+    # The 160-char preview is marked as a preview, not the artifact.
+    assert "…" in out
+    assert "local forwarding bound" in out
+
+
 def test_reach_inventory_gate_vocabulary_and_quota_readiness(tmp_path, capsys, monkeypatch):
     """Capabilities and the parity inventory share public/consent/quota, and
     quota consent is reported separately from quota readiness."""

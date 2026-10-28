@@ -201,6 +201,42 @@ def test_truncated_whole_artifact_is_incomplete(module, manifest):
     assert row["completeness"]["caps"]["text_truncated_items"] == 1
 
 
+def test_caps_report_the_bound_that_governed_the_action(module, manifest):
+    """A body read is not capped at the 4000-char discovery snippet bound."""
+    rows = _rows(manifest)
+
+    body = rows[("v2ex", "read")]
+    assert body["action"] in module.BODY_READ_ACTIONS
+    body_text = "a" * (module.MAX_TOTAL_BODY_CHARS + 10)
+    row = module.build_row(
+        body, status="inspected",
+        result=_result([_item(url=body["params"]["target"], text=body_text)]),
+        error=None, wall_ms=1, raw_file=None, gate_probe=None,
+    )
+    caps = row["completeness"]["caps"]
+    assert module.MAX_TOTAL_BODY_CHARS == 250_000
+    assert caps["max_body_chars_per_result"] == module.MAX_TOTAL_BODY_CHARS
+    assert caps["body_budget_shared_across_items"] is True
+    assert caps["text_truncated_scope"] == "local_body_budget_cut"
+    assert "max_text_chars_per_item" not in caps
+
+    discovery = rows[("github", "search")]
+    assert discovery["action"] not in module.BODY_READ_ACTIONS
+    row = module.build_row(
+        discovery, status="inspected",
+        result=_result([_item(
+            url="https://github.com/example/repo",
+            text="s" * (module.MAX_TEXT_CHARS + 1), text_truncated=True,
+        )]),
+        error=None, wall_ms=1, raw_file=None, gate_probe=None,
+    )
+    caps = row["completeness"]["caps"]
+    assert module.MAX_TEXT_CHARS == 4000
+    assert caps["max_text_chars_per_item"] == module.MAX_TEXT_CHARS
+    assert caps["text_truncated_scope"] == "discovery_snippet_clip"
+    assert "max_body_chars_per_result" not in caps
+
+
 def test_untruncated_whole_artifact_is_still_not_proven(module, manifest):
     frozen = _rows(manifest)[("web", "read")]
     items = [_item(url=frozen["params"]["target"], text="short page text")]

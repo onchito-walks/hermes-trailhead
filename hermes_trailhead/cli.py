@@ -448,12 +448,35 @@ def _reach_text_result(result) -> str:
     lines.append(f"  Items:       {len(items)}")
     for index, item in enumerate(items[:5], start=1):
         text = item.get("text") or ""
+        body = item.get("body") if isinstance(item.get("body"), dict) else None
         title = (item.get("title") or item.get("url") or "(untitled)")[:90]
-        lines.append(f"    {index}. {title} — {len(text)} chars")
-        if text:
-            lines.append("       " + " ".join(text.split())[:160])
+        if body:
+            count = (f"{body.get('returned_chars', len(text))} of "
+                     f"{body.get('upstream_chars', len(text))} chars")
+            if body.get("local_truncated"):
+                count += " [cut at Trailhead's shared body budget]"
+        else:
+            count = f"{len(text)} chars"
+        lines.append(f"    {index}. {title} — {count}")
+        preview = " ".join(text.split())
+        if preview:
+            # The text view is a preview, never the artifact: mark the cut so a
+            # shortened line is not read as the whole body.  --format json
+            # carries the full forwarded text.
+            lines.append("       " + preview[:160] + (" …" if len(preview) > 160 else ""))
     if len(items) > 5:
         lines.append(f"    ... {len(items) - 5} more item(s) in --format json")
+    upstream = payload.get("upstream")
+    if upstream:
+        continuation = upstream.get("continuation") or {}
+        state = continuation.get("state") or "unknown"
+        reported = upstream.get("truncated")
+        detail = f"continuation {state}"
+        if reported is True:
+            detail += "; upstream reported truncated"
+        elif reported is False:
+            detail += "; upstream reported not truncated"
+        lines.append(f"  Upstream:    {detail} — no end-of-artifact proof; full body in --format json")
     limitations = payload.get("limitations") or []
     if limitations:
         lines.append("")

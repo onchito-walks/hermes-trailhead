@@ -97,6 +97,19 @@ Hard rules encoded here
   forwarding share one classifier.  Metadata-only actions (``v2ex user``,
   ``bilibili hot``, ``xueqiu search``, ...) legitimately carry no body text and
   are never filtered.
+* **A forwarded body is the artifact, so it is not clipped to a snippet.**
+  Discovery text keeps the short ``MAX_TEXT_CHARS`` bound, but ``read`` /
+  ``thread`` / ``comments`` bodies are preserved whole up to one shared
+  ``MAX_TOTAL_BODY_CHARS`` per result — sized from ``MAX_OUTPUT_BYTES`` so the
+  forwarded body costs at most ~3 MB even when every character is a
+  surrogate-pair escape (12 bytes) under ``ensure_ascii=True``.  Metadata keeps
+  its own per-field character bounds, and the runner's 4 MB capture cap is
+  unchanged and not enlarged.  Each body item
+  reports ``upstream_chars``, ``returned_chars`` and ``local_truncated``, and
+  never claims ``upstream_complete``: clipping nothing locally is not proof the
+  artifact ended.  Upstream continuation is reported as ``unknown`` because the
+  pinned envelope carries no cursor or truncation field; an explicit
+  envelope-level ``truncated`` bool is echoed and nothing is ever followed.
 """
 from __future__ import annotations
 
@@ -147,6 +160,11 @@ REGISTRY_CACHE_ENTRIES = 8
 
 MIN_LIMIT = 1
 MAX_LIMIT = 50
+#: Per-item bound for *discovery* text (``search``, ``jobs``, ``hot``, ...).  A
+#: snippet is a lead, not the artifact, so it stays short.  Bodies of
+#: ``BODY_READ_ACTIONS`` are governed by ``MAX_TOTAL_BODY_CHARS`` instead: the
+#: caller asked for that artifact, and clipping it mid-reply made the returned
+#: item partial by construction.
 MAX_TEXT_CHARS = 4000
 MAX_VALUE_CHARS = 1024
 #: Item URLs are longer than a plain text field but still bounded: a hostile
@@ -161,6 +179,25 @@ MAX_REGISTRY_ACTIONS = 64
 #: Byte cap on captured stdout, enforced by the runner *while* draining (see
 #: ``_default_runner``) and re-checked on the decoded text before parsing.
 MAX_OUTPUT_BYTES = 4_000_000
+#: Shared per-result budget for *forwarded body text* (``BODY_READ_ACTIONS``).
+#: One number bounds every item's body together, so a single huge body cannot
+#: leave the rest of the envelope unbounded, and a result of 50 moderate bodies
+#: still fits.
+#:
+#: Derived from the capture cap instead of picked freely: the runner already
+#: stops the producer at ``MAX_OUTPUT_BYTES`` of stdout, and re-serialising a
+#: payload must not smuggle the same characters back past that bound.  The
+#: expensive case is ``json.dumps(..., ensure_ascii=True)``, where a non-BMP
+#: codepoint (any emoji) becomes a surrogate pair of escapes, ``\ud83d\ude42``,
+#: i.e. 12 bytes per character -- not the 6 bytes of a control character and
+#: not the 4 bytes of its UTF-8 form.  At ``// 16`` the body alone costs at
+#: most 250 000 * 12 = 3 MB, leaving ~1 MB of the capture cap for the
+#: per-item metadata that carries its own character bounds (``MAX_VALUE_CHARS``
+#: titles/authors/dates, ``MAX_URL_CHARS`` URLs, ``raw`` <= 2000 encoded chars).
+#: This adds no new capture: it only decides how much of the text already
+#: parsed out of that bounded stdout is forwarded.  It is a forwarding bound,
+#: not a promise that an adversarially escaped 50-item envelope is under 4 MB.
+MAX_TOTAL_BODY_CHARS = MAX_OUTPUT_BYTES // 16
 #: stderr is only ever forwarded as a short diagnostic (300 characters), so it
 #: has its own, much smaller capture cap: past that point the stream is drained
 #: and discarded rather than buffered, and a chatty CLI is not failed for it.
@@ -816,6 +853,10 @@ class ReachResult:
     exit_code: int | None = None
     timed_out: bool = False
     argv: tuple[str, ...] = ()
+    #: Upstream continuation/truncation state, only filled for body reads and
+    #: only from fields the pinned envelope is known to use (see
+    #: ``_upstream_signals``).  ``None`` on every other path.
+    upstream: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -833,6 +874,7 @@ class ReachResult:
             "exit_code": self.exit_code,
             "timed_out": self.timed_out,
             "argv": list(self.argv),
+            "upstream": dict(self.upstream) if self.upstream else None,
         }
 
 
@@ -2610,8 +2652,14 @@ class AgentReachBackend:
                 exit_code=code,
             )
         body_read = action in BODY_READ_ACTIONS
+        upstream_signals = _upstream_signals(payload) if body_read else None
         items, dropped_raw, rejected_urls, withheld, clipped = _normalize_items(
-            raw_items, limit, body_read=body_read
+            raw_items,
+            limit,
+            body_read=body_read,
+            upstream_truncated=(
+                upstream_signals["truncated"] if upstream_signals is not None else None
+            ),
         )
         if len(raw_items) > len(items) + len(withheld):
             limitations.append(
@@ -2625,16 +2673,38 @@ class AgentReachBackend:
             )
         if rejected_urls:
             limitations.append(f"{rejected_urls} item URL(s) were withheld because they were not http(s).")
+        budget_withheld = sum(1 for reason in withheld if reason == "body_budget_exhausted")
         if withheld:
             blocked = sum(1 for reason in withheld if reason == "blocked")
             missing = sum(1 for reason in withheld if reason == "missing_page")
             empty = sum(1 for reason in withheld if reason == "empty_body")
-            limitations.append(
-                f"{len(withheld)} item(s) were withheld: the fetched body was only a "
-                f"blocked or missing-page shell (blocked={blocked}, missing_page={missing}) "
-                f"or carried no body text at all (empty_body={empty}), not readable "
-                "content."
+            shells = blocked + missing + empty
+            if shells:
+                limitations.append(
+                    f"{shells} item(s) were withheld: the fetched body was only a "
+                    f"blocked or missing-page shell (blocked={blocked}, missing_page={missing}) "
+                    f"or carried no body text at all (empty_body={empty}), not readable "
+                    "content."
+                )
+        if body_read:
+            local_cut = sum(
+                1
+                for item in items
+                if isinstance(item.get("body"), dict) and item["body"]["local_truncated"]
             )
+            if local_cut:
+                limitations.append(
+                    f"{local_cut} item body/bodies were cut at Trailhead's shared "
+                    f"{MAX_TOTAL_BODY_CHARS}-character body budget; each item's "
+                    "body.returned_chars vs body.upstream_chars shows the cut. That is a "
+                    "local forwarding bound, not proof the upstream artifact ended."
+                )
+            if budget_withheld:
+                limitations.append(
+                    f"{budget_withheld} item(s) were withheld because the shared "
+                    f"{MAX_TOTAL_BODY_CHARS}-character body budget was already spent; their "
+                    "upstream text was not forwarded and no empty body was passed off as a read."
+                )
         if body_read and not items and withheld:
             # Upstream said ok:true but forwarded no artifact — only shells or
             # empty rows.  Reporting that as a successful read is the false
@@ -2663,6 +2733,7 @@ class AgentReachBackend:
                 attempts=attempts,
                 exit_code=code,
                 argv=tuple(argv),
+                upstream=upstream_signals,
             )
         return ReachResult(
             ok=True,
@@ -2677,6 +2748,7 @@ class AgentReachBackend:
             attempts=attempts,
             exit_code=code,
             argv=tuple(argv),
+            upstream=upstream_signals,
         )
 
     def _fail(
@@ -2801,11 +2873,43 @@ def _clip(value: Any, limit: int) -> tuple[str | None, bool]:
     return value[:limit], True
 
 
+#: Fixed sentence carried next to every signal object.  It states the pinned
+#: fact (Agent Reach 1.6.0, schema_version 1, emits no per-item truncation or
+#: continuation field) so a reader cannot mistake "no signal" for "complete".
+UPSTREAM_SIGNAL_NOTE = (
+    "Pinned Agent Reach 1.6.0 (schema_version 1) carries no continuation, "
+    "truncation or page-cursor field. Continuation is therefore unknown, not "
+    "complete, and there is no cursor to follow."
+)
+
+
+def _upstream_signals(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Upstream continuation/truncation state for one body read.
+
+    The pinned envelope is exactly
+    ``{schema_version, ok, channel, action, backend, items, meta, error}`` with
+    ``meta = {elapsed_ms, attempts}`` and items of
+    ``title/url/author/published_at/text/raw``.  There is no truncation flag and
+    no cursor on this pin, so nothing is guessed at: continuation is always
+    ``unknown`` and only an explicit top-level ``truncated`` bool is echoed.
+    Not parsing pagination-shaped fields is deliberate -- an empty, malformed or
+    zero-valued cursor must not be read as "the upstream set is exhausted" when
+    upstream never claimed to page at all.
+    """
+    truncated = payload.get("truncated")
+    return {
+        "truncated": truncated if isinstance(truncated, bool) else None,
+        "continuation": {"state": "unknown", "source": "absent", "next_offset": None},
+        "note": UPSTREAM_SIGNAL_NOTE,
+    }
+
+
 def _normalize_items(
     raw_items: Sequence[Any],
     limit: int,
     *,
     body_read: bool = False,
+    upstream_truncated: bool | None = None,
 ) -> tuple[list[dict[str, Any]], bool, int, list[str], int]:
     """Normalise upstream items, withholding blocked/missing page shells.
 
@@ -2820,17 +2924,34 @@ def _normalize_items(
     (``v2ex user``, ``bilibili hot``, ``xueqiu search``, ...) are never
     classified: empty text is legitimate there, and they carry their value in
     ``raw``.  Search/discovery actions are likewise untouched — a snippet is a
-    lead, not a complete-artifact claim.
+    lead, not a complete-artifact claim, so they keep ``MAX_TEXT_CHARS``.
+
+    Body reads do **not** use the 4000-character snippet bound.  Their text is
+    the artifact, so every item's upstream text is preserved whole, subject to
+    one shared ``MAX_TOTAL_BODY_CHARS`` budget across the result.  When the
+    budget runs out mid-body the remainder is cut locally (``local_truncated``);
+    when it is already spent, later items are withheld as
+    ``body_budget_exhausted`` rather than forwarded as empty reads.  Cutting
+    locally is reported truthfully and is never treated as evidence that the
+    upstream artifact ended: ``body.upstream_complete`` is always ``None``
+    (unknown) because nothing on this path validates an end-of-artifact signal,
+    and ``upstream_truncated`` only repeats an explicit envelope flag.
+
+    Shell classification runs on the **entire** upstream body rather than a
+    clipped prefix: a shell is a short page, and judging 4000 characters of a
+    longer document risks condemning a real artifact whose tail is ordinary
+    prose.
 
     Every forwarded string is clipped to a documented bound; the final element
-    of the tuple counts how many fields were clipped so the caller can say so
-    instead of silently shortening evidence.
+    of the tuple counts how many metadata fields were clipped so the caller can
+    say so instead of silently shortening evidence.
     """
     items: list[dict[str, Any]] = []
     dropped_raw = False
     rejected_urls = 0
     withheld: list[str] = []
     clipped = 0
+    remaining_body = MAX_TOTAL_BODY_CHARS
     for entry in raw_items:
         if not isinstance(entry, dict):
             continue
@@ -2839,17 +2960,29 @@ def _normalize_items(
         if raw_url and url is None:
             rejected_urls += 1
         text = entry.get("text")
-        text_out = text[:MAX_TEXT_CHARS] if isinstance(text, str) else ""
+        full_text = text if isinstance(text, str) else ""
         if body_read:
-            if not text_out.strip():
+            if not full_text.strip():
                 withheld.append("empty_body")
                 continue
-            reason = classify_page_shell(text_out)
+            reason = classify_page_shell(full_text)
             if reason is not None:
                 withheld.append(reason)
                 continue
         if len(items) >= limit:
             break
+        if body_read:
+            text_out = full_text[:remaining_body]
+            remaining_body -= len(text_out)
+            if not text_out.strip():
+                # The shared budget was spent by earlier items.  Saying that is
+                # honest; forwarding a body-less row as a read would not be.
+                withheld.append("body_budget_exhausted")
+                continue
+            text_cut = len(text_out) < len(full_text)
+        else:
+            text_out = full_text[:MAX_TEXT_CHARS]
+            text_cut = len(full_text) > MAX_TEXT_CHARS
         # Clip only what is actually forwarded, so the limitation line counts
         # fields the caller can see.
         title, title_cut = _clip(entry.get("title"), MAX_VALUE_CHARS)
@@ -2869,18 +3002,29 @@ def _normalize_items(
                 raw_kept = raw
             else:
                 dropped_raw = True
-        items.append(
-            {
-                "title": title,
-                "url": url,
-                "url_rejected": bool(raw_url and url is None),
-                "author": author,
-                "published_at": published,
-                "text": text_out,
-                "text_truncated": isinstance(text, str) and len(text) > MAX_TEXT_CHARS,
-                "raw": raw_kept,
+        item: dict[str, Any] = {
+            "title": title,
+            "url": url,
+            "url_rejected": bool(raw_url and url is None),
+            "author": author,
+            "published_at": published,
+            "text": text_out,
+            "text_truncated": text_cut,
+            "raw": raw_kept,
+        }
+        if body_read:
+            # Explicit per-item body accounting: how much text upstream handed
+            # over, how much was forwarded, and whether the difference is a
+            # local bound.  ``upstream_complete`` is deliberately never True —
+            # "nothing was clipped here" is not a wholeness proof.
+            item["body"] = {
+                "upstream_chars": len(full_text),
+                "returned_chars": len(text_out),
+                "local_truncated": text_cut,
+                "upstream_truncated": upstream_truncated,
+                "upstream_complete": None,
             }
-        )
+        items.append(item)
     return items, dropped_raw, rejected_urls, withheld, clipped
 
 
@@ -2899,7 +3043,9 @@ __all__ = [
     "GATE_STATES",
     "LIMITATION_QUOTA",
     "MAX_LIMIT",
+    "MAX_TEXT_CHARS",
     "MAX_TIMEOUT",
+    "MAX_TOTAL_BODY_CHARS",
     "MIN_TIMEOUT",
     "PARITY_ACTIONS",
     "PINNED_UPSTREAM",
