@@ -5,6 +5,11 @@ and a browser/session tier. Some platforms are **not** native: Bilibili, V2EX,
 Boss直聘, Xueqiu, Xiaohongshu, Xiaoyuzhou, and LinkedIn job detail. Agent Reach
 (a third-party CLI) already exposes read-only accessors for those.
 
+The complete pinned surface is inventoried in
+[`ACTION-PARITY.md`](ACTION-PARITY.md): 40 actions across 14 channels, with
+native / native-partial / upstream coverage, public / consent / quota gates, and
+fixture-versus-live evidence kept separate.
+
 `hermes_trailhead/reach_backend.py` is an **optional forwarding layer** over an
 Agent Reach install the operator already has. It is not a reimplementation, it
 is not bundled, and nothing it returns is rebranded as native Trailhead output.
@@ -38,6 +43,12 @@ ignored in public mode, which always uses its own throwaway `HOME`. The child en
 locale, and temp variables — API keys, tokens, and browser configuration in the
 parent environment are **not** forwarded in either mode.
 
+Keys are never handed over as environment variables. Consented mode forwards
+the operator's `HOME`/`XDG_*` **paths** so the already-configured upstream CLI
+can read its own config/key store (`~/.agent-reach/config.yaml`); that store,
+not Trailhead's environment, is the only credential source.
+`describe()["credential_source"]` reports `upstream-home-config`.
+
 ## Public mode vs. consented authenticated mode
 
 `AgentReachBackend(..., allow_authenticated=False)` is the default.
@@ -60,11 +71,57 @@ backend. When only a session route exists, the result is an explicit
 state I already created in Agent Reach"; it does not mean Trailhead creates,
 refreshes, imports, or copies one.
 
+### Quota gate: transcription is visible but never automatic
+
+`youtube transcribe` and `xiaoyuzhou transcribe` are in the discoverable
+inventory and in `capabilities()`, with `gate: "quota"`,
+`quota_consuming: true`, and `blocked_by_default: true`. They are **not** in
+`READ_ONLY_ACTION_ALLOWLIST`, so no read-only path can reach them.
+
+Running one requires three separate things:
+
+1. `allow_quota_consuming=True` (`--allow-quota-consuming`) — consent to spend
+   Whisper/Groq/OpenAI quota. Without it: `quota_required`, nothing spawned.
+2. `allow_authenticated=True` (`--allow-authenticated`) — the Whisper backends
+   read the operator's configured key. With only the quota flag:
+   `auth_required`, nothing spawned.
+3. `TRAILHEAD_DISABLE_ASR` unset. `1`, `true`, `yes`, or `on` vetoes the call
+   even when both flags are present (`asr_disabled`, nothing spawned). This is
+   the same process-wide veto the native media ASR tier uses, and it is an
+   **OR**: the flag is read from the real process environment *and* from any
+   caller-supplied `env` mapping. Passing `env={}` (or one without the key)
+   cannot clear a veto that holds for the process; an override can only add a
+   veto, never remove one.
+
+A quota call pins no backend, runs with the operator's `HOME` (consent mode),
+and carries `provenance.quota_consuming = true` plus a limitation stating that
+Trailhead did not meter or cap the spend. Normal `search` has no flag, code
+path, or import that can reach this gate.
+
+`describe()` keeps consent and readiness apart:
+
+| Field | Meaning |
+|---|---|
+| `quota_consuming_allowed` | did this run pass `--allow-quota-consuming`? |
+| `authenticated_allowed` | did this run pass `--allow-authenticated`? |
+| `asr_disabled` / `asr_vetoed` | is the process-wide veto on? |
+| `quota_ready` | could a quota call run *now*: quota consent **and** auth consent **and** no veto |
+| `credential_source` | always `upstream-home-config` |
+
+`quota_ready: true` alone is not a licence to call a paid action; the flags
+still have to be passed to `execute()`/`reach-call`.
+
+A refused quota call spawns **no process at all**, not even the harmless
+`agent-reach channels` registry read: the CLI's positional-argument mapping is
+skipped while a gate is closed, and `execute()` checks the ASR veto and both
+consent flags before discovery. This is asserted by a test that uses a stub
+executable which writes a marker file on any invocation.
+
 If upstream renames a backend so the expected public label disappears from an
 action's declared `backends`, the action stops being public (it is reported as
 `auth_required` in public mode) instead of quietly running unforced.
 
-### Public mode runs blind
+### Public mode runs with an isolated environment (not a sandbox)
 
 In public mode the upstream process is started with a **private, empty
 temporary `HOME`** created under `TMPDIR` (`tempfile.TemporaryDirectory`) and
@@ -72,18 +129,29 @@ removed when the call returns. `HOME`, `USERPROFILE`, `XDG_CONFIG_HOME`,
 `XDG_CACHE_HOME`, `XDG_DATA_HOME`, `XDG_STATE_HOME`, `APPDATA`, and
 `LOCALAPPDATA` all point inside that directory. Consequences, by design:
 
-- `~/.agent-reach/config.yaml` (API keys, saved cookies) is not readable.
-- `~/.config/gh/hosts.yml` and any other CLI credential store is not readable.
-- `~/.agent-reach/sessions/<tool>/` logins are not usable.
+- `~/.agent-reach/config.yaml` is not on the child's `HOME` path, so a tool that
+  resolves config through `HOME` finds nothing.
+- `~/.config/gh/hosts.yml` and other `HOME`/`XDG`-resolved credential stores are
+  not resolved either.
+- `~/.agent-reach/sessions/<tool>/` logins are not reachable through `HOME`.
 - Operator tools installed under `~/.agent-reach/tools/` are not on the child's
-  `PATH` either. A backend that needs one reports upstream's own `NEED_SETUP`
-  (for example `bili is not installed`) rather than silently borrowing a
+  `PATH`. A backend that needs one reports upstream's own `NEED_SETUP` (for
+  example `bili is not installed`) rather than silently borrowing a
   credential — that failure is forwarded, not hidden.
 - `TRAILHEAD_AGENT_REACH_HOME` and the operator's `HOME` are ignored.
 
+**This is environment isolation, not a filesystem or process sandbox.** The
+child still runs as the same user with the same network access, and a program
+that hard-codes an absolute path (or receives one as an argument) can read any
+file that user can read. Trailhead does not claim otherwise, and no security
+boundary should be inferred from the empty `HOME`, the redirected `XDG_*`
+variables, or the removed temporary directory. Use OS-level isolation (a
+container, a separate user, or a VM) when the threat model includes a hostile
+upstream binary.
+
 Every public result carries `provenance.home_mode = "isolated-temp"` and a
-limitation line stating that the upstream process could not see operator
-config; consented runs report `home_mode = "operator"`.
+limitation line stating that the upstream process could not resolve operator
+config through its environment; consented runs report `home_mode = "operator"`.
 
 ## Forced-route verification
 
@@ -97,14 +165,16 @@ from an unverified route is never returned as success. `provenance` keeps both
 
 ## Forwarded surface
 
-Only these read-only channel/action pairs can run. Anything else in the upstream
-registry is rejected as `action_not_allowlisted` or `unknown_action`.
+Only these channel/action pairs can run. The first thirteen channels are the
+read-only surface; `xiaoyuzhou` appears only through its quota gate. Anything
+else in the upstream registry is rejected as `action_not_allowlisted` or
+`unknown_action`.
 
 | Channel | Actions | Public route |
 |---|---|---|
 | `github` | `search`, `read` | forced `github-api` (`gh` needs `~/.config/gh`, so it is never used in public mode) |
 | `v2ex` | `hot`, `node`, `read`, `user` | forced `v2ex-api` |
-| `youtube` | `read`, `search`, `subtitle` | `yt-dlp` |
+| `youtube` | `read`, `search`, `subtitle`, `transcribe` | `read`/`search`/`subtitle` run on `yt-dlp`; `transcribe` is quota-gated (see below) |
 | `web` | `search`, `read` | `exa` / `jina` |
 | `twitter` | `search`, `profile`, `tweets`, `thread` | `search` forced `public-web`; the rest need consent |
 | `reddit` | `search`, `read`, `subreddit` | `search`/`read` forced `public-web`; `subreddit` needs consent |
@@ -115,11 +185,13 @@ registry is rejected as `action_not_allowlisted` or `unknown_action`.
 | `boss` | `search`, `read` | forced `public-web` |
 | `bilibili` | `search`, `read`, `hot`, `subtitle` | `hot`/`read` forced `bilibili-api`; `search` forced `bili-cli` (login-free, but needs the tool installed); `subtitle` needs consent |
 | `xueqiu` | `quote`, `search`, `hot_posts`, `hot_stocks` | `quote`/`search` forced `tencent` (public quote/search API); `hot_posts`/`hot_stocks` need consent |
+| `xiaoyuzhou` | `transcribe` | quota-gated only: needs `--allow-quota-consuming` **and** `--allow-authenticated`; never public |
 
 Excluded on purpose:
 
-- `transcribe` (YouTube, Xiaoyuzhou) — paid/key-consuming Whisper endpoints.
-  Never run automatically; `xiaoyuzhou` therefore has no forwarded actions.
+- `transcribe` (YouTube, Xiaoyuzhou) is **discoverable but blocked by default**.
+  It is absent from `READ_ONLY_ACTION_ALLOWLIST`, needs both consent flags, and
+  is vetoed by `TRAILHEAD_DISABLE_ASR=1`. It never runs in a normal search.
 - All management verbs: `setup`, `add`, `remove`, `login`, `logout`, `browser`,
   `configure`, `update`, `uninstall`, `skill`, `doctor`, `check`, `version`.
   They are rejected as `forbidden_command` before a process exists.
@@ -147,14 +219,25 @@ Excluded on purpose:
   window so upstream can emit its own JSON timeout), item counts are capped,
   item text is truncated to 4000 characters, oversized `raw` blobs are dropped,
   and oversized stdout is rejected.
+- **Untrusted error text is redacted (best effort).** Registry stderr,
+  execution stderr, upstream `error` fields (`code`, `message`, `hint`), and
+  `meta.attempts` rows are passed through pattern redaction for common
+  API-key/token/bearer shapes (`sk-…`, `ghp_…`, `github_pat_…`, `xox?-…`,
+  `AKIA…`, `AIza…`, `gsk_…`, JWTs) and for `scheme://user:password@host` URLs.
+  Redaction runs before truncation so a cut cannot leave a partial token. This
+  is pattern redaction of known shapes, **not** a guarantee: an upstream that
+  prints a secret in an unrecognized format still gets through.
 - **No mutation of upstream state.** Nothing here writes config, sessions,
   cookies, or the upstream registry.
 - **No route substitution.** A pinned backend must be the reported backend of a
   successful payload (`route_violation` otherwise), and a public-mode call that
   cannot use a public route returns `auth_required` without spawning.
-- **Public mode cannot read operator credentials.** The child `HOME` is a fresh
-  temporary directory that is removed after the call, including on timeout and
-  upstream error.
+- **Public mode is not handed operator credential paths — and is not a
+  sandbox.** The child `HOME` is a fresh temporary directory removed after the
+  call, including on timeout and upstream error, and `XDG_*`/`APPDATA` are
+  redirected into it. A same-user process can still open any absolute path it
+  knows, so this is environment isolation only; it is not a filesystem or
+  process security boundary.
 
 ## Result shape
 
@@ -180,6 +263,7 @@ Excluded on purpose:
     "schema_version": 1,
     "route": "public_api",
     "public_only": true,
+    "quota_consuming": false,
     "requested": "github search",
     "reported_backend": "github-api",
     "forced_backend": "github-api",
@@ -189,7 +273,7 @@ Excluded on purpose:
     "Items are produced by the third-party Agent Reach CLI and forwarded by Trailhead without native scoring or extraction.",
     "Trailhead never installs, configures, updates, or logs in to Agent Reach.",
     "Public-only mode: no authenticated session and no browser fallback were used.",
-    "The upstream process ran with a private empty HOME; operator config, login state, and stored credentials were not visible to it."
+    "The upstream process ran with a private empty HOME and redirected config/cache variables; that is environment isolation, not a filesystem sandbox, so operator files remain readable by absolute path."
   ],
   "elapsed_ms": 332,
   "attempts": [{"backend": "github-api", "result": "ok", "message": null}],
@@ -211,30 +295,65 @@ Notes for consumers:
   and the two must agree for `ok: true`.
 - `provenance.home_mode` is `"isolated-temp"` in public mode and `"operator"`
   once the caller consents to using the existing login state.
+- `provenance.quota_consuming` is `true` only for the double-gated transcription
+  actions; those rows also carry `route: "quota"` and the quota limitation.
 - `error.code` is Trailhead's classification (`not_configured`,
   `registry_invalid`, `unknown_channel`, `unknown_action`,
   `action_not_allowlisted`, `forbidden_command`, `auth_required`,
-  `invalid_params`, `unsafe_target`, `route_violation`, `timeout`,
-  `process_error`, `malformed_output`, `upstream_error`). For
-  `upstream_error`, `error.upstream_code` preserves the upstream code verbatim.
+  `quota_required`, `asr_disabled`, `invalid_params`, `unsafe_target`,
+  `route_violation`, `content_unusable`, `timeout`, `process_error`,
+  `malformed_output`, `upstream_error`). For `upstream_error`,
+  `error.upstream_code` preserves the upstream code verbatim. For
+  `content_unusable`, `error.withheld_items` and `error.reasons`
+  (`"blocked"` / `"missing_page"` / `"empty_body"`) say why the forwarded body was rejected.
 - Failures still carry `provenance` and `limitations`, so an empty result is
   never confused with a native one.
 
+## Detail reads must return content, not a shell
+
+A detail read (`read`, `thread`, `comments`) is a claim about the artifact at
+that URL. Upstream sometimes answers `ok: true` with the page it actually
+fetched — a network-security block, a 404, a localized "页面不见了" placeholder —
+and forwarding that as items is a false success. So:
+
+- Forwarded item bodies go through the same classifier as extraction
+  (`extract.classify_page_shell`): `"blocked"` for access interstitials,
+  `"missing_page"` for 404s in any of the localizations LinkedIn/Xiaohongshu
+  return. The test is deliberately conservative — a long article that merely
+  *discusses* 404 pages is kept.
+- Withheld rows are dropped from `items` and named in `limitations`
+  (`N item(s) were withheld ...`); usable rows in the same response still come
+  back with `ok: true`, so a mixed response is reported truthfully rather than
+  discarded whole.
+- If every row was a shell, the result is `ok: false`, `error.code =
+  "content_unusable"`, zero items, with `provenance` and `attempts` intact.
+- Metadata-only actions (`v2ex user`, `bilibili hot`, `xueqiu search`, `quote`,
+  `jobs`, `search`, ...) are untouched: empty `text` with structured `raw` is
+  their normal shape, and a discovery snippet is a lead, never a
+  complete-artifact claim.
+
 ## Suggested CLI integration
 
-`cli.py` (owned separately) can use:
+`cli.py` uses:
 
 ```python
 backend = AgentReachBackend()            # discovery via env / PATH
 if backend.available():
-    print(json.dumps(backend.describe(), indent=2))   # capabilities + reason
+    print(json.dumps(backend.describe(), indent=2))   # capabilities + parity
     result = backend.execute("v2ex", "hot", {"limit": 10})
+# Paid transcription is a separate, explicit decision:
+result = backend.execute(
+    "youtube", "transcribe", {"target": url},
+    allow_quota_consuming=True, allow_authenticated=True,
+)
 ```
 
 `describe()` and `capabilities()` never touch the network beyond
-`agent-reach channels`. Expose the backend only when the operator asks for it
-(e.g. `--agent-reach`); a missing executable must degrade to "not configured",
-never to an install prompt inside a search run.
+`agent-reach channels`; `parity_inventory()` is fully static. Expose the backend
+only when the operator asks for it (e.g. `--agent-reach`); a missing executable
+must degrade to "not configured", never to an install prompt inside a search
+run. `hermes-trailhead reach` prints the full pinned inventory, including the
+quota rows and their gates.
 
 ## Verification (pinned upstream, public routes only)
 
@@ -262,11 +381,25 @@ outright. This is not a claim of beating any other tool end to end; it is the
 public, login-free subset of upstream's own backends, with the failures above
 left visible.
 
-No transcription action was run. No upstream login, install, or configuration
-command was invoked, and no operator credential was read.
+The pinned 40-action inventory ([`ACTION-PARITY.md`](ACTION-PARITY.md)) labels
+exactly these five rows `live`, each backed by its own row in the per-call table
+above — `github search`, `reddit search`, `bilibili hot`, `v2ex hot`,
+`xueqiu quote`.
 
-Run the focused suite:
+`github read`, `bilibili read`, and `xueqiu search` were previously labelled
+`live` from an aggregate statement in `SUPERIORITY-ACCEPTANCE.md` rather than a
+recorded per-call run; they are now `fixture`/`native-tests` only. The remaining
+35 rows are also fixture/native contract-test evidence: contract tests with a
+fake CLI, which is **not** live evidence. No aggregate summary promotes a row;
+record a fresh run first.
+
+No transcription action was run in this or the earlier pass. No upstream login,
+install, or configuration command was invoked, and no operator credential was
+read. Adding the quota gate is code and contract tests only; it produces no
+transcript and spends no quota.
+
+Run the focused suites:
 
 ```bash
-.venv/bin/python -m pytest tests/test_reach_backend.py -q
+.venv/bin/python -m pytest tests/test_reach_backend.py tests/test_cli_reach.py -q
 ```

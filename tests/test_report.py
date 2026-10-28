@@ -14,6 +14,7 @@ from hermes_trailhead.report import (
     Report,
     LaneCoverage,
     NotableSource,
+    collect_from_execution,
     default_title,
     humanize,
     render_markdown,
@@ -31,7 +32,10 @@ from hermes_trailhead.search import (
 )
 
 
-def _fake_executed():
+ATTRIBUTION = "Agent Reach (third-party CLI), forwarded by Hermes Trailhead"
+
+
+def _fake_executed(*, attribution: str = "", engine: str = "jina_duckduckgo", attempts=()):
     action = SearchAction(
         platform="web",
         status="ready",
@@ -52,13 +56,15 @@ def _fake_executed():
         status="ok",
         query="test query",
         executed_query="test query",
-        engine="jina_duckduckgo",
+        engine=engine,
         result_count=1,
         hits=hits,
         action_status="ready",
         approval_required=False,
         evidence_state="search_hits",
         caveat="Use web_extract on promising URLs; search results are leads, not evidence.",
+        attempts=tuple(attempts),
+        attribution=attribution,
     )
     return ExecutedSearchRun(plan=plan, executions=(execution,))
 
@@ -163,9 +169,68 @@ def test_run_report_offline(monkeypatch):
     assert len(rep.coverage) == 1
     assert rep.coverage[0].platform == "web"
     assert rep.coverage[0].extracted_count == 1
+    # A native lane carries no third-party attribution anywhere in the report.
+    assert rep.coverage[0].attribution == ""
     assert len(rep.notable) == 1
     assert rep.notable[0].title == "Prusa KB — PLA"
+    assert rep.notable[0].attribution == ""
     assert len(rep.caveats) == 1
+
+
+def test_collect_preserves_forwarded_attribution(monkeypatch):
+    """A lane supplied by the optional Agent Reach fallback keeps its attribution."""
+    from hermes_trailhead import report as report_mod
+
+    monkeypatch.setattr(report_mod, "extract_hits", _fake_extract)
+
+    rep = collect_from_execution(
+        _fake_executed(
+            attribution=ATTRIBUTION,
+            engine="agent_reach_web_search",
+            attempts=("jina_duckduckgo", "agent_reach_web_search"),
+        )
+    )
+
+    assert rep.coverage[0].attribution == ATTRIBUTION
+    assert rep.notable[0].attribution == ATTRIBUTION
+    assert any(ATTRIBUTION in caveat and "not native Trailhead hits" in caveat for caveat in rep.caveats)
+    assert len(rep.caveats) == 2  # the lane caveat plus the forwarded-leads caveat
+
+
+def test_render_marks_forwarded_leads_as_third_party(monkeypatch):
+    """Rendered markdown identifies Agent Reach and never claims the rows are native."""
+    from hermes_trailhead import report as report_mod
+
+    monkeypatch.setattr(report_mod, "extract_hits", _fake_extract)
+
+    rep = collect_from_execution(
+        _fake_executed(
+            attribution=ATTRIBUTION,
+            engine="agent_reach_web_search",
+            attempts=("jina_duckduckgo", "agent_reach_web_search"),
+        )
+    )
+    md = render_markdown(rep)
+
+    assert "| web | ok | agent_reach_web_search † | 1 | 1 |" in md
+    assert "| web † | Prusa KB — PLA |" in md
+    assert "these rows came from the optional Agent Reach third-party CLI, not from a native Trailhead backend." in md
+    assert f"- web: {ATTRIBUTION}" in md
+    assert f"web leads came from {ATTRIBUTION}" in md
+
+
+def test_render_omits_forwarded_section_for_native_run(monkeypatch):
+    """A fully native run gains no third-party language and no forwarded marker."""
+    from hermes_trailhead import report as report_mod
+
+    monkeypatch.setattr(report_mod, "extract_hits", _fake_extract)
+
+    md = render_markdown(collect_from_execution(_fake_executed()))
+
+    assert "Agent Reach" not in md
+    assert "†" not in md
+    assert "Forwarded leads" not in md
+    assert "| web | ok | jina_duckduckgo | 1 | 1 |" in md
 
 
 def test_write_report_writes_file(tmp_path):
@@ -199,7 +264,32 @@ def test_report_cli_writes_file_and_emits_path(monkeypatch, capsys, tmp_path):
     assert data["path"].endswith("deliverable-test-query.md")
     assert tmp_path.joinpath("deliverable-test-query.md").exists()
     assert data["coverage"][0]["platform"] == "web"
+    assert data["coverage"][0]["attribution"] == ""
+    assert data["attribution"] == {"forwarded_lanes": [], "native_lanes": ["web"]}
     assert data["notable_count"] == 1
+
+
+def test_report_cli_json_names_forwarded_lanes(monkeypatch, capsys, tmp_path):
+    """The JSON deliverable must say when a lane was fed by a third-party CLI."""
+    from hermes_trailhead import report as report_mod
+
+    monkeypatch.setattr(
+        report_mod,
+        "execute_search",
+        lambda platform, query, limit, fetch: _fake_executed(attribution=ATTRIBUTION),
+    )
+    monkeypatch.setattr(report_mod, "extract_hits", _fake_extract)
+
+    rc = main(["report", "test query", "--out", str(tmp_path), "--format", "json"])
+    out = capsys.readouterr().out
+
+    assert rc == 0
+    data = json.loads(out)
+    assert data["coverage"][0]["attribution"] == ATTRIBUTION
+    assert data["attribution"]["forwarded_lanes"] == [
+        {"platform": "web", "attribution": ATTRIBUTION}
+    ]
+    assert data["attribution"]["native_lanes"] == []
 
 
 def test_report_cli_dry_run_prints_markdown(monkeypatch, capsys):

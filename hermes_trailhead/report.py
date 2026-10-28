@@ -56,6 +56,10 @@ class LaneCoverage:
     engine: str
     hit_count: int
     extracted_count: int
+    #: Non-empty when this lane's hits were forwarded from a third-party tool.
+    #: Carried through from :class:`~hermes_trailhead.search.SearchExecution` so a
+    #: report never presents borrowed capability as a native Trailhead result.
+    attribution: str = ""
 
 
 @dataclass(frozen=True)
@@ -67,6 +71,8 @@ class NotableSource:
     url: str
     score: int
     summary: str
+    #: Non-empty when this row came from a forwarded (third-party) lane.
+    attribution: str = ""
 
 
 @dataclass(frozen=True)
@@ -127,6 +133,7 @@ def collect_from_execution(
                 engine=execution.engine,
                 hit_count=execution.result_count,
                 extracted_count=len(scored),
+                attribution=execution.attribution,
             )
         )
         for hit in scored[:per_lane]:
@@ -137,6 +144,7 @@ def collect_from_execution(
                     url=hit.url,
                     score=hit.scoring.score if hit.scoring else 0,
                     summary=_clean_summary(hit.summary or hit.snippet),
+                    attribution=execution.attribution,
                 )
             )
 
@@ -144,6 +152,12 @@ def collect_from_execution(
     for execution in executed.executions:
         if execution.caveat and execution.caveat not in caveats:
             caveats.append(execution.caveat)
+        # A forwarded lane is borrowed evidence, not a native result: say so in
+        # the caveats so the markdown cannot be read as a Trailhead-native win.
+        if execution.attribution:
+            note = forwarded_caveat(execution.platform, execution.attribution)
+            if note not in caveats:
+                caveats.append(note)
 
     return Report(
         title="",
@@ -153,6 +167,17 @@ def collect_from_execution(
         coverage=tuple(coverage),
         notable=tuple(notable),
         caveats=tuple(caveats),
+    )
+
+
+FORWARDED_MARK = "†"
+
+
+def forwarded_caveat(platform: str, attribution: str) -> str:
+    """The honest one-liner for a lane whose leads came from a third-party tool."""
+    return (
+        f"{platform} leads came from {attribution}; treat them as "
+        "third-party results, not native Trailhead hits."
     )
 
 
@@ -172,18 +197,29 @@ def render_markdown(report: Report, *, footer: str | None = None) -> str:
     lines.append("| Lane | Status | Engine | Hits | Extracted |")
     lines.append("|------|--------|--------|------|-----------|")
     for c in report.coverage:
-        lines.append(f"| {c.platform} | {c.status} | {c.engine} | {c.hit_count} | {c.extracted_count} |")
+        engine = f"{c.engine} {FORWARDED_MARK}" if c.attribution else c.engine
+        lines.append(f"| {c.platform} | {c.status} | {engine} | {c.hit_count} | {c.extracted_count} |")
     lines.append("")
     lines.append("## Notable extracted sources")
     lines.append("")
     lines.append("| Lane | Title | Score | Summary |")
     lines.append("|------|-------|-------|---------|")
     for n in report.notable:
+        lane = f"{n.platform} {FORWARDED_MARK}" if n.attribution else n.platform
         lines.append(
-            f"| {n.platform} | {_md_escape_cell(_clean_summary(n.title, TITLE_MAX))} "
+            f"| {lane} | {_md_escape_cell(_clean_summary(n.title, TITLE_MAX))} "
             f"| {n.score} | {_md_escape_cell(n.summary)} |"
         )
     lines.append("")
+    forwarded = _forwarded_lanes(report)
+    if forwarded:
+        lines.append(
+            f"{FORWARDED_MARK} Forwarded leads: these rows came from the optional Agent Reach "
+            "third-party CLI, not from a native Trailhead backend."
+        )
+        for platform, attribution in forwarded:
+            lines.append(f"- {platform}: {attribution}")
+        lines.append("")
     lines.append("## Caveats (honest blind spots)")
     lines.append("")
     for caveat in report.caveats:
@@ -199,6 +235,16 @@ def render_markdown(report: Report, *, footer: str | None = None) -> str:
     lines.append(footer)
     lines.append("")
     return "\n".join(lines)
+
+
+def _forwarded_lanes(report: Report) -> list[tuple[str, str]]:
+    """Distinct ``(lane, attribution)`` pairs for forwarded rows, in report order."""
+    seen: list[tuple[str, str]] = []
+    for item in (*report.coverage, *report.notable):
+        pair = (item.platform, item.attribution)
+        if item.attribution and pair not in seen:
+            seen.append(pair)
+    return seen
 
 
 def default_generated_at() -> str:

@@ -1,0 +1,1103 @@
+{
+  "schema": "trailhead.public-acceptance/1",
+  "generated_at": "2026-10-28T12:49:42Z",
+  "host": {
+    "hostname_kind": "single Linux host (name withheld)",
+    "platform": "Linux-7.0.0-1013-oracle-aarch64-with-glibc2.43",
+    "machine": "aarch64",
+    "cpus": 4,
+    "mem_total_kb": 24547476,
+    "python": "3.11.15"
+  },
+  "manifest": {
+    "manifest_version": 1,
+    "frozen_on": "2026-10-28",
+    "languages": [
+      "en",
+      "zh-Hans"
+    ],
+    "cases": [
+      {
+        "case_id": "public-docs-python-typing",
+        "compare_case": "docs-python-typing",
+        "language": "en",
+        "family": "docs",
+        "requested_outcome": "complete 'typing' module reference: page identity plus the Protocol / TypeVar / Generic entries an API consumer needs",
+        "artifacts": [
+          {
+            "label": "page_identity",
+            "kind": "any_of",
+            "values": [
+              "Support for type hints"
+            ]
+          },
+          {
+            "label": "entry_Protocol",
+            "kind": "any_of",
+            "values": [
+              "Protocol"
+            ]
+          },
+          {
+            "label": "entry_TypeVar",
+            "kind": "any_of",
+            "values": [
+              "TypeVar"
+            ]
+          },
+          {
+            "label": "entry_Generic",
+            "kind": "any_of",
+            "values": [
+              "Generic"
+            ]
+          },
+          {
+            "label": "special_form_TypeAlias",
+            "kind": "any_of",
+            "values": [
+              "TypeAlias"
+            ]
+          }
+        ]
+      },
+      {
+        "case_id": "public-github-requests-readme",
+        "compare_case": "github-requests-readme",
+        "language": "en",
+        "family": "github",
+        "requested_outcome": "psf/requests repository README: identity, install command, a usage call, and the license the README states",
+        "artifacts": [
+          {
+            "label": "repo_identity",
+            "kind": "any_of",
+            "values": [
+              "psf/requests"
+            ]
+          },
+          {
+            "label": "readme_install",
+            "kind": "any_of",
+            "values": [
+              "pip install requests"
+            ]
+          },
+          {
+            "label": "readme_usage",
+            "kind": "any_of",
+            "values": [
+              "requests.get(",
+              "requests.get("
+            ]
+          },
+          {
+            "label": "readme_intro",
+            "kind": "any_of",
+            "values": [
+              "A simple, yet elegant, HTTP library"
+            ]
+          },
+          {
+            "label": "readme_license",
+            "kind": "any_of",
+            "values": [
+              "Apache"
+            ]
+          }
+        ]
+      },
+      {
+        "case_id": "public-v2ex-node-python-zh",
+        "compare_case": "forum-v2ex-node",
+        "language": "zh-Hans",
+        "family": "v2ex",
+        "requested_outcome": "V2EX Python node listing (Chinese): node identity plus the titles/links of listed topics",
+        "artifacts": [
+          {
+            "label": "node_identity",
+            "kind": "any_of",
+            "values": [
+              "Python"
+            ]
+          },
+          {
+            "label": "chinese_topic_prose",
+            "kind": "regex_distinct",
+            "pattern": "[\\u4e00-\\u9fff]{8,}",
+            "min_distinct": 3
+          },
+          {
+            "label": "topic_urls",
+            "kind": "regex_distinct",
+            "pattern": "v2ex\\.com/t/\\d+",
+            "min_distinct": 3
+          }
+        ]
+      }
+    ]
+  },
+  "tools": {
+    "trailhead": {
+      "python_bin": "python",
+      "python_version": "3.11.15",
+      "invocation": "python -m hermes_trailhead compare",
+      "commit": "2fb3847"
+    },
+    "agent_reach": {
+      "executable_name": "agent-reach",
+      "distribution": {
+        "version": "1.6.0",
+        "direct_url": "https://github.com/Panniantong/Agent-Reach/archive/14c213405669414492bda0f8d52cc6531d062c45.zip"
+      },
+      "channels_reported": 14,
+      "channels_schema_version": "1",
+      "install_source": "GitHub archive at pinned commit (see distribution.direct_url)"
+    }
+  },
+  "dependencies": {
+    "trailhead_env": {
+      "python_bin": "python",
+      "available": true,
+      "version": "3.11.15",
+      "distribution_count": 27,
+      "distributions": [
+        "Pygments",
+        "babel",
+        "certifi",
+        "cffi",
+        "charset-normalizer",
+        "courlan",
+        "curl_cffi",
+        "dateparser",
+        "hermes-trailhead",
+        "htmldate",
+        "iniconfig",
+        "jusText",
+        "lxml",
+        "lxml_html_clean",
+        "packaging",
+        "pluggy",
+        "pycparser",
+        "pytest",
+        "python-dateutil",
+        "pytz",
+        "regex",
+        "six",
+        "tld",
+        "trafilatura",
+        "tzlocal",
+        "urllib3",
+        "yt-dlp"
+      ],
+      "env_name": ".venv",
+      "env_disk_bytes": 118706962
+    },
+    "agent_reach_env": {
+      "python_bin": "python",
+      "available": true,
+      "version": "3.14.7",
+      "distribution_count": 14,
+      "distributions": [
+        "PyYAML",
+        "agent-reach",
+        "brotli",
+        "certifi",
+        "charset-normalizer",
+        "idna",
+        "loguru",
+        "mutagen",
+        "pycryptodomex",
+        "requests",
+        "urllib3",
+        "websockets",
+        "yt-dlp",
+        "yt-dlp-ejs"
+      ],
+      "env_name": "agent-reach-eval-venv",
+      "env_disk_bytes": 37645401
+    },
+    "setup_note": "install durations are not re-measured here (both tools already installed); on-disk env size and distribution counts are measured"
+  },
+  "budget": {
+    "per_side_timeout_s": 25.0,
+    "repeats": 3,
+    "case_count": 3,
+    "asr_disabled": true,
+    "credentials_used": false
+  },
+  "runs": [
+    {
+      "repeat": 1,
+      "run_kind": "cold",
+      "sandbox_reused": false,
+      "wall_s": 3.336,
+      "peak_rss_kb": 36192,
+      "exit_code": 0,
+      "report_schema": "trailhead.comparative/2",
+      "report_run_kind": "cold",
+      "outcomes": {
+        "docs-python-typing": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 664,
+              "cleaned_chars": 122181,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 647,
+              "cleaned_chars": 122020,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "github-requests-readme": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 444,
+              "cleaned_chars": 1399,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 432,
+              "cleaned_chars": 2874,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "forum-v2ex-node": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 468,
+              "cleaned_chars": 2564,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 339,
+              "cleaned_chars": 6204,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        }
+      },
+      "raw_report_name": "compare-cold-r1.json"
+    },
+    {
+      "repeat": 1,
+      "run_kind": "warm",
+      "sandbox_reused": true,
+      "wall_s": 2.799,
+      "peak_rss_kb": 36444,
+      "exit_code": 0,
+      "report_schema": "trailhead.comparative/2",
+      "report_run_kind": "warm",
+      "outcomes": {
+        "docs-python-typing": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 666,
+              "cleaned_chars": 122181,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 617,
+              "cleaned_chars": 122020,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "github-requests-readme": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 137,
+              "cleaned_chars": 1399,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 290,
+              "cleaned_chars": 2874,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "forum-v2ex-node": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 475,
+              "cleaned_chars": 2564,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 262,
+              "cleaned_chars": 6204,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        }
+      },
+      "raw_report_name": "compare-warm-r1.json"
+    },
+    {
+      "repeat": 2,
+      "run_kind": "cold",
+      "sandbox_reused": false,
+      "wall_s": 2.889,
+      "peak_rss_kb": 37108,
+      "exit_code": 0,
+      "report_schema": "trailhead.comparative/2",
+      "report_run_kind": "cold",
+      "outcomes": {
+        "docs-python-typing": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 677,
+              "cleaned_chars": 122181,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 615,
+              "cleaned_chars": 122020,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "github-requests-readme": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 163,
+              "cleaned_chars": 1399,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 303,
+              "cleaned_chars": 2874,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "forum-v2ex-node": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 513,
+              "cleaned_chars": 2564,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 280,
+              "cleaned_chars": 6204,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        }
+      },
+      "raw_report_name": "compare-cold-r2.json"
+    },
+    {
+      "repeat": 2,
+      "run_kind": "warm",
+      "sandbox_reused": true,
+      "wall_s": 2.867,
+      "peak_rss_kb": 36860,
+      "exit_code": 0,
+      "report_schema": "trailhead.comparative/2",
+      "report_run_kind": "warm",
+      "outcomes": {
+        "docs-python-typing": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 720,
+              "cleaned_chars": 122181,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 687,
+              "cleaned_chars": 122020,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "github-requests-readme": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 133,
+              "cleaned_chars": 1399,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 232,
+              "cleaned_chars": 2874,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "forum-v2ex-node": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 488,
+              "cleaned_chars": 2564,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 254,
+              "cleaned_chars": 6204,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        }
+      },
+      "raw_report_name": "compare-warm-r2.json"
+    },
+    {
+      "repeat": 3,
+      "run_kind": "cold",
+      "sandbox_reused": false,
+      "wall_s": 2.945,
+      "peak_rss_kb": 37060,
+      "exit_code": 0,
+      "report_schema": "trailhead.comparative/2",
+      "report_run_kind": "cold",
+      "outcomes": {
+        "docs-python-typing": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 646,
+              "cleaned_chars": 122181,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 791,
+              "cleaned_chars": 122020,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "github-requests-readme": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 138,
+              "cleaned_chars": 1399,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 287,
+              "cleaned_chars": 2874,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "forum-v2ex-node": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 485,
+              "cleaned_chars": 2564,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 234,
+              "cleaned_chars": 6204,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        }
+      },
+      "raw_report_name": "compare-cold-r3.json"
+    },
+    {
+      "repeat": 3,
+      "run_kind": "warm",
+      "sandbox_reused": true,
+      "wall_s": 3.019,
+      "peak_rss_kb": 36484,
+      "exit_code": 0,
+      "report_schema": "trailhead.comparative/2",
+      "report_run_kind": "warm",
+      "outcomes": {
+        "docs-python-typing": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 931,
+              "cleaned_chars": 122181,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 635,
+              "cleaned_chars": 122020,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "github-requests-readme": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 135,
+              "cleaned_chars": 1399,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 248,
+              "cleaned_chars": 2874,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "forum-v2ex-node": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 490,
+              "cleaned_chars": 2564,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 235,
+              "cleaned_chars": 6204,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        }
+      },
+      "raw_report_name": "compare-warm-r3.json"
+    }
+  ],
+  "completeness": [
+    {
+      "case_id": "public-docs-python-typing",
+      "language": "en",
+      "requested_outcome": "complete 'typing' module reference: page identity plus the Protocol / TypeVar / Generic entries an API consumer needs",
+      "sides": {
+        "trailhead": {
+          "status": "ok",
+          "backend": "docs",
+          "error": "",
+          "duration_ms": 585,
+          "text_chars": 126310,
+          "checks": [
+            {
+              "label": "page_identity",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Support for type hints",
+              "expects": [
+                "Support for type hints"
+              ]
+            },
+            {
+              "label": "entry_Protocol",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Protocol",
+              "expects": [
+                "Protocol"
+              ]
+            },
+            {
+              "label": "entry_TypeVar",
+              "kind": "any_of",
+              "present": true,
+              "matched": "TypeVar",
+              "expects": [
+                "TypeVar"
+              ]
+            },
+            {
+              "label": "entry_Generic",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Generic",
+              "expects": [
+                "Generic"
+              ]
+            },
+            {
+              "label": "special_form_TypeAlias",
+              "kind": "any_of",
+              "present": true,
+              "matched": "TypeAlias",
+              "expects": [
+                "TypeAlias"
+              ]
+            }
+          ],
+          "artifacts_present": 5,
+          "artifacts_required": 5,
+          "complete": true,
+          "informational": {
+            "distinct_topic_urls": 0
+          }
+        },
+        "agent_reach": {
+          "status": "ok",
+          "backend": "jina",
+          "error": "",
+          "duration_ms": 692,
+          "text_chars": 126223,
+          "checks": [
+            {
+              "label": "page_identity",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Support for type hints",
+              "expects": [
+                "Support for type hints"
+              ]
+            },
+            {
+              "label": "entry_Protocol",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Protocol",
+              "expects": [
+                "Protocol"
+              ]
+            },
+            {
+              "label": "entry_TypeVar",
+              "kind": "any_of",
+              "present": true,
+              "matched": "TypeVar",
+              "expects": [
+                "TypeVar"
+              ]
+            },
+            {
+              "label": "entry_Generic",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Generic",
+              "expects": [
+                "Generic"
+              ]
+            },
+            {
+              "label": "special_form_TypeAlias",
+              "kind": "any_of",
+              "present": true,
+              "matched": "TypeAlias",
+              "expects": [
+                "TypeAlias"
+              ]
+            }
+          ],
+          "artifacts_present": 5,
+          "artifacts_required": 5,
+          "complete": true,
+          "informational": {
+            "distinct_topic_urls": 0
+          }
+        }
+      }
+    },
+    {
+      "case_id": "public-github-requests-readme",
+      "language": "en",
+      "requested_outcome": "psf/requests repository README: identity, install command, a usage call, and the license the README states",
+      "sides": {
+        "trailhead": {
+          "status": "ok",
+          "backend": "github",
+          "error": "",
+          "duration_ms": 134,
+          "text_chars": 1405,
+          "checks": [
+            {
+              "label": "repo_identity",
+              "kind": "any_of",
+              "present": true,
+              "matched": "psf/requests",
+              "expects": [
+                "psf/requests"
+              ]
+            },
+            {
+              "label": "readme_install",
+              "kind": "any_of",
+              "present": false,
+              "matched": "",
+              "expects": [
+                "pip install requests"
+              ]
+            },
+            {
+              "label": "readme_usage",
+              "kind": "any_of",
+              "present": true,
+              "matched": "requests.get(",
+              "expects": [
+                "requests.get(",
+                "requests.get("
+              ]
+            },
+            {
+              "label": "readme_intro",
+              "kind": "any_of",
+              "present": true,
+              "matched": "A simple, yet elegant, HTTP library",
+              "expects": [
+                "A simple, yet elegant, HTTP library"
+              ]
+            },
+            {
+              "label": "readme_license",
+              "kind": "any_of",
+              "present": false,
+              "matched": "",
+              "expects": [
+                "Apache"
+              ]
+            }
+          ],
+          "artifacts_present": 3,
+          "artifacts_required": 5,
+          "complete": false,
+          "informational": {
+            "distinct_topic_urls": 0
+          }
+        },
+        "agent_reach": {
+          "status": "ok",
+          "backend": "github-api",
+          "error": "",
+          "duration_ms": 301,
+          "text_chars": 2939,
+          "checks": [
+            {
+              "label": "repo_identity",
+              "kind": "any_of",
+              "present": true,
+              "matched": "psf/requests",
+              "expects": [
+                "psf/requests"
+              ]
+            },
+            {
+              "label": "readme_install",
+              "kind": "any_of",
+              "present": true,
+              "matched": "pip install requests",
+              "expects": [
+                "pip install requests"
+              ]
+            },
+            {
+              "label": "readme_usage",
+              "kind": "any_of",
+              "present": true,
+              "matched": "requests.get(",
+              "expects": [
+                "requests.get(",
+                "requests.get("
+              ]
+            },
+            {
+              "label": "readme_intro",
+              "kind": "any_of",
+              "present": false,
+              "matched": "",
+              "expects": [
+                "A simple, yet elegant, HTTP library"
+              ]
+            },
+            {
+              "label": "readme_license",
+              "kind": "any_of",
+              "present": false,
+              "matched": "",
+              "expects": [
+                "Apache"
+              ]
+            }
+          ],
+          "artifacts_present": 3,
+          "artifacts_required": 5,
+          "complete": false,
+          "informational": {
+            "distinct_topic_urls": 0
+          }
+        }
+      }
+    },
+    {
+      "case_id": "public-v2ex-node-python-zh",
+      "language": "zh-Hans",
+      "requested_outcome": "V2EX Python node listing (Chinese): node identity plus the titles/links of listed topics",
+      "sides": {
+        "trailhead": {
+          "status": "ok",
+          "backend": "forum",
+          "error": "",
+          "duration_ms": 453,
+          "text_chars": 2564,
+          "checks": [
+            {
+              "label": "node_identity",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Python",
+              "expects": [
+                "Python"
+              ]
+            },
+            {
+              "label": "chinese_topic_prose",
+              "kind": "regex_distinct",
+              "present": true,
+              "distinct_found": 13,
+              "min_distinct": 3,
+              "expects": "[\\u4e00-\\u9fff]{8,}"
+            },
+            {
+              "label": "topic_urls",
+              "kind": "regex_distinct",
+              "present": false,
+              "distinct_found": 0,
+              "min_distinct": 3,
+              "expects": "v2ex\\.com/t/\\d+"
+            }
+          ],
+          "artifacts_present": 2,
+          "artifacts_required": 3,
+          "complete": false,
+          "informational": {
+            "distinct_topic_urls": 0
+          }
+        },
+        "agent_reach": {
+          "status": "ok",
+          "backend": "v2ex-api",
+          "error": "",
+          "duration_ms": 270,
+          "text_chars": 7260,
+          "checks": [
+            {
+              "label": "node_identity",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Python",
+              "expects": [
+                "Python"
+              ]
+            },
+            {
+              "label": "chinese_topic_prose",
+              "kind": "regex_distinct",
+              "present": true,
+              "distinct_found": 128,
+              "min_distinct": 3,
+              "expects": "[\\u4e00-\\u9fff]{8,}"
+            },
+            {
+              "label": "topic_urls",
+              "kind": "regex_distinct",
+              "present": true,
+              "distinct_found": 10,
+              "min_distinct": 3,
+              "expects": "v2ex\\.com/t/\\d+"
+            }
+          ],
+          "artifacts_present": 3,
+          "artifacts_required": 3,
+          "complete": true,
+          "informational": {
+            "distinct_topic_urls": 10
+          }
+        }
+      }
+    }
+  ],
+  "gaps": [
+    {
+      "case_id": "public-github-requests-readme",
+      "side": "trailhead",
+      "missing_artifacts": [
+        "readme_install",
+        "readme_license"
+      ],
+      "status": "ok"
+    },
+    {
+      "case_id": "public-github-requests-readme",
+      "side": "agent_reach",
+      "missing_artifacts": [
+        "readme_intro",
+        "readme_license"
+      ],
+      "status": "ok"
+    },
+    {
+      "case_id": "public-v2ex-node-python-zh",
+      "side": "trailhead",
+      "missing_artifacts": [
+        "topic_urls"
+      ],
+      "status": "ok"
+    }
+  ],
+  "summary": {
+    "runs": 6,
+    "cold_runs": 3,
+    "warm_runs": 3,
+    "wall_s": {
+      "cold": [
+        3.336,
+        2.889,
+        2.945
+      ],
+      "warm": [
+        2.799,
+        2.867,
+        3.019
+      ]
+    },
+    "peak_rss_kb": {
+      "cold": [
+        36192,
+        37108,
+        37060
+      ],
+      "warm": [
+        36444,
+        36860,
+        36484
+      ]
+    },
+    "artifact_complete_cases": {
+      "trailhead": 1,
+      "agent_reach": 2
+    },
+    "cases_total": 3,
+    "superiority_claim": "not established: this run measures parity observations and artifact completeness on three public cases; it does not compare every channel, authenticated workloads, transcription, or onboarding"
+  },
+  "limitations": [
+    "One host, one network moment, three cases: not a general availability claim.",
+    "/usr/bin/time peak RSS covers the measured child; grandchildren are counted only as the kernel attributes them.",
+    "Warm runs reuse the sandbox tree only; public HTTP caches at the origin/CDN and at each tool's backend are not controlled.",
+    "The GitHub case measures the README as each tool's public read path returns it; a truncated excerpt is reported as a missing artifact, not smoothed over.",
+    "Artifact markers were chosen from the public artifact contract (install command, class entries, topic links) before the run; the V2EX Chinese case additionally reports distinct topic URLs as an observed count.",
+    "Environment isolation is not a filesystem sandbox and no credentials were supplied to either side.",
+    "No paid, authenticated, transcription, or account-lifecycle workload ran."
+  ]
+}

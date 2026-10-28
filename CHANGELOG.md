@@ -6,6 +6,22 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+**Fixed** — Agent Reach detail reads no longer report a blocked/missing page as success
+
+- `reach_backend._interpret` withheld items whose forwarded body is only an access
+  block or a 404 shell and returns `content_unusable` (zero items, attribution and
+  attempt chain intact) when nothing usable remains; mixed responses keep the
+  usable rows and name the withheld ones in `limitations`.
+- One classifier for both paths: `extract.classify_page_shell` (used by
+  `_is_usable_page_text` and scoring) now recognizes network-security blocks and
+  missing-page bodies, including Chinese "你访问的页面不见了" and LinkedIn's
+  multilingual 404. Metadata-only actions (`v2ex user`, `bilibili hot`,
+  `xueqiu search`) and discovery snippets are untouched.
+- `report --format json` now carries per-lane `attribution` plus a top-level
+  `attribution.forwarded_lanes` / `native_lanes` split.
+- Regression fixtures saved from the pinned public sweep
+  (`tests/fixtures/reach_page_shells.json`).
+
 **Added** — `docs/AUTHENTICATED-TIER.md`: the complete bring-your-own-accounts guide
 
 - Part 1: persistent browser session (Camofox reference setup, systemd unit,

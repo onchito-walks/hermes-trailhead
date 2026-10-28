@@ -8,6 +8,7 @@ validation) and the attribution contract.
 from __future__ import annotations
 
 from types import SimpleNamespace
+import inspect
 import json
 import os
 import pathlib
@@ -250,6 +251,462 @@ def registry_payload() -> dict:
                         "backends": ["opencli"],
                         "public_web": [],
                     }
+                ],
+            },
+        ],
+    }
+
+
+def _p(name: str, help: str, *, required: bool = False, type: str = "str", default=None) -> dict:
+    """One param declaration in the pinned registry shape."""
+    return {"name": name, "help": help, "required": required, "type": type, "default": default}
+
+
+def pinned_registry_payload() -> dict:
+    """Exact ``agent-reach channels`` payload for Agent Reach 1.6.0 @ 14c2134.
+
+    Transcribed field for field from the pinned upstream registry (14 channels,
+    40 actions), not from this package's own inventory: a parity test that read
+    the inventory back would prove nothing.  No network access is involved.
+    """
+    return {
+        "schema_version": 1,
+        "ok": True,
+        "commands": {
+            "read": "agent-reach read <url>  (picks the channel from the URL)",
+            "action": "agent-reach <channel> <action> [args] [--timeout SECONDS]",
+        },
+        "channels": [
+            {
+                "name": "github",
+                "description": "GitHub 仓库和代码",
+                "level": "default",
+                "login": None,
+                "actions": [
+                    {
+                        "name": "search",
+                        "help": "Search repositories",
+                        "usage": "agent-reach github search <query> [--limit LIMIT]",
+                        "params": [_p("query", "what to search for", required=True), _p("limit", "max results", type="int", default=5)],
+                        "backends": ["gh", "github-api"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "read",
+                        "help": "Read a repository (with README) or an issue / PR (with comments)",
+                        "usage": "agent-reach github read <target>",
+                        "params": [_p("target", "owner/repo, or a repo / issue / PR link", required=True)],
+                        "backends": ["gh", "github-api"],
+                        "public_web": [],
+                    },
+                ],
+            },
+            {
+                "name": "twitter",
+                "description": "Twitter/X 推文",
+                "level": "experimental",
+                "login": {"via": "browser", "logged_in": None, "command": "agent-reach login twitter"},
+                "actions": [
+                    {
+                        "name": "search",
+                        "help": "Search tweets",
+                        "usage": "agent-reach twitter search <query> [--limit LIMIT]",
+                        "params": [_p("query", "what to search for", required=True), _p("limit", "max results", type="int", default=5)],
+                        "backends": ["opencli"],
+                        "public_web": ["x.com/", "twitter.com/"],
+                    },
+                    {
+                        "name": "profile",
+                        "help": "A user's profile",
+                        "usage": "agent-reach twitter profile <username>",
+                        "params": [_p("username", "handle without @", required=True)],
+                        "backends": ["opencli"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "tweets",
+                        "help": "A user's recent tweets",
+                        "usage": "agent-reach twitter tweets <username> [--limit LIMIT]",
+                        "params": [_p("username", "handle without @", required=True), _p("limit", "max tweets", type="int", default=5)],
+                        "backends": ["opencli"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "thread",
+                        "help": "A tweet with its replies",
+                        "usage": "agent-reach twitter thread <target>",
+                        "params": [_p("target", "tweet id or link", required=True)],
+                        "backends": ["opencli"],
+                        "public_web": [],
+                    },
+                ],
+            },
+            {
+                "name": "youtube",
+                "description": "YouTube 视频和字幕",
+                "level": "default",
+                "login": None,
+                "actions": [
+                    {
+                        "name": "read",
+                        "help": "Video title, channel, date and description",
+                        "usage": "agent-reach youtube read <target>",
+                        "params": [_p("target", "video link or id", required=True)],
+                        "backends": ["yt-dlp"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "search",
+                        "help": "Search videos",
+                        "usage": "agent-reach youtube search <query> [--limit LIMIT]",
+                        "params": [_p("query", "what to search for", required=True), _p("limit", "max results", type="int", default=5)],
+                        "backends": ["yt-dlp"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "subtitle",
+                        "help": "Full subtitle text of a video (manual or auto captions)",
+                        "usage": "agent-reach youtube subtitle <target> [--lang LANG]",
+                        "params": [_p("target", "video link or id", required=True), _p("lang", "preferred languages, comma separated", default="zh-Hans,zh,en,en-orig")],
+                        "backends": ["yt-dlp"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "transcribe",
+                        "help": "Speech-to-text of a video's audio (uses Groq/OpenAI Whisper quota)",
+                        "usage": "agent-reach youtube transcribe <target>",
+                        "params": [_p("target", "video link or id", required=True)],
+                        "backends": ["whisper"],
+                        "public_web": [],
+                    },
+                ],
+            },
+            {
+                "name": "reddit",
+                "description": "Reddit 帖子和评论",
+                "level": "optional",
+                "login": {"via": "browser", "logged_in": None, "command": "agent-reach login reddit"},
+                "actions": [
+                    {
+                        "name": "search",
+                        "help": "Search public posts first; --backend opencli uses site search",
+                        "usage": "agent-reach reddit search <query> [--limit LIMIT]",
+                        "params": [_p("query", "what to search for", required=True), _p("limit", "max results", type="int", default=5)],
+                        "backends": ["opencli"],
+                        "public_web": ["reddit.com/r/"],
+                    },
+                    {
+                        "name": "read",
+                        "help": "Read public page text first; --backend opencli requests the post and top comments",
+                        "usage": "agent-reach reddit read <target>",
+                        "params": [_p("target", "post link or id", required=True)],
+                        "backends": ["opencli"],
+                        "public_web": ["reddit.com/r/", "redd.it/"],
+                    },
+                    {
+                        "name": "subreddit",
+                        "help": "Latest posts in a subreddit",
+                        "usage": "agent-reach reddit subreddit <name> [--limit LIMIT]",
+                        "params": [_p("name", "subreddit name without r/, e.g. python", required=True), _p("limit", "max posts", type="int", default=5)],
+                        "backends": ["opencli"],
+                        "public_web": [],
+                    },
+                ],
+            },
+            {
+                "name": "facebook",
+                "description": "Facebook 帖子、主页和群组",
+                "level": "experimental",
+                "login": {"via": "browser", "logged_in": None, "command": "agent-reach login facebook"},
+                "actions": [
+                    {
+                        "name": "search",
+                        "help": "Search Facebook",
+                        "usage": "agent-reach facebook search <query> [--limit LIMIT]",
+                        "params": [_p("query", "what to search for", required=True), _p("limit", "max results", type="int", default=5)],
+                        "backends": ["opencli"],
+                        "public_web": ["facebook.com/"],
+                    },
+                    {
+                        "name": "profile",
+                        "help": "A user's or page's profile",
+                        "usage": "agent-reach facebook profile <username>",
+                        "params": [_p("username", "username or page name", required=True)],
+                        "backends": ["opencli"],
+                        "public_web": [],
+                    },
+                ],
+            },
+            {
+                "name": "instagram",
+                "description": "Instagram 用户、主页和指定用户帖子",
+                "level": "experimental",
+                "login": {"via": "browser", "logged_in": None, "command": "agent-reach login instagram"},
+                "actions": [
+                    {
+                        "name": "search",
+                        "help": "Search users (not posts)",
+                        "usage": "agent-reach instagram search <query> [--limit LIMIT]",
+                        "params": [_p("query", "what to search for", required=True), _p("limit", "max results", type="int", default=5)],
+                        "backends": ["opencli"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "profile",
+                        "help": "A user's profile",
+                        "usage": "agent-reach instagram profile <username>",
+                        "params": [_p("username", "Instagram username", required=True)],
+                        "backends": ["opencli"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "posts",
+                        "help": "A user's recent posts",
+                        "usage": "agent-reach instagram posts <username> [--limit LIMIT]",
+                        "params": [_p("username", "Instagram username", required=True), _p("limit", "max posts", type="int", default=6)],
+                        "backends": ["opencli"],
+                        "public_web": [],
+                    },
+                ],
+            },
+            {
+                "name": "bilibili",
+                "description": "B站视频、字幕和搜索",
+                "level": "default",
+                "login": {"via": "session", "logged_in": False, "command": "agent-reach login bilibili"},
+                "actions": [
+                    {
+                        "name": "search",
+                        "help": "Search videos",
+                        "usage": "agent-reach bilibili search <query> [--limit LIMIT]",
+                        "params": [_p("query", "what to search for", required=True), _p("limit", "max results", type="int", default=5)],
+                        "backends": ["bili-cli"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "read",
+                        "help": "Video title, uploader, description and stats",
+                        "usage": "agent-reach bilibili read <target>",
+                        "params": [_p("target", "BV id or video link", required=True)],
+                        "backends": ["bili-cli", "bilibili-api"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "hot",
+                        "help": "Trending videos",
+                        "usage": "agent-reach bilibili hot [--limit LIMIT]",
+                        "params": [_p("limit", "max items", type="int", default=10)],
+                        "backends": ["bili-cli", "bilibili-api"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "subtitle",
+                        "help": "Subtitle text of the first video part, when available (may need a Bilibili login)",
+                        "usage": "agent-reach bilibili subtitle <target>",
+                        "params": [_p("target", "BV id or video link", required=True)],
+                        "backends": ["bili-cli"],
+                        "public_web": [],
+                    },
+                ],
+            },
+            {
+                "name": "xiaohongshu",
+                "description": "小红书笔记",
+                "level": "optional",
+                "login": {"via": "browser", "logged_in": None, "command": "agent-reach login xiaohongshu"},
+                "actions": [
+                    {
+                        "name": "search",
+                        "help": "Search notes",
+                        "usage": "agent-reach xiaohongshu search <query> [--limit LIMIT]",
+                        "params": [_p("query", "what to search for", required=True), _p("limit", "max results", type="int", default=5)],
+                        "backends": ["opencli"],
+                        "public_web": ["xiaohongshu.com/explore/", "xiaohongshu.com/search_result/", "xhslink.com/"],
+                    },
+                    {
+                        "name": "read",
+                        "help": "Read a note (full link including xsec_token, as returned by search)",
+                        "usage": "agent-reach xiaohongshu read <target>",
+                        "params": [_p("target", "full note link with xsec_token", required=True)],
+                        "backends": ["opencli"],
+                        "public_web": ["xiaohongshu.com/explore/", "xiaohongshu.com/search_result/", "xhslink.com/"],
+                    },
+                    {
+                        "name": "comments",
+                        "help": "Read loaded comments and replies from a note; not an exhaustive export",
+                        "usage": "agent-reach xiaohongshu comments <target> [--limit LIMIT]",
+                        "params": [_p("target", "full note link with xsec_token", required=True), _p("limit", "max top-level comments (1..50); loaded replies are included", type="int", default=20)],
+                        "backends": ["opencli"],
+                        "public_web": [],
+                    },
+                ],
+            },
+            {
+                "name": "linkedin",
+                "description": "LinkedIn 职位搜索与详情",
+                "level": "optional",
+                "login": {"via": "browser", "logged_in": None, "command": "agent-reach login linkedin"},
+                "actions": [
+                    {
+                        "name": "jobs",
+                        "help": "Search LinkedIn jobs",
+                        "usage": "agent-reach linkedin jobs <query> [--location LOCATION] [--limit LIMIT]",
+                        "params": [_p("query", "job keywords", required=True), _p("location", "city or country"), _p("limit", "max results", type="int", default=5)],
+                        "backends": ["opencli"],
+                        "public_web": ["linkedin.com/jobs/view/"],
+                    },
+                    {
+                        "name": "read",
+                        "help": "Read a LinkedIn job description",
+                        "usage": "agent-reach linkedin read <target>",
+                        "params": [_p("target", "full job URL", required=True)],
+                        "backends": ["opencli"],
+                        "public_web": ["linkedin.com/jobs/view/"],
+                    },
+                ],
+            },
+            {
+                "name": "boss",
+                "description": "Boss直聘 职位搜索与 JD",
+                "level": "optional",
+                "login": {"via": "browser", "logged_in": None, "command": "agent-reach login boss"},
+                "actions": [
+                    {
+                        "name": "search",
+                        "help": "Search jobs using a configured browser session",
+                        "usage": "agent-reach boss search <query> [--city CITY] [--limit LIMIT]",
+                        "params": [_p("query", "job keywords", required=True), _p("city", "city, e.g. 深圳"), _p("limit", "max results", type="int", default=10)],
+                        "backends": ["opencli", "boss-agent-cli"],
+                        "public_web": ["zhipin.com/job_detail/"],
+                    },
+                    {
+                        "name": "read",
+                        "help": "Read a direct BOSS job URL",
+                        "usage": "agent-reach boss read <target>",
+                        "params": [_p("target", "full job URL", required=True)],
+                        "backends": ["boss-agent-cli", "opencli"],
+                        "public_web": ["zhipin.com/job_detail/"],
+                    },
+                ],
+            },
+            {
+                "name": "v2ex",
+                "description": "V2EX 节点、主题与回复",
+                "level": "default",
+                "login": None,
+                "actions": [
+                    {
+                        "name": "hot",
+                        "help": "Today's hot topics",
+                        "usage": "agent-reach v2ex hot [--limit LIMIT]",
+                        "params": [_p("limit", "max items", type="int", default=10)],
+                        "backends": ["v2ex-api"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "node",
+                        "help": "Latest topics in a node",
+                        "usage": "agent-reach v2ex node <node_name> [--limit LIMIT]",
+                        "params": [_p("node_name", "node name, e.g. python, programmer, jobs", required=True), _p("limit", "max items", type="int", default=10)],
+                        "backends": ["v2ex-api"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "read",
+                        "help": "Read a topic and its replies",
+                        "usage": "agent-reach v2ex read <target>",
+                        "params": [_p("target", "topic link or id", required=True)],
+                        "backends": ["v2ex-api"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "user",
+                        "help": "A member's profile",
+                        "usage": "agent-reach v2ex user <username>",
+                        "params": [_p("username", "V2EX username", required=True)],
+                        "backends": ["v2ex-api"],
+                        "public_web": [],
+                    },
+                ],
+            },
+            {
+                "name": "xueqiu",
+                "description": "雪球股票行情与社区动态",
+                "level": "optional",
+                "login": {"via": "browser", "logged_in": None, "command": "agent-reach login xueqiu"},
+                "actions": [
+                    {
+                        "name": "quote",
+                        "help": "Real-time stock quote (A-share, HK, US)",
+                        "usage": "agent-reach xueqiu quote <symbol>",
+                        "params": [_p("symbol", "e.g. SH600519, 600519, 00700, AAPL", required=True)],
+                        "backends": ["tencent", "xueqiu-api"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "search",
+                        "help": "Find stocks by name or code",
+                        "usage": "agent-reach xueqiu search <query> [--limit LIMIT]",
+                        "params": [_p("query", "name or code, e.g. 茅台", required=True), _p("limit", "max results", type="int", default=5)],
+                        "backends": ["tencent", "xueqiu-api"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "hot_posts",
+                        "help": "Trending Xueqiu community posts (needs a browser session)",
+                        "usage": "agent-reach xueqiu hot_posts [--limit LIMIT]",
+                        "params": [_p("limit", "max items", type="int", default=10)],
+                        "backends": ["xueqiu-api"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "hot_stocks",
+                        "help": "Most-watched stocks on Xueqiu (needs a browser session)",
+                        "usage": "agent-reach xueqiu hot_stocks [--limit LIMIT]",
+                        "params": [_p("limit", "max items", type="int", default=10)],
+                        "backends": ["xueqiu-api"],
+                        "public_web": [],
+                    },
+                ],
+            },
+            {
+                "name": "xiaoyuzhou",
+                "description": "小宇宙播客转文字",
+                "level": "optional",
+                "login": None,
+                "actions": [
+                    {
+                        "name": "transcribe",
+                        "help": "Full transcript of a podcast episode (uses Groq Whisper quota)",
+                        "usage": "agent-reach xiaoyuzhou transcribe <target>",
+                        "params": [_p("target", "episode link", required=True)],
+                        "backends": ["groq-whisper"],
+                        "public_web": [],
+                    },
+                ],
+            },
+            {
+                "name": "web",
+                "description": "网页搜索与阅读（Agent 自带工具不可用时的保底）",
+                "level": "default",
+                "login": None,
+                "actions": [
+                    {
+                        "name": "search",
+                        "help": "Search the web (Exa semantic search)",
+                        "usage": "agent-reach web search <query> [--limit LIMIT]",
+                        "params": [_p("query", "what to search for", required=True), _p("limit", "max results", type="int", default=5)],
+                        "backends": ["exa"],
+                        "public_web": [],
+                    },
+                    {
+                        "name": "read",
+                        "help": "Read a web page as clean text",
+                        "usage": "agent-reach web read <target>",
+                        "params": [_p("target", "page URL", required=True)],
+                        "backends": ["jina", "exa"],
+                        "public_web": [],
+                    },
                 ],
             },
         ],
@@ -512,20 +969,27 @@ def test_registry_action_outside_allowlist_is_rejected(backend_factory):
     assert runner.action_calls == []
 
 
-def test_paid_transcription_is_never_run(backend_factory):
+def test_transcription_is_discoverable_but_never_runs_by_default(backend_factory):
+    """The gap is advertised; the billable call is not."""
     backend, runner = backend_factory()
     for channel in ("youtube", "xiaoyuzhou"):
         result = backend.execute(channel, "transcribe", {"target": "abc"})
         assert result.ok is False
-        assert result.error["code"] == "action_not_allowlisted"
-    assert runner.action_calls == []
+        assert result.error["code"] == "quota_required"
+        assert "--allow-quota-consuming" in result.error["message"]
+        assert result.provenance["quota_consuming"] is True
+        assert result.provenance["route"] is None
+    assert runner.calls == []  # not even the registry was read
 
 
-def test_allowlist_contains_no_mutating_actions():
+def test_allowlist_contains_no_mutating_or_quota_actions():
     names = {a for actions in reach.READ_ONLY_ACTION_ALLOWLIST.values() for a in actions}
     assert names.isdisjoint(reach.FORBIDDEN_ACTIONS)
     assert "transcribe" not in names
     assert "xiaoyuzhou" not in reach.READ_ONLY_ACTION_ALLOWLIST
+    # ...but transcription is discoverable through its own allowlist.
+    assert reach.DISCOVERABLE_ACTION_ALLOWLIST["youtube"] >= {"transcribe"}
+    assert reach.DISCOVERABLE_ACTION_ALLOWLIST["xiaoyuzhou"] == frozenset({"transcribe"})
 
 
 # ── public mode ───────────────────────────────────────────────────────────
@@ -811,6 +1275,14 @@ def test_consented_calls_are_not_route_checked(backend_factory):
 
 
 def test_argument_array_has_no_shell_and_minimal_env(backend_factory, monkeypatch, tmp_path):
+    """The child is always an argv list, never a shell, with a minimal env.
+
+    The behavioural contract is what matters — argv list, ``shell=False``, no
+    inherited stdin, no credential variable, no operator ``HOME`` in public mode
+    — not which ``subprocess`` entry point is used.  The runner is deliberately
+    ``Popen``-based now (capped drain + killable process group, see F5), so this
+    test asserts the *invocation* rather than one call to ``subprocess.run``.
+    """
     backend, runner = backend_factory(env={"PATH": "/usr/bin:/bin", "HOME": "/home/op", "GROQ_API_KEY": "secret", "OPENAI_API_KEY": "secret"})
     backend.execute("github", "search", {"query": "rust"})
     call = runner.action_calls[0]
@@ -823,21 +1295,54 @@ def test_argument_array_has_no_shell_and_minimal_env(backend_factory, monkeypatc
     assert child_env["HOME"].startswith(tempfile.gettempdir())
 
     stub = tmp_path / "agent-reach"
-    stub.write_text("#!/usr/bin/env python3\n")
+    stub.write_text(
+        "#!/usr/bin/env python3\n"
+        "import json, sys\n"
+        f"REGISTRY = {registry_payload()!r}\n"
+        "argv = sys.argv[1:]\n"
+        "if argv[:1] == ['channels']:\n"
+        "    print(json.dumps(REGISTRY))\n"
+        "    sys.exit(0)\n"
+        "backend = argv[argv.index('--backend') + 1] if '--backend' in argv else None\n"
+        "print(json.dumps({'schema_version': 1, 'ok': True, 'channel': argv[0],\n"
+        "                  'action': argv[1], 'backend': backend, 'items': [],\n"
+        "                  'meta': {}, 'error': None}))\n"
+    )
     stub.chmod(0o755)
-    seen = {}
+    calls: list[dict] = []
+    real_popen = reach.subprocess.Popen
 
     def spy(argv, **kwargs):
-        seen["argv"] = argv
-        seen["kwargs"] = kwargs
-        return SimpleNamespace(returncode=0, stdout=json.dumps(ok_envelope("github", "search")), stderr="")
+        # Record the real invocation, then let the bounded runner do its job.
+        calls.append({"argv": argv, "kwargs": kwargs})
+        return real_popen(argv, **kwargs)
 
-    monkeypatch.setattr(reach.subprocess, "run", spy)
+    monkeypatch.setattr(reach.subprocess, "Popen", spy)
     direct = reach.AgentReachBackend(str(stub), env={"PATH": "/usr/bin:/bin"})
-    direct.execute("github", "search", {"query": "rust"})
-    assert isinstance(seen["argv"], list)
-    assert seen["kwargs"]["shell"] is False
-    assert seen["kwargs"]["stdin"] is reach.subprocess.DEVNULL
+    result = direct.execute("github", "search", {"query": "rust"})
+
+    # Registry read and action call both go through the same bounded runner.
+    assert result.ok is True
+    assert len(calls) == 2
+    for invocation in calls:
+        argv = invocation["argv"]
+        kwargs = invocation["kwargs"]
+        assert isinstance(argv, list)
+        assert all(isinstance(part, str) for part in argv)
+        assert kwargs["shell"] is False
+        assert kwargs["stdin"] is reach.subprocess.DEVNULL
+        # No implicit capture helper: the drain owns both pipes.
+        assert "capture_output" not in kwargs
+        assert kwargs["stdout"] is reach.subprocess.PIPE
+        assert kwargs["stderr"] is reach.subprocess.PIPE
+        assert "GROQ_API_KEY" not in kwargs["env"]
+        assert "OPENAI_API_KEY" not in kwargs["env"]
+        if os.name == "posix":
+            # Own session => own process group, so the kill reaches descendants.
+            assert kwargs["start_new_session"] is True
+    action_argv = calls[-1]["argv"]
+    assert action_argv[:3] == [str(stub), "github", "search"]
+    assert action_argv[-2:] == ["--", "rust"]
 
 
 @pytest.mark.parametrize(
@@ -1145,8 +1650,15 @@ def test_capabilities_mark_public_and_authenticated_routes(backend_factory):
     assert rows[("xueqiu", "quote")]["forced_backend"] == "tencent"
     assert rows[("xueqiu", "search")]["public"] is True
     assert rows[("xueqiu", "hot_posts")]["public"] is False
-    assert ("youtube", "transcribe") not in rows
-    assert not any(row["channel"] == "xiaoyuzhou" for row in rows.values())
+    # Transcription is discoverable but double-gated; it is never public.
+    assert ("youtube", "transcribe") in rows
+    assert rows[("youtube", "transcribe")]["mode"] == "quota"
+    assert rows[("youtube", "transcribe")]["public"] is False
+    assert rows[("youtube", "transcribe")]["quota_consuming"] is True
+    assert rows[("youtube", "transcribe")]["blocked_by_default"] is True
+    assert rows[("youtube", "transcribe")]["gate"] == "quota"
+    assert rows[("xiaoyuzhou", "transcribe")]["gate"] == "quota"
+    assert all(row["gate"] != "quota" for (_, action), row in rows.items() if action != "transcribe")
 
 
 def test_describe_reports_missing_executable_without_raising():
@@ -1164,3 +1676,505 @@ def test_describe_reports_registry_error(backend_factory):
     payload = backend.describe()
     assert payload["found"] is True
     assert payload["error"]["code"] == "registry_invalid"
+
+
+# ── quota gate: transcription is visible, double-gated, and never automatic ──
+
+TRANSCRIPTION_CALLS = (
+    ("youtube", "transcribe", {"target": "https://youtu.be/dQw4w9WgXcQ"}, "whisper"),
+    ("xiaoyuzhou", "transcribe", {"target": "https://www.xiaoyuzhoufm.com/episode/abc"}, "groq-whisper"),
+)
+
+
+@pytest.mark.parametrize("channel, action, params, backend", TRANSCRIPTION_CALLS)
+def test_quota_actions_need_quota_and_auth_consent_separately(
+    backend_factory, channel, action, params, backend
+):
+    """Both flags are required; neither one alone spawns anything."""
+    response = ok_envelope(channel, action, backend=backend, items=[])
+    backend_obj, runner = backend_factory(action_response=response)
+
+    neither = backend_obj.execute(channel, action, params)
+    assert neither.error["code"] == "quota_required"
+    assert "--allow-quota-consuming" in neither.error["message"]
+
+    quota_only = backend_obj.execute(channel, action, params, allow_quota_consuming=True)
+    assert quota_only.error["code"] == "auth_required"
+    assert "allow_authenticated" in quota_only.error["message"]
+
+    auth_only = backend_obj.execute(channel, action, params, allow_authenticated=True)
+    assert auth_only.error["code"] == "quota_required"
+
+    assert runner.calls == []  # not even `channels` was executed
+
+
+@pytest.mark.parametrize("channel, action, params, backend", TRANSCRIPTION_CALLS)
+def test_quota_actions_run_only_with_both_consents(backend_factory, channel, action, params, backend):
+    backend_obj, runner = backend_factory(
+        action_response=ok_envelope(channel, action, backend=backend, items=[])
+    )
+    result = backend_obj.execute(
+        channel, action, params, allow_quota_consuming=True, allow_authenticated=True
+    )
+    assert result.ok is True, result.error
+    call = runner.action_calls[0]
+    assert call["argv"][1:3] == [channel, action]
+    assert "--backend" not in call["argv"]  # quota actions pin nothing
+    assert result.provenance["quota_consuming"] is True
+    assert result.provenance["route"] == "quota"
+    assert result.provenance["public_only"] is False
+    assert result.provenance["home_mode"] == "operator"
+    assert result.provenance["forced_backend"] is None
+    assert reach.LIMITATION_QUOTA in result.limitations
+    assert reach.LIMITATION_AUTHENTICATED in result.limitations
+
+
+def test_quota_consent_via_constructor_flags(backend_factory):
+    backend, runner = backend_factory(
+        action_response=ok_envelope("xiaoyuzhou", "transcribe", backend="groq-whisper", items=[]),
+        allow_authenticated=True,
+        allow_quota_consuming=True,
+    )
+    result = backend.execute("xiaoyuzhou", "transcribe", {"target": "abc"})
+    assert result.ok is True
+    assert runner.action_calls
+
+
+@pytest.mark.parametrize("value", ["1", "true", "YES", "on"])
+def test_asr_veto_wins_over_explicit_quota_consent(backend_factory, value):
+    backend, runner = backend_factory(
+        action_response=ok_envelope("youtube", "transcribe", backend="whisper", items=[]),
+        env={"PATH": "/usr/bin:/bin", reach.ASR_DISABLE_ENV: value},
+    )
+    result = backend.execute(
+        "youtube",
+        "transcribe",
+        {"target": "https://youtu.be/abc"},
+        allow_quota_consuming=True,
+        allow_authenticated=True,
+    )
+    assert result.ok is False
+    assert result.error["code"] == "asr_disabled"
+    assert reach.ASR_DISABLE_ENV in result.error["message"]
+    assert runner.calls == []
+
+
+def test_asr_veto_from_the_real_environment(backend_factory, monkeypatch):
+    monkeypatch.setenv(reach.ASR_DISABLE_ENV, "1")
+    backend, runner = backend_factory(
+        action_response=ok_envelope("youtube", "transcribe", backend="whisper", items=[])
+    )
+    result = backend.execute(
+        "youtube",
+        "transcribe",
+        {"target": "https://youtu.be/abc"},
+        allow_quota_consuming=True,
+        allow_authenticated=True,
+    )
+    assert result.error["code"] == "asr_disabled"
+    assert runner.calls == []
+
+
+def test_asr_veto_does_not_block_read_only_actions(backend_factory):
+    backend, runner = backend_factory(env={reach.ASR_DISABLE_ENV: "1"})
+    result = backend.execute("github", "search", {"query": "rust"})
+    assert result.ok is True
+    assert runner.action_calls
+
+
+# ── process-wide veto: OR semantics, no override bypass ─────────────────────
+
+
+def test_asr_veto_is_an_or_and_cannot_be_cleared_by_a_mapping(monkeypatch):
+    monkeypatch.setenv(reach.ASR_DISABLE_ENV, "1")
+    assert reach.asr_disabled() is True
+    # An empty (or partial) override can only add a veto, never clear one.
+    assert reach.asr_disabled({}) is True
+    assert reach.asr_disabled({"PATH": "/usr/bin:/bin"}) is True
+    monkeypatch.delenv(reach.ASR_DISABLE_ENV, raising=False)
+    assert reach.asr_disabled({}) is False
+    assert reach.asr_disabled({reach.ASR_DISABLE_ENV: "yes"}) is True
+
+
+def test_empty_env_override_cannot_bypass_the_process_veto(tmp_path, monkeypatch):
+    """OS flag + env={} + both consents still spawns zero processes."""
+    monkeypatch.setenv(reach.ASR_DISABLE_ENV, "1")
+    marker = tmp_path / "spawned.txt"
+    stub = tmp_path / "agent-reach"
+    stub.write_text(
+        f"#!{sys.executable}\n"
+        "import pathlib, sys\n"
+        f"pathlib.Path({str(marker)!r}).write_text(' '.join(sys.argv[1:]))\n"
+        "print('{}')\n"
+    )
+    stub.chmod(0o755)
+
+    backend = reach.AgentReachBackend(
+        str(stub), env={}, allow_authenticated=True, allow_quota_consuming=True
+    )
+    result = backend.execute("youtube", "transcribe", {"target": "https://youtu.be/abc"})
+    assert result.ok is False
+    assert result.error["code"] == "asr_disabled"
+    assert result.argv == ()
+    assert not marker.exists(), "the veto must refuse before any process exists"
+
+    diagnostics = backend.describe()
+    assert diagnostics["asr_disabled"] is True
+    assert diagnostics["asr_vetoed"] is True
+    assert diagnostics["quota_ready"] is False
+
+
+def test_capability_diagnostics_report_a_veto_with_an_empty_override(
+    backend_factory, monkeypatch
+):
+    monkeypatch.setenv(reach.ASR_DISABLE_ENV, "1")
+    backend, _ = backend_factory(
+        env={}, allow_authenticated=True, allow_quota_consuming=True
+    )
+    rows = {(row["channel"], row["action"]): row for row in backend.capabilities()}
+    assert rows[("youtube", "transcribe")]["asr_veto"] is True
+    assert rows[("xiaoyuzhou", "transcribe")]["asr_veto"] is True
+
+    payload = backend.describe()
+    assert payload["quota_consuming_allowed"] is True
+    assert payload["authenticated_allowed"] is True
+    assert payload["asr_disabled"] is True
+    assert payload["quota_ready"] is False
+    assert payload["credential_source"] == "upstream-home-config"
+
+
+@pytest.mark.parametrize(
+    "quota, auth, veto, expected",
+    (
+        (False, False, False, False),
+        (True, False, False, False),
+        (False, True, False, False),
+        (True, True, False, True),
+        (True, True, True, False),
+    ),
+)
+def test_quota_consent_and_quota_readiness_are_distinct(
+    backend_factory, monkeypatch, quota, auth, veto, expected
+):
+    if veto:
+        monkeypatch.setenv(reach.ASR_DISABLE_ENV, "1")
+    else:
+        monkeypatch.delenv(reach.ASR_DISABLE_ENV, raising=False)
+    backend, _ = backend_factory(allow_quota_consuming=quota, allow_authenticated=auth)
+    payload = backend.describe()
+    # Consent is what the caller passed; readiness also needs the veto clear.
+    assert payload["quota_consuming_allowed"] is quota
+    assert payload["authenticated_allowed"] is auth
+    assert payload["asr_vetoed"] is veto
+    assert payload["quota_ready"] is expected
+
+
+# ── untrusted error redaction ───────────────────────────────────────────────
+
+
+def _sequenced_runner(action_response, registry=None):
+    """A runner that answers ``channels`` normally and then replays a response."""
+
+    def run(argv, *, timeout, env):
+        if list(argv)[1:] == ["channels"]:
+            return SimpleNamespace(
+                returncode=0,
+                stdout=json.dumps(registry if registry is not None else registry_payload()),
+                stderr="",
+            )
+        response = action_response
+        if callable(response):
+            response = response(argv)
+        stdout = response.stdout
+        return SimpleNamespace(
+            returncode=response.returncode, stdout=stdout, stderr=response.stderr
+        )
+
+    return run
+
+
+def _stub_backend(tmp_path, runner, **kwargs):
+    stub = tmp_path / "agent-reach"
+    stub.write_text("#!/bin/sh\nexit 0\n")
+    stub.chmod(0o755)
+    return reach.AgentReachBackend(str(stub), runner=runner, env={}, **kwargs)
+
+
+def test_redaction_leaves_ordinary_text_alone_and_truncates_after_redacting():
+    plain = "agent-reach channels exited 2: no credentials for github-api"
+    assert reach.redact_secrets(plain) == plain
+    token = "ghp_" + "B" * 36
+    out = reach.redact_secrets("Authorization: Bearer " + token, limit=25)
+    assert token[:12] not in out
+    assert len(out) <= 25
+
+
+def test_registry_stderr_is_redacted(tmp_path):
+    secret = "sk-proj-LIVEKEY1234567890abcd"
+    # Registry call itself fails with credential-bearing stderr.
+    failing = SimpleNamespace(
+        returncode=3,
+        stdout="",
+        stderr=(
+            f"auth failed for {secret} "
+            "https://alice:hunter2pass@api.example.test/v1"
+        ),
+    )
+
+    def run(argv, *, timeout, env):
+        return failing
+
+    backend = _stub_backend(tmp_path, run)
+    with pytest.raises(reach.RegistryError) as excinfo:
+        backend.registry()
+    text = str(excinfo.value)
+    assert secret not in text
+    assert "hunter2pass" not in text
+    assert "[redacted" in text
+
+    payload = backend.describe()
+    assert payload["error"]["code"] == "registry_invalid"
+    assert secret not in payload["error"]["message"]
+    assert "hunter2pass" not in payload["error"]["message"]
+
+
+def test_execution_stderr_is_redacted(tmp_path):
+    secret = "sk-live-ABCDEFGHIJKLMNOP"
+    token = "ghp_" + "B" * 36
+    stderr = (
+        f"boom OPENAI_API_KEY={secret} Authorization: Bearer {token} "
+        "url https://bob:swordfish123@example.test/x"
+    )
+    runner = _sequenced_runner(
+        SimpleNamespace(returncode=1, stdout="", stderr=stderr)
+    )
+    backend = _stub_backend(tmp_path, runner)
+    result = backend.execute("github", "search", {"query": "rust"})
+    assert result.error["code"] == "malformed_output"
+    blob = json.dumps(result.to_dict())
+    for leaked in (secret, token, "swordfish123"):
+        assert leaked not in blob
+    assert "[redacted" in result.error["message"]
+
+
+def test_upstream_error_fields_and_attempts_are_redacted(tmp_path):
+    secret = "sk-proj-QQQQQQQQQQQQQQQQQ"
+    token = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.c2lnbmF0dXJlLXZhbHVl"
+    response = {
+        "schema_version": 1,
+        "ok": False,
+        "channel": "github",
+        "action": "search",
+        "backend": "github-api",
+        "error": {
+            "code": f"BAD_KEY {secret}",
+            "message": f"upstream rejected key {secret}",
+            "hint": f"Authorization: Bearer {token}",
+        },
+        "meta": {
+            "attempts": [
+                {"backend": "gh", "result": "FAILED", "message": f"token={secret}"}
+            ]
+        },
+        "items": [],
+    }
+    runner = _sequenced_runner(SimpleNamespace(returncode=0, stdout=json.dumps(response), stderr=""))
+    backend = _stub_backend(tmp_path, runner)
+    result = backend.execute("github", "search", {"query": "rust"})
+    assert result.error["code"] == "upstream_error"
+    blob = json.dumps(result.to_dict())
+    assert secret not in blob
+    assert token not in blob
+    assert "[redacted" in blob
+    # The upstream code stays visible in shape, without the credential.
+    assert "BAD_KEY" in result.error["upstream_code"]
+
+
+def test_quota_run_forwards_no_api_keys_or_secrets(backend_factory):
+    """Consent uses the operator's configured key store, never env passthrough."""
+    backend, runner = backend_factory(
+        action_response=ok_envelope("youtube", "transcribe", backend="whisper", items=[]),
+        env={
+            "PATH": "/usr/bin:/bin",
+            "HOME": "/home/op",
+            "GROQ_API_KEY": "gsk-live-secret",
+            "OPENAI_API_KEY": "sk-live-secret",
+        },
+    )
+    result = backend.execute(
+        "youtube", "transcribe", {"target": "abc"}, allow_quota_consuming=True, allow_authenticated=True
+    )
+    assert result.ok is True
+    child_env = runner.action_calls[0]["env"]
+    assert "GROQ_API_KEY" not in child_env
+    assert "OPENAI_API_KEY" not in child_env
+    assert "gsk-live-secret" not in json.dumps(child_env)
+    assert "gsk-live-secret" not in json.dumps(result.to_dict())
+    assert "sk-live-secret" not in json.dumps(result.to_dict())
+
+
+def test_quota_consent_does_not_widen_the_read_only_route(backend_factory):
+    """--allow-quota-consuming must not turn a session action into a public one."""
+    backend, runner = backend_factory()
+    result = backend.execute(
+        "twitter", "profile", {"username": "nasa"}, allow_quota_consuming=True
+    )
+    assert result.error["code"] == "auth_required"
+    assert runner.action_calls == []
+
+
+def test_normal_search_code_has_no_quota_path():
+    """Search is structurally incapable of reaching this module's quota gate."""
+    from hermes_trailhead import search as search_module
+
+    source = inspect.getsource(search_module)
+    assert "reach_backend" not in source
+    assert "allow_quota_consuming" not in source
+    assert "transcribe" not in source
+
+
+# ── pinned 40-action parity inventory ─────────────────────────────────────
+
+
+def _registry_pairs() -> set[tuple[str, str]]:
+    payload = pinned_registry_payload()
+    return {
+        (channel["name"], action["name"])
+        for channel in payload["channels"]
+        for action in channel["actions"]
+    }
+
+
+def test_parity_inventory_is_exactly_40_actions_across_14_channels():
+    inventory = reach.parity_inventory()
+    assert inventory["reference"]["commit"] == "14c213405669414492bda0f8d52cc6531d062c45"
+    assert inventory["reference"]["version"] == "1.6.0"
+    assert inventory["counts"]["actions"] == 40
+    assert inventory["counts"]["channels"] == 14
+    assert inventory["counts"]["surfaced"] == 40
+    pairs = {(row["channel"], row["action"]) for row in inventory["actions"]}
+    assert len(pairs) == 40
+    reach.validate_parity_inventory()
+
+
+def test_parity_inventory_matches_the_pinned_registry_exactly():
+    payload = pinned_registry_payload()
+    assert _registry_pairs() == {(row.channel, row.action) for row in reach.PARITY_ACTIONS}
+    registry = reach.parse_registry(payload)
+    reach.validate_parity_inventory(registry)
+
+
+def test_every_inventory_gate_matches_runtime_route_policy():
+    """Static inventory gates must equal what execute() would actually do."""
+    registry = reach.parse_registry(pinned_registry_payload())
+    for row in reach.PARITY_ACTIONS:
+        channel = registry.channels[row.channel]
+        action = channel.actions[row.action]
+        if reach.AgentReachBackend.is_quota_action(row.channel, row.action):
+            mode = reach.AgentReachBackend.quota_mode(channel, action)
+            assert row.gate == "quota"
+        else:
+            mode = reach.AgentReachBackend.reach_mode(channel, action)
+            assert row.gate == ("public" if mode.public else "consent"), row
+        assert mode.quota_consuming is (row.gate == "quota")
+
+
+def test_discoverable_capabilities_cover_the_whole_inventory(backend_factory):
+    backend, _ = backend_factory(pinned_registry_payload())
+    caps = {(row["channel"], row["action"]) for row in backend.capabilities()}
+    assert caps == {(row.channel, row.action) for row in reach.PARITY_ACTIONS}
+    quota_rows = [row for row in backend.capabilities() if row["gate"] == "quota"]
+    assert {(row["channel"], row["action"]) for row in quota_rows} == {
+        ("youtube", "transcribe"),
+        ("xiaoyuzhou", "transcribe"),
+    }
+    assert all(row["blocked_by_default"] for row in quota_rows)
+
+
+def test_capability_gates_use_the_same_vocabulary_as_the_inventory(backend_factory):
+    """One gate vocabulary everywhere: public / consent / quota."""
+    backend, _ = backend_factory(pinned_registry_payload())
+    caps = backend.capabilities()
+    gates = {row["gate"] for row in caps}
+    assert gates <= set(reach.GATE_STATES)
+    assert "authenticated" not in gates  # route word, never a gate word
+    consent_pairs = {(row["channel"], row["action"]) for row in caps if row["gate"] == "consent"}
+    assert consent_pairs == {row.pair for row in reach.PARITY_ACTIONS if row.gate == "consent"}
+    rows = {(row["channel"], row["action"]): row for row in caps}
+    assert rows[("twitter", "profile")]["mode"] == "authenticated"
+    assert rows[("twitter", "profile")]["gate"] == "consent"
+    assert rows[("github", "search")]["gate"] == "public"
+    inventory = reach.parity_inventory()
+    assert {row["gate"] for row in inventory["actions"]} <= set(reach.GATE_STATES)
+
+
+def test_states_start_with_the_exact_coverage_word():
+    rows = {(row.channel, row.action): row.to_dict() for row in reach.PARITY_ACTIONS}
+    for pair, row in rows.items():
+        assert row["states"][0] == row["coverage"], pair
+    partial = rows[("github", "read")]
+    assert partial["coverage"] == "native-partial"
+    assert partial["states"][0] == "native-partial"
+    assert "partial" not in partial["states"]
+    assert "upstream" not in partial["states"]
+    assert rows[("twitter", "profile")]["states"] == [
+        "upstream",
+        "gated-auth",
+        "testing-fixture",
+    ]
+    assert rows[("youtube", "transcribe")]["states"][0] == "native-partial"
+    assert rows[("youtube", "transcribe")]["states"][1] == "gated-quota"
+
+
+def test_surfaced_ratio_is_computed_and_cannot_exceed_one(monkeypatch):
+    inventory = reach.parity_inventory()
+    counts = inventory["counts"]
+    assert counts["surfaced"] == len(inventory["actions"]) == 40
+    assert counts["surfaced_ratio"] == counts["surfaced"] / counts["actions"] == 1.0
+    assert {row.pair for row in reach.PARITY_ACTIONS} == reach._SURFACED_PAIRS
+    reach.validate_parity_inventory()
+
+    # A surfaced pair with no inventory row would push the ratio above 1.
+    monkeypatch.setattr(
+        reach, "_SURFACED_PAIRS", reach._SURFACED_PAIRS | {("rogue", "search")}
+    )
+    with pytest.raises(ValueError, match="surfaced pairs are missing"):
+        reach.validate_parity_inventory()
+
+
+def test_parity_counts_never_promote_fixtures_to_live():
+    inventory = reach.parity_inventory()
+    rows = inventory["actions"]
+    live = [row for row in rows if row["live_verified"]]
+    assert inventory["counts"]["live_verified"] == len(live) == 5
+    assert inventory["counts"]["fixture_only"] == 40 - len(live) == 35
+    assert {f"{row['channel']} {row['action']}" for row in live} == {
+        "github search",
+        "reddit search",
+        "bilibili hot",
+        "v2ex hot",
+        "xueqiu quote",
+    }
+    # Rows whose live claim rested on an aggregate (not a per-call) record are
+    # fixture-only until the parent records a fresh run for them.
+    for pair in (("github", "read"), ("bilibili", "read"), ("xueqiu", "search")):
+        row = next(r for r in rows if (r["channel"], r["action"]) == pair)
+        assert row["live_verified"] is False, pair
+        assert "live" not in row["evidence"], pair
+    for row in rows:
+        # Evidence must be a list of vocabulary words, never a split string.
+        assert isinstance(row["evidence"], list) and row["evidence"]
+        assert set(row["evidence"]) <= {"fixture", "native-tests", "live"}
+        assert all(len(item) > 1 for item in row["evidence"])
+        if "live" not in row["evidence"]:
+            assert row["live_verified"] is False
+            assert "testing-fixture" in row["states"]
+    assert "not live" in inventory["states"]["legend"] or "not live evidence" in inventory["states"]["legend"]
+
+
+def test_validate_parity_inventory_rejects_upstream_drift():
+    payload = pinned_registry_payload()
+    payload["channels"] = [c for c in payload["channels"] if c["name"] != "xiaoyuzhou"]
+    registry = reach.parse_registry(payload)
+    with pytest.raises(ValueError, match="does not match the pinned registry"):
+        reach.validate_parity_inventory(registry)

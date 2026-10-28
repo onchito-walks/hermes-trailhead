@@ -1,0 +1,1537 @@
+{
+  "schema": "trailhead.public-acceptance/1",
+  "generated_at": "2026-10-28T13:23:15Z",
+  "host": {
+    "hostname_kind": "single Linux host (name withheld)",
+    "platform": "Linux-7.0.0-1013-oracle-aarch64-with-glibc2.43",
+    "machine": "aarch64",
+    "cpus": 4,
+    "mem_total_kb": 24547476,
+    "python": "3.11.15"
+  },
+  "manifest": {
+    "manifest_version": 1,
+    "frozen_on": "2026-10-28",
+    "languages": [
+      "en",
+      "zh-Hans"
+    ],
+    "cases": [
+      {
+        "case_id": "public-docs-python-typing",
+        "compare_case": "docs-python-typing",
+        "language": "en",
+        "family": "docs",
+        "requested_outcome": "complete 'typing' module reference: page identity plus the Protocol / TypeVar / Generic entries an API consumer needs",
+        "artifacts": [
+          {
+            "label": "page_identity",
+            "kind": "any_of",
+            "values": [
+              "Support for type hints"
+            ]
+          },
+          {
+            "label": "entry_Protocol",
+            "kind": "any_of",
+            "values": [
+              "Protocol"
+            ]
+          },
+          {
+            "label": "entry_TypeVar",
+            "kind": "any_of",
+            "values": [
+              "TypeVar"
+            ]
+          },
+          {
+            "label": "entry_Generic",
+            "kind": "any_of",
+            "values": [
+              "Generic"
+            ]
+          },
+          {
+            "label": "special_form_TypeAlias",
+            "kind": "any_of",
+            "values": [
+              "TypeAlias"
+            ]
+          }
+        ]
+      },
+      {
+        "case_id": "public-github-requests-readme",
+        "compare_case": "github-requests-readme",
+        "language": "en",
+        "family": "github",
+        "requested_outcome": "psf/requests repository README: identity, install command, a usage call, and the license the README states",
+        "artifacts": [
+          {
+            "label": "repo_identity",
+            "kind": "any_of",
+            "values": [
+              "psf/requests"
+            ]
+          },
+          {
+            "label": "readme_install",
+            "kind": "any_of",
+            "values": [
+              "pip install requests"
+            ]
+          },
+          {
+            "label": "readme_usage",
+            "kind": "any_of",
+            "values": [
+              "requests.get(",
+              "requests.get("
+            ]
+          },
+          {
+            "label": "readme_intro",
+            "kind": "any_of",
+            "values": [
+              "A simple, yet elegant, HTTP library"
+            ]
+          },
+          {
+            "label": "readme_license",
+            "kind": "any_of",
+            "values": [
+              "Apache"
+            ]
+          }
+        ]
+      },
+      {
+        "case_id": "public-v2ex-node-python-zh",
+        "compare_case": "forum-v2ex-node",
+        "language": "zh-Hans",
+        "family": "v2ex",
+        "requested_outcome": "V2EX Python node listing (Chinese): node identity plus the titles/links of listed topics",
+        "artifacts": [
+          {
+            "label": "node_identity",
+            "kind": "any_of",
+            "values": [
+              "Python"
+            ]
+          },
+          {
+            "label": "chinese_topic_prose",
+            "kind": "regex_distinct",
+            "pattern": "[\\u4e00-\\u9fff]{8,}",
+            "min_distinct": 3
+          },
+          {
+            "label": "topic_urls",
+            "kind": "regex_distinct",
+            "pattern": "v2ex\\.com/t/\\d+",
+            "min_distinct": 3
+          }
+        ]
+      }
+    ]
+  },
+  "tools": {
+    "trailhead": {
+      "python_bin": "python",
+      "python_version": "3.11.15",
+      "invocation": "python -m hermes_trailhead compare",
+      "commit": "2fb3847"
+    },
+    "agent_reach": {
+      "executable_name": "agent-reach",
+      "distribution": {
+        "version": "1.6.0",
+        "direct_url": "https://github.com/Panniantong/Agent-Reach/archive/14c213405669414492bda0f8d52cc6531d062c45.zip"
+      },
+      "channels_reported": 14,
+      "channels_schema_version": "1",
+      "install_source": "GitHub archive at pinned commit (see distribution.direct_url)"
+    }
+  },
+  "dependencies": {
+    "trailhead_env": {
+      "python_bin": "python",
+      "available": true,
+      "version": "3.11.15",
+      "distribution_count": 27,
+      "distributions": [
+        "Pygments",
+        "babel",
+        "certifi",
+        "cffi",
+        "charset-normalizer",
+        "courlan",
+        "curl_cffi",
+        "dateparser",
+        "hermes-trailhead",
+        "htmldate",
+        "iniconfig",
+        "jusText",
+        "lxml",
+        "lxml_html_clean",
+        "packaging",
+        "pluggy",
+        "pycparser",
+        "pytest",
+        "python-dateutil",
+        "pytz",
+        "regex",
+        "six",
+        "tld",
+        "trafilatura",
+        "tzlocal",
+        "urllib3",
+        "yt-dlp"
+      ],
+      "env_name": ".venv",
+      "env_disk_bytes": 118706962
+    },
+    "agent_reach_env": {
+      "python_bin": "python",
+      "available": true,
+      "version": "3.14.7",
+      "distribution_count": 14,
+      "distributions": [
+        "PyYAML",
+        "agent-reach",
+        "brotli",
+        "certifi",
+        "charset-normalizer",
+        "idna",
+        "loguru",
+        "mutagen",
+        "pycryptodomex",
+        "requests",
+        "urllib3",
+        "websockets",
+        "yt-dlp",
+        "yt-dlp-ejs"
+      ],
+      "env_name": "agent-reach-eval-venv",
+      "env_disk_bytes": 37645401
+    },
+    "setup_note": "install durations are not re-measured here (both tools already installed); on-disk env size and distribution counts are measured"
+  },
+  "budget": {
+    "per_side_timeout_s": 25.0,
+    "repeats": 3,
+    "case_count": 3,
+    "asr_disabled": true,
+    "credentials_used": false
+  },
+  "measurement": {
+    "process": "each timed run is one `python -m hermes_trailhead compare` process that executes BOTH sides (Trailhead extraction plus the Agent Reach child/subprocesses)",
+    "per_tool_rss": false,
+    "per_tool_rss_note": "GNU time's peak RSS is the whole compare process, so it cannot be split between Trailhead and Agent Reach; no per-tool memory comparison is claimed",
+    "artifact_checks": "marker presence only; a pass is not proof that the page or README was returned in full"
+  },
+  "reference_actions": {
+    "actions_total": 40,
+    "source": "hermes_trailhead.reach_backend.parity_inventory()['counts']['actions']",
+    "exercised_in_this_run": 3,
+    "note": "the advertised reference surface, not this harness's coverage: this run exercises 3 public actions"
+  },
+  "runs": [
+    {
+      "repeat": 1,
+      "run_kind": "cold",
+      "sandbox_reused": false,
+      "wall_s": 3.381,
+      "peak_rss_kb": 36360,
+      "exit_code": 0,
+      "report_schema": "trailhead.comparative/2",
+      "report_run_kind": "cold",
+      "outcomes": {
+        "docs-python-typing": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 664,
+              "cleaned_chars": 122181,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 651,
+              "cleaned_chars": 122020,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "github-requests-readme": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 452,
+              "cleaned_chars": 3098,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 345,
+              "cleaned_chars": 2874,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "forum-v2ex-node": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 498,
+              "cleaned_chars": 5709,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 366,
+              "cleaned_chars": 6204,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        }
+      },
+      "raw_report_name": "compare-cold-r1.json"
+    },
+    {
+      "repeat": 1,
+      "run_kind": "warm",
+      "sandbox_reused": true,
+      "wall_s": 3.43,
+      "peak_rss_kb": 38416,
+      "exit_code": 0,
+      "report_schema": "trailhead.comparative/2",
+      "report_run_kind": "warm",
+      "outcomes": {
+        "docs-python-typing": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 712,
+              "cleaned_chars": 122181,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 1160,
+              "cleaned_chars": 122020,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "github-requests-readme": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 135,
+              "cleaned_chars": 3098,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 322,
+              "cleaned_chars": 2874,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "forum-v2ex-node": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 487,
+              "cleaned_chars": 5709,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 261,
+              "cleaned_chars": 6204,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        }
+      },
+      "raw_report_name": "compare-warm-r1.json"
+    },
+    {
+      "repeat": 2,
+      "run_kind": "cold",
+      "sandbox_reused": false,
+      "wall_s": 3.122,
+      "peak_rss_kb": 36608,
+      "exit_code": 0,
+      "report_schema": "trailhead.comparative/2",
+      "report_run_kind": "cold",
+      "outcomes": {
+        "docs-python-typing": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 648,
+              "cleaned_chars": 122181,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 805,
+              "cleaned_chars": 122020,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "github-requests-readme": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 139,
+              "cleaned_chars": 3098,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 310,
+              "cleaned_chars": 2874,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "forum-v2ex-node": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 563,
+              "cleaned_chars": 5709,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 311,
+              "cleaned_chars": 6204,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        }
+      },
+      "raw_report_name": "compare-cold-r2.json"
+    },
+    {
+      "repeat": 2,
+      "run_kind": "warm",
+      "sandbox_reused": true,
+      "wall_s": 2.771,
+      "peak_rss_kb": 36932,
+      "exit_code": 0,
+      "report_schema": "trailhead.comparative/2",
+      "report_run_kind": "warm",
+      "outcomes": {
+        "docs-python-typing": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 638,
+              "cleaned_chars": 122181,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 608,
+              "cleaned_chars": 122020,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "github-requests-readme": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 139,
+              "cleaned_chars": 3098,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 266,
+              "cleaned_chars": 2874,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "forum-v2ex-node": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 485,
+              "cleaned_chars": 5709,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 288,
+              "cleaned_chars": 6204,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        }
+      },
+      "raw_report_name": "compare-warm-r2.json"
+    },
+    {
+      "repeat": 3,
+      "run_kind": "cold",
+      "sandbox_reused": false,
+      "wall_s": 3.845,
+      "peak_rss_kb": 36592,
+      "exit_code": 0,
+      "report_schema": "trailhead.comparative/2",
+      "report_run_kind": "cold",
+      "outcomes": {
+        "docs-python-typing": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 1558,
+              "cleaned_chars": 122181,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 675,
+              "cleaned_chars": 122020,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "github-requests-readme": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 138,
+              "cleaned_chars": 3098,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 298,
+              "cleaned_chars": 2874,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "forum-v2ex-node": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 506,
+              "cleaned_chars": 5709,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 277,
+              "cleaned_chars": 6204,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        }
+      },
+      "raw_report_name": "compare-cold-r3.json"
+    },
+    {
+      "repeat": 3,
+      "run_kind": "warm",
+      "sandbox_reused": true,
+      "wall_s": 2.989,
+      "peak_rss_kb": 36808,
+      "exit_code": 0,
+      "report_schema": "trailhead.comparative/2",
+      "report_run_kind": "warm",
+      "outcomes": {
+        "docs-python-typing": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 703,
+              "cleaned_chars": 122181,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 643,
+              "cleaned_chars": 122020,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "github-requests-readme": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 141,
+              "cleaned_chars": 3098,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 258,
+              "cleaned_chars": 2874,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        },
+        "forum-v2ex-node": {
+          "sides": {
+            "trailhead": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 578,
+              "cleaned_chars": 5709,
+              "error": ""
+            },
+            "agent_reach": {
+              "status": "ok",
+              "evidence_ok": true,
+              "evidence_verdict": "evidence",
+              "duration_ms": 285,
+              "cleaned_chars": 6204,
+              "error": ""
+            }
+          },
+          "parity_verdict": "both_evidence"
+        }
+      },
+      "raw_report_name": "compare-warm-r3.json"
+    }
+  ],
+  "completeness": [
+    {
+      "case_id": "public-docs-python-typing",
+      "language": "en",
+      "requested_outcome": "complete 'typing' module reference: page identity plus the Protocol / TypeVar / Generic entries an API consumer needs",
+      "sides": {
+        "trailhead": {
+          "status": "ok",
+          "backend": "docs",
+          "error": "",
+          "duration_ms": 694,
+          "text_chars": 126310,
+          "checks": [
+            {
+              "label": "page_identity",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Support for type hints",
+              "match_offset": 16,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "Title: typing — Support for type hints  URL Source: https://docs.python.org/3/library/typing.html ",
+              "expects": [
+                "Support for type hints"
+              ]
+            },
+            {
+              "label": "entry_Protocol",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Protocol",
+              "match_offset": 7781,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "s. However, these signatures can be expressed by defining a Protocol class with a __call__() method:  from collections.abc impor",
+              "expects": [
+                "Protocol"
+              ]
+            },
+            {
+              "label": "entry_TypeVar",
+              "kind": "any_of",
+              "present": true,
+              "matched": "TypeVar",
+              "match_offset": 9847,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "st[T](l: Sequence[T]) -> T:  # Function is generic over the TypeVar \"T\"     return l[0]   Or by using the TypeVar factory direc",
+              "expects": [
+                "TypeVar"
+              ]
+            },
+            {
+              "label": "entry_Generic",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Generic",
+              "match_offset": 9046,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "ec and Concatenate provides examples of usage in Callable.  Generics  Since type information about objects kept in containers c",
+              "expects": [
+                "Generic"
+              ]
+            },
+            {
+              "label": "special_form_TypeAlias",
+              "kind": "any_of",
+              "present": true,
+              "matched": "TypeAlias",
+              "match_offset": 2504,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "ined using the type statement, which creates an instance of TypeAliasType. In this example, Vector and list[float] will be treate",
+              "expects": [
+                "TypeAlias"
+              ]
+            }
+          ],
+          "artifacts_present": 5,
+          "artifacts_required": 5,
+          "complete": true,
+          "informational": {
+            "distinct_topic_urls": 0
+          }
+        },
+        "agent_reach": {
+          "status": "ok",
+          "backend": "jina",
+          "error": "",
+          "duration_ms": 627,
+          "text_chars": 126223,
+          "checks": [
+            {
+              "label": "page_identity",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Support for type hints",
+              "match_offset": 9,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "typing — Support for type hints https://docs.python.org/3/library/typing.html index modules",
+              "expects": [
+                "Support for type hints"
+              ]
+            },
+            {
+              "label": "entry_Protocol",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Protocol",
+              "match_offset": 7695,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "s. However, these signatures can be expressed by defining a Protocol class with a __call__() method:  from collections.abc impor",
+              "expects": [
+                "Protocol"
+              ]
+            },
+            {
+              "label": "entry_TypeVar",
+              "kind": "any_of",
+              "present": true,
+              "matched": "TypeVar",
+              "match_offset": 9761,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "st[T](l: Sequence[T]) -> T:  # Function is generic over the TypeVar \"T\"     return l[0]   Or by using the TypeVar factory direc",
+              "expects": [
+                "TypeVar"
+              ]
+            },
+            {
+              "label": "entry_Generic",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Generic",
+              "match_offset": 8960,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "ec and Concatenate provides examples of usage in Callable.  Generics  Since type information about objects kept in containers c",
+              "expects": [
+                "Generic"
+              ]
+            },
+            {
+              "label": "special_form_TypeAlias",
+              "kind": "any_of",
+              "present": true,
+              "matched": "TypeAlias",
+              "match_offset": 2418,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "ined using the type statement, which creates an instance of TypeAliasType. In this example, Vector and list[float] will be treate",
+              "expects": [
+                "TypeAlias"
+              ]
+            }
+          ],
+          "artifacts_present": 5,
+          "artifacts_required": 5,
+          "complete": true,
+          "informational": {
+            "distinct_topic_urls": 0
+          }
+        }
+      },
+      "read_cli": {
+        "command": "python -m hermes_trailhead read <url> --format json",
+        "note": "the agent_reach side has no separate CLI here: its probe is the upstream CLI itself (see sides.agent_reach)",
+        "ok": true,
+        "error_code": "",
+        "exit_code": 0,
+        "source_type": "docs",
+        "returned_chars": 126310,
+        "truncated": false,
+        "extraction_status": "ok",
+        "evidence_usable": true,
+        "duration_ms": 818,
+        "checks": [
+          {
+            "label": "page_identity",
+            "kind": "any_of",
+            "present": true,
+            "matched": "Support for type hints",
+            "match_offset": 16,
+            "match_region": "unsectioned",
+            "match_regions": [
+              "unsectioned"
+            ],
+            "match_context": "Title: typing — Support for type hints  URL Source: https://docs.python.org/3/library/typing.html ",
+            "expects": [
+              "Support for type hints"
+            ]
+          },
+          {
+            "label": "entry_Protocol",
+            "kind": "any_of",
+            "present": true,
+            "matched": "Protocol",
+            "match_offset": 7781,
+            "match_region": "unsectioned",
+            "match_regions": [
+              "unsectioned"
+            ],
+            "match_context": "s. However, these signatures can be expressed by defining a Protocol class with a __call__() method:  from collections.abc impor",
+            "expects": [
+              "Protocol"
+            ]
+          },
+          {
+            "label": "entry_TypeVar",
+            "kind": "any_of",
+            "present": true,
+            "matched": "TypeVar",
+            "match_offset": 9847,
+            "match_region": "unsectioned",
+            "match_regions": [
+              "unsectioned"
+            ],
+            "match_context": "st[T](l: Sequence[T]) -> T:  # Function is generic over the TypeVar \"T\"     return l[0]   Or by using the TypeVar factory direc",
+            "expects": [
+              "TypeVar"
+            ]
+          },
+          {
+            "label": "entry_Generic",
+            "kind": "any_of",
+            "present": true,
+            "matched": "Generic",
+            "match_offset": 9046,
+            "match_region": "unsectioned",
+            "match_regions": [
+              "unsectioned"
+            ],
+            "match_context": "ec and Concatenate provides examples of usage in Callable.  Generics  Since type information about objects kept in containers c",
+            "expects": [
+              "Generic"
+            ]
+          },
+          {
+            "label": "special_form_TypeAlias",
+            "kind": "any_of",
+            "present": true,
+            "matched": "TypeAlias",
+            "match_offset": 2504,
+            "match_region": "unsectioned",
+            "match_regions": [
+              "unsectioned"
+            ],
+            "match_context": "ined using the type statement, which creates an instance of TypeAliasType. In this example, Vector and list[float] will be treate",
+            "expects": [
+              "TypeAlias"
+            ]
+          }
+        ],
+        "artifacts_present": 5,
+        "artifacts_required": 5
+      }
+    },
+    {
+      "case_id": "public-github-requests-readme",
+      "language": "en",
+      "requested_outcome": "psf/requests repository README: identity, install command, a usage call, and the license the README states",
+      "sides": {
+        "trailhead": {
+          "status": "ok",
+          "backend": "github",
+          "error": "",
+          "duration_ms": 438,
+          "text_chars": 3118,
+          "checks": [
+            {
+              "label": "repo_identity",
+              "kind": "any_of",
+              "present": true,
+              "matched": "psf/requests",
+              "match_offset": 19,
+              "match_region": "metadata_header",
+              "match_regions": [
+                "metadata_header",
+                "readme_body"
+              ],
+              "match_context": "GitHub repository: psf/requests A simple, yet elegant, HTTP library. Homepage: https://requ",
+              "expects": [
+                "psf/requests"
+              ]
+            },
+            {
+              "label": "readme_install",
+              "kind": "any_of",
+              "present": true,
+              "matched": "pip install requests",
+              "match_offset": 1773,
+              "match_region": "readme_body",
+              "match_regions": [
+                "readme_body"
+              ],
+              "match_context": "ons  Requests is available on PyPI:  ```console $ python -m pip install requests ```  Requests officially supports Python 3.10+.  ## Support",
+              "expects": [
+                "pip install requests"
+              ]
+            },
+            {
+              "label": "readme_usage",
+              "kind": "any_of",
+              "present": true,
+              "matched": "requests.get(",
+              "match_offset": 895,
+              "match_region": "readme_body",
+              "match_regions": [
+                "readme_body"
+              ],
+              "match_context": "egant, HTTP library.  ```python >>> import requests >>> r = requests.get('https://httpbin.org/basic-auth/user/pass', auth=('user', 'p",
+              "expects": [
+                "requests.get(",
+                "requests.get("
+              ]
+            },
+            {
+              "label": "readme_intro",
+              "kind": "any_of",
+              "present": true,
+              "matched": "A simple, yet elegant, HTTP library",
+              "match_offset": 32,
+              "match_region": "metadata_header",
+              "match_regions": [
+                "metadata_header"
+              ],
+              "match_context": "GitHub repository: psf/requests A simple, yet elegant, HTTP library. Homepage: https://requests.readthedocs.io/en/latest/ Stars",
+              "expects": [
+                "A simple, yet elegant, HTTP library"
+              ]
+            },
+            {
+              "label": "readme_license",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Apache",
+              "match_offset": 197,
+              "match_region": "metadata_header",
+              "match_regions": [
+                "metadata_header"
+              ],
+              "match_context": "Forks: 12106 | Open issues: 244 | Language: Python License: Apache License 2.0  README: # Requests  [![Version](https://img.sh",
+              "expects": [
+                "Apache"
+              ]
+            }
+          ],
+          "artifacts_present": 5,
+          "artifacts_required": 5,
+          "complete": true,
+          "informational": {
+            "distinct_topic_urls": 0
+          }
+        },
+        "agent_reach": {
+          "status": "ok",
+          "backend": "github-api",
+          "error": "",
+          "duration_ms": 304,
+          "text_chars": 2939,
+          "checks": [
+            {
+              "label": "repo_identity",
+              "kind": "any_of",
+              "present": true,
+              "matched": "psf/requests",
+              "match_offset": 0,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "psf/requests https://github.com/psf/requests # Requests  [![Version](htt",
+              "expects": [
+                "psf/requests"
+              ]
+            },
+            {
+              "label": "readme_install",
+              "kind": "any_of",
+              "present": true,
+              "matched": "pip install requests",
+              "match_offset": 1593,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "ons  Requests is available on PyPI:  ```console $ python -m pip install requests ```  Requests officially supports Python 3.10+.  ## Support",
+              "expects": [
+                "pip install requests"
+              ]
+            },
+            {
+              "label": "readme_usage",
+              "kind": "any_of",
+              "present": true,
+              "matched": "requests.get(",
+              "match_offset": 715,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "egant, HTTP library.  ```python >>> import requests >>> r = requests.get('https://httpbin.org/basic-auth/user/pass', auth=('user', 'p",
+              "expects": [
+                "requests.get(",
+                "requests.get("
+              ]
+            },
+            {
+              "label": "readme_intro",
+              "kind": "any_of",
+              "present": false,
+              "matched": "",
+              "match_offset": -1,
+              "match_region": "",
+              "match_regions": [],
+              "match_context": "",
+              "expects": [
+                "A simple, yet elegant, HTTP library"
+              ]
+            },
+            {
+              "label": "readme_license",
+              "kind": "any_of",
+              "present": false,
+              "matched": "",
+              "match_offset": -1,
+              "match_region": "",
+              "match_regions": [],
+              "match_context": "",
+              "expects": [
+                "Apache"
+              ]
+            }
+          ],
+          "artifacts_present": 3,
+          "artifacts_required": 5,
+          "complete": false,
+          "informational": {
+            "distinct_topic_urls": 0
+          }
+        }
+      },
+      "read_cli": {
+        "command": "python -m hermes_trailhead read <url> --format json",
+        "note": "the agent_reach side has no separate CLI here: its probe is the upstream CLI itself (see sides.agent_reach)",
+        "ok": true,
+        "error_code": "",
+        "exit_code": 0,
+        "source_type": "github",
+        "returned_chars": 3118,
+        "truncated": false,
+        "extraction_status": "ok",
+        "evidence_usable": true,
+        "duration_ms": 170,
+        "checks": [
+          {
+            "label": "repo_identity",
+            "kind": "any_of",
+            "present": true,
+            "matched": "psf/requests",
+            "match_offset": 19,
+            "match_region": "metadata_header",
+            "match_regions": [
+              "metadata_header",
+              "readme_body"
+            ],
+            "match_context": "GitHub repository: psf/requests A simple, yet elegant, HTTP library. Homepage: https://requ",
+            "expects": [
+              "psf/requests"
+            ]
+          },
+          {
+            "label": "readme_install",
+            "kind": "any_of",
+            "present": true,
+            "matched": "pip install requests",
+            "match_offset": 1773,
+            "match_region": "readme_body",
+            "match_regions": [
+              "readme_body"
+            ],
+            "match_context": "ons  Requests is available on PyPI:  ```console $ python -m pip install requests ```  Requests officially supports Python 3.10+.  ## Support",
+            "expects": [
+              "pip install requests"
+            ]
+          },
+          {
+            "label": "readme_usage",
+            "kind": "any_of",
+            "present": true,
+            "matched": "requests.get(",
+            "match_offset": 895,
+            "match_region": "readme_body",
+            "match_regions": [
+              "readme_body"
+            ],
+            "match_context": "egant, HTTP library.  ```python >>> import requests >>> r = requests.get('https://httpbin.org/basic-auth/user/pass', auth=('user', 'p",
+            "expects": [
+              "requests.get(",
+              "requests.get("
+            ]
+          },
+          {
+            "label": "readme_intro",
+            "kind": "any_of",
+            "present": true,
+            "matched": "A simple, yet elegant, HTTP library",
+            "match_offset": 32,
+            "match_region": "metadata_header",
+            "match_regions": [
+              "metadata_header"
+            ],
+            "match_context": "GitHub repository: psf/requests A simple, yet elegant, HTTP library. Homepage: https://requests.readthedocs.io/en/latest/ Stars",
+            "expects": [
+              "A simple, yet elegant, HTTP library"
+            ]
+          },
+          {
+            "label": "readme_license",
+            "kind": "any_of",
+            "present": true,
+            "matched": "Apache",
+            "match_offset": 197,
+            "match_region": "metadata_header",
+            "match_regions": [
+              "metadata_header"
+            ],
+            "match_context": "Forks: 12106 | Open issues: 244 | Language: Python License: Apache License 2.0  README: # Requests  [![Version](https://img.sh",
+            "expects": [
+              "Apache"
+            ]
+          }
+        ],
+        "artifacts_present": 5,
+        "artifacts_required": 5
+      }
+    },
+    {
+      "case_id": "public-v2ex-node-python-zh",
+      "language": "zh-Hans",
+      "requested_outcome": "V2EX Python node listing (Chinese): node identity plus the titles/links of listed topics",
+      "sides": {
+        "trailhead": {
+          "status": "ok",
+          "backend": "forum",
+          "error": "",
+          "duration_ms": 488,
+          "text_chars": 5709,
+          "checks": [
+            {
+              "label": "node_identity",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Python",
+              "match_offset": 275,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "t 订阅节点更新 — https://www.v2ex.com/planet/about 推荐学习书目 › Learn Python the Hard Way — http://learnpythonthehardway.org/book/ Pytho",
+              "expects": [
+                "Python"
+              ]
+            },
+            {
+              "label": "chinese_topic_prose",
+              "kind": "regex_distinct",
+              "present": true,
+              "distinct_found": 13,
+              "min_distinct": 3,
+              "expects": "[\\u4e00-\\u9fff]{8,}"
+            },
+            {
+              "label": "topic_urls",
+              "kind": "regex_distinct",
+              "present": true,
+              "distinct_found": 20,
+              "min_distinct": 3,
+              "expects": "v2ex\\.com/t/\\d+"
+            }
+          ],
+          "artifacts_present": 3,
+          "artifacts_required": 3,
+          "complete": true,
+          "informational": {
+            "distinct_topic_urls": 20
+          }
+        },
+        "agent_reach": {
+          "status": "ok",
+          "backend": "v2ex-api",
+          "error": "",
+          "duration_ms": 271,
+          "text_chars": 7260,
+          "checks": [
+            {
+              "label": "node_identity",
+              "kind": "any_of",
+              "present": true,
+              "matched": "Python",
+              "match_offset": 566,
+              "match_region": "unsectioned",
+              "match_regions": [
+                "unsectioned"
+              ],
+              "match_context": "PyMySQL 数据库操作。其中数据库操作又涉及 pymysql 的函数作用和事务处理。每一个知识点又能扩展很多内容🤯 Python 3.15 正式发布, 添加不少新东西 https://www.v2ex.com/t/1248327 https://w",
+              "expects": [
+                "Python"
+              ]
+            },
+            {
+              "label": "chinese_topic_prose",
+              "kind": "regex_distinct",
+              "present": true,
+              "distinct_found": 128,
+              "min_distinct": 3,
+              "expects": "[\\u4e00-\\u9fff]{8,}"
+            },
+            {
+              "label": "topic_urls",
+              "kind": "regex_distinct",
+              "present": true,
+              "distinct_found": 10,
+              "min_distinct": 3,
+              "expects": "v2ex\\.com/t/\\d+"
+            }
+          ],
+          "artifacts_present": 3,
+          "artifacts_required": 3,
+          "complete": true,
+          "informational": {
+            "distinct_topic_urls": 10
+          }
+        }
+      },
+      "read_cli": {
+        "command": "python -m hermes_trailhead read <url> --format json",
+        "note": "the agent_reach side has no separate CLI here: its probe is the upstream CLI itself (see sides.agent_reach)",
+        "ok": true,
+        "error_code": "",
+        "exit_code": 0,
+        "source_type": "forum",
+        "returned_chars": 5709,
+        "truncated": false,
+        "extraction_status": "ok",
+        "evidence_usable": true,
+        "duration_ms": 561,
+        "checks": [
+          {
+            "label": "node_identity",
+            "kind": "any_of",
+            "present": true,
+            "matched": "Python",
+            "match_offset": 275,
+            "match_region": "unsectioned",
+            "match_regions": [
+              "unsectioned"
+            ],
+            "match_context": "t 订阅节点更新 — https://www.v2ex.com/planet/about 推荐学习书目 › Learn Python the Hard Way — http://learnpythonthehardway.org/book/ Pytho",
+            "expects": [
+              "Python"
+            ]
+          },
+          {
+            "label": "chinese_topic_prose",
+            "kind": "regex_distinct",
+            "present": true,
+            "distinct_found": 13,
+            "min_distinct": 3,
+            "expects": "[\\u4e00-\\u9fff]{8,}"
+          },
+          {
+            "label": "topic_urls",
+            "kind": "regex_distinct",
+            "present": true,
+            "distinct_found": 20,
+            "min_distinct": 3,
+            "expects": "v2ex\\.com/t/\\d+"
+          }
+        ],
+        "artifacts_present": 3,
+        "artifacts_required": 3
+      }
+    }
+  ],
+  "marker_provenance": [
+    {
+      "case_id": "public-github-requests-readme",
+      "side": "trailhead",
+      "label": "repo_identity",
+      "matched": "psf/requests",
+      "region": "metadata_header",
+      "context": "GitHub repository: psf/requests A simple, yet elegant, HTTP library. Homepage: https://requ"
+    },
+    {
+      "case_id": "public-github-requests-readme",
+      "side": "trailhead",
+      "label": "readme_install",
+      "matched": "pip install requests",
+      "region": "readme_body",
+      "context": "ons  Requests is available on PyPI:  ```console $ python -m pip install requests ```  Requests officially supports Python 3.10+.  ## Support"
+    },
+    {
+      "case_id": "public-github-requests-readme",
+      "side": "trailhead",
+      "label": "readme_usage",
+      "matched": "requests.get(",
+      "region": "readme_body",
+      "context": "egant, HTTP library.  ```python >>> import requests >>> r = requests.get('https://httpbin.org/basic-auth/user/pass', auth=('user', 'p"
+    },
+    {
+      "case_id": "public-github-requests-readme",
+      "side": "trailhead",
+      "label": "readme_intro",
+      "matched": "A simple, yet elegant, HTTP library",
+      "region": "metadata_header",
+      "context": "GitHub repository: psf/requests A simple, yet elegant, HTTP library. Homepage: https://requests.readthedocs.io/en/latest/ Stars"
+    },
+    {
+      "case_id": "public-github-requests-readme",
+      "side": "trailhead",
+      "label": "readme_license",
+      "matched": "Apache",
+      "region": "metadata_header",
+      "context": "Forks: 12106 | Open issues: 244 | Language: Python License: Apache License 2.0  README: # Requests  [![Version](https://img.sh"
+    },
+    {
+      "case_id": "public-v2ex-node-python-zh",
+      "side": "trailhead",
+      "label": "chinese_topic_prose",
+      "matched": "",
+      "region": "",
+      "context": ""
+    },
+    {
+      "case_id": "public-v2ex-node-python-zh",
+      "side": "trailhead",
+      "label": "topic_urls",
+      "matched": "",
+      "region": "",
+      "context": ""
+    },
+    {
+      "case_id": "public-v2ex-node-python-zh",
+      "side": "agent_reach",
+      "label": "chinese_topic_prose",
+      "matched": "",
+      "region": "",
+      "context": ""
+    },
+    {
+      "case_id": "public-v2ex-node-python-zh",
+      "side": "agent_reach",
+      "label": "topic_urls",
+      "matched": "",
+      "region": "",
+      "context": ""
+    }
+  ],
+  "gaps": [
+    {
+      "case_id": "public-github-requests-readme",
+      "side": "agent_reach",
+      "missing_artifacts": [
+        "readme_intro",
+        "readme_license"
+      ],
+      "status": "ok"
+    }
+  ],
+  "summary": {
+    "runs": 6,
+    "cold_runs": 3,
+    "warm_runs": 3,
+    "wall_s": {
+      "cold": [
+        3.381,
+        3.122,
+        3.845
+      ],
+      "warm": [
+        3.43,
+        2.771,
+        2.989
+      ]
+    },
+    "peak_rss_kb": {
+      "cold": [
+        36360,
+        36608,
+        36592
+      ],
+      "warm": [
+        38416,
+        36932,
+        36808
+      ]
+    },
+    "artifact_complete_cases": {
+      "trailhead": 3,
+      "agent_reach": 2
+    },
+    "cases_total": 3,
+    "artifact_marker_scope": "presence only: 'complete' means every listed marker was found, not that the page/README was returned in full",
+    "read_cli_cases_ok": 3,
+    "superiority_claim": "not established: this run measures parity observations and artifact completeness on three public cases; it does not compare every channel, authenticated workloads, transcription, or onboarding"
+  },
+  "limitations": [
+    "One host, one network moment, three cases: not a general availability claim.",
+    "Timed wall clock and peak RSS are for one compare process running BOTH sides; RSS cannot be attributed per tool, so per-tool memory is not claimed.",
+    "Warm runs reuse the sandbox tree only; public HTTP caches at the origin/CDN and at each tool's backend are not controlled.",
+    "Artifact markers are presence checks, not completeness proof. A marker can be satisfied by repository metadata instead of README prose, so every match records match_region and a short match_context (see marker_provenance).",
+    "Artifact markers were chosen from the public artifact contract (install command, class entries, topic links) before the run; the V2EX Chinese case additionally reports distinct topic URLs as an observed count.",
+    "Environment isolation is not a filesystem sandbox and no credentials were supplied to either side.",
+    "No paid, authenticated, transcription, or account-lifecycle workload ran."
+  ]
+}

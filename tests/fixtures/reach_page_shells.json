@@ -1,0 +1,113 @@
+{
+ "_provenance": "Page bodies returned by the pinned Agent Reach public sweep (trailhead-40-action-live.json, saved 2026-10-28). Verbatim text, so the regression tests pin the exact shells that were forwarded as ok:true.",
+ "cases": {
+  "reddit_read_blocked": {
+   "channel": "reddit",
+   "action": "read",
+   "url": "https://www.reddit.com/r/Python/comments/1aqm0ht/handling_tasks_in_asyncio_like_a_pro_jacob_padilla/",
+   "title": "URL Source: https://www.reddit.com/r/Python/comments/1aqm0ht/handling_tasks_in_asyncio_like_a_pro_jacob_padilla/",
+   "text": "You've been blocked by network security.\n\nTo continue, log in to your Reddit account or use your developer token\n\nIf you think you've been blocked by mistake, file a ticket below and we'll look into it.\n\n[Log in](https://www.reddit.com/login/)[File a ticket](https://support.reddithelp.com/hc/en-us/requests/new?ticket_form_id=21879292693140)"
+  },
+  "xiaohongshu_read_missing": {
+   "channel": "xiaohongshu",
+   "action": "read",
+   "url": "https://xhslink.com/m/AJp68XgYriT",
+   "title": "你访问的页面不见了",
+   "text": "![Image 1](https://fe-img-qc.xhscdn.com/ae55fda63fc305ae4a1be78974fbf7577cb6d44f)\n\n你访问的页面不见了，你还可以\n\n返回上一页\n\n活动\n\n活动"
+  },
+  "linkedin_read_404": {
+   "channel": "linkedin",
+   "action": "read",
+   "url": "https://www.linkedin.com/jobs/view/4447811252",
+   "title": "LinkedIn",
+   "text": "選擇語言\n\n## لم يتم العثور على الصفحة\n\n## عفواً، لم نتمكن من العثور على الصفحة التي تبحث عنها. برجاء المحاولة مرة أخرى للصفحة السابقة أو الانتقال لـ[مركز المساعدة](https://www.linkedin.com/help/linkedin?trk=404_page \"مركز المساعدة\") للمزيد من المعلومات\n\n[الإنتقال لموجزك الرئيسي](https://www.linkedin.com/feed/?trk=404_page \"الإنتقال لموجزك الرئيسي\")\n\n## Siden blev ikke fundet\n\n## Vi kan desværre ikke finde den side, du leder efter. Gå tilbage til den forrige side, eller besøg [Hjælp](https://www.linkedin.com/help/linkedin?trk=404_page \"Hjælp\") for at få flere oplysninger\n\n[Gå til dit feed](https://www.linkedin.com/feed/?trk=404_page \"Gå til dit feed\")\n\n## Seite nicht gefunden\n\n## Die gewünschte Seite konnte leider nicht gefunden werden. Versuchen Sie, zur vorherigen Seite zurückzukehren, oder besuchen Sie unseren [Hilfebereich](https://www.linkedin.com/help/linkedin?trk=404_page \"Hilfebereich\"), um mehr zu erfahren.\n\n[Zu Ihrem Feed](https://www.linkedin.com/feed/?trk=404_page \"Zu Ihrem Feed\")\n\n## Page not found\n\n## Uh oh, we can’t seem to find the page you’re looking for. Try going back to the previous page or see our [Help Center](https://www.linkedin.com/help/linkedin?trk=404_page \"Help Center\") for more information\n\n[Go to your feed](https://www.linkedin.com/feed/?trk=404_page \"Go to your feed\")\n\n## Página no encontrada\n\n## Vaya, parece que no podemos encontrar la página que buscas. Intenta volver a la página anterior o visita nuestro [Centro de ayuda](https://www.linkedin.com/help/linkedin?trk=404_page \"Centro de ayuda\") para más información.\n\n[Ir a tu feed](https://www.linkedin.com/feed/?trk=404_page \"Ir a tu feed\")\n\n## Impossible de trouver cette page\n\n## Nous ne trouvons pas la page que vous recherchez. Essayez de retourner à la page précédente ou consultez notre [assistance clientèle](https://www.linkedin.com/help/linkedin?trk=404_page \"assistance clientèle\") pour plus d’informations\n\n[Ouvrez votre fil](https://www.linkedin.com/feed/?trk=404_page \"Ouvrez votre fil\")\n\n## Halaman ini tidak dapat ditemukan\n\n## Maaf, sepertinya kami tidak dapat menemukan halaman yang Anda cari. Coba kembali ke halaman sebelumnya atau lihat [Pusat Bantuan](https://www.linkedin.com/help/linkedin?trk=404_page \"Pusat Bantuan\") kami untuk informasi lebih lanjut\n\n[Buka feed Anda](https://www.linkedin.com/feed/?trk=404_page \"Buka feed Anda\")\n\n## Pagina non trovata\n\n## Non abbiamo trovato la pagina che stai cercando. Prova a tornare alla pagina precedente o visita il nostro [Centro assistenza](https://www.linkedin.com/help/linkedin?trk=404_page \"Centro assistenza\") per saperne di più.\n\n[Vai al tuo feed](https://www.linkedin.com/feed/?trk=404_page \"Vai al tuo feed\")\n\n## ページが見つかりませんでした\n\n## 申し訳ありません。お探しのページが見つかりません。前のページに戻るか、[ヘルプセンター](https://www.linkedin.com/help/linkedin?trk=404_page \"ヘルプセンター\")で詳細をご確認ください\n\n[フィードに移動](https://www.linkedin.com/feed/?trk=404_page \"フィードに移動\")\n\n## 페이지 없음\n\n## 원하시는 페이지를 찾을 수 없습니다. 이전 페이지로 돌아가거나 [고객센터](https://www.linkedin.com/help/linkedin?trk=404_page \"고객센터\")에서 자세히 알아보세요.\n\n[홈으로 가기](https://www.linkedin.com/feed/?trk=404_page \"홈으로 가기\")\n\n## Laman tidak ditemui\n\n## Harap maaf, kami tidak dapat menemui laman yang ingin anda cari. Cuba kembali ke laman sebelumnya atau lihat [Pusat Bantuan](https://www.linkedin.com/help/linkedin?trk=404_page \"Pusat Bantuan\") kami untuk maklumat lanjut\n\n[Pergi ke suapan](https://www.linkedin.com/feed/?trk=404_page \"Pergi ke suapan\")\n\n## Pagina niet gevonden\n\n## De pagina waar u naar op zoek bent, kan niet worden gevonden. Probeer terug te gaan naar de vorige pagina of bezoek het [Help Center](https://www.linkedin.com/help/linkedin?trk=404_page \"Helpcentrum\") voor meer informatie\n\n[Ga naar uw feed](https://www.linkedin.com/feed/?trk=404_page \"Ga naar uw feed\")\n\n## Fant ikke siden\n\n## Vi finner ikke siden du leter etter. Gå tilbake til forrige side eller besøk vår [brukerstøtte](https://www.linkedin.com/help/linkedin?trk=404_page \"brukerstøtte\") for mer informasjon\n\n[Gå til din feed](https://www.linkedi"
+  },
+  "github_read_readme": {
+   "channel": "github",
+   "action": "read",
+   "url": "https://github.com/Panniantong/Agent-Reach",
+   "title": "Panniantong/Agent-Reach",
+   "text": "\n<h1 align=\"center\">👁️ Agent Reach</h1>\n\n<p align=\"center\">\n  <strong>让 AI Agent 够得着它自己上不去的互联网</strong>\n</p>\n\n<p align=\"center\">\n  登录墙后的平台、视频里的内容、中文平台、干净的结构化数据，一条命令拿到\n</p>\n\n<p align=\"center\">\n  <a href=\"https://trendshift.io/repositories/24387\"><img src=\"https://trendshift.io/api/badge/repositories/24387\" alt=\"Trendshift GitHub Trending #1 Repository of the Day\"></a>\n  <a href=\"https://star-history.com/#Panniantong/Agent-Reach&Date\"><img src=\"https://api.star-history.com/badge?repo=Panniantong/Agent-Reach\" alt=\"Star History Rank\" width=\"196\" height=\"55\"></a>\n</p>\n\n<p align=\"center\">\n  <a href=\"LICENSE\"><img src=\"https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge\" alt=\"MIT License\"></a>\n  <a href=\"https://www.python.org/\"><img src=\"https://img.shields.io/badge/Python-3.10+-green.svg?style=for-the-badge&logo=python&logoColor=white\" alt=\"Python 3.10+\"></a>\n  <a href=\"https://github.com/Panniantong/agent-reach/stargazers\"><img src=\"https://img.shields.io/github/stars/Panniantong/agent-reach?style=for-the-badge\" alt=\"GitHub Stars\"></a>\n</p>\n\n<p align=\"center\">\n  <a href=\"#快速上手\">快速开始</a> · <a href=\"docs/README_en.md\">English</a>\n</p>\n\n<p align=\"center\">\n  <a href=\"https://discord.gg/NSZz22R39\"><img src=\"https://img.shields.io/badge/Discord-加入社区-5865F2?style=for-the-badge&amp;logo=discord&amp;logoColor=white\" alt=\"加入 Agent Reach Discord 社区\"></a>\n</p>\n\n<p align=\"center\">\n  💬 有问题、想要新平台、或者想看看别人怎么用？来 <a href=\"https://discord.gg/NSZz22R39\">Discord</a> 聊聊。\n</p>\n\n---\n\n## ❤️赞助商\n\n> [想出现在这里？](mailto:pnt01@foxmail.com)\n\n<details>\n<summary>点击展开</summary>\n\n<table>\n<tr>\n<td width=\"180\" align=\"center\"><a href=\"https://get.brightdata.com/bdenai\"><img src=\"docs/assets/sponsors/brightdata.png\" alt=\"Bright Data 亮数据\" width=\"150\"></a></td>\n<td><a href=\"https://get.brightdata.com/bdenai\">Bright Data 亮数据</a> | 全球领先的数据采集基础设施。Scraper Studio 智能爬取器让你用自然语言一键生成爬虫，无需写代码；Unlocker 网站解锁器自动绕过反爬虫机制，轻松采集 Amazon、Google、LinkedIn、TikTok 等复杂网站数据。内置 350+ 现成 API 集成，覆盖电商、社交、搜索、地图等全品类数据源，直接调用开箱即用。1.5 亿+ 全球真实住宅 IP 保障采集稳定性。每月免费 5,000 次请求，<a href=\"https://get.brightdata.com/bdenai\">立即免费注册</a>。</td>\n</tr>\n<tr>\n<td width=\"180\" align=\"center\"><a href=\"https://www.rapidproxy.io/?ref=pann\"><img src=\"docs/assets/sponsors/rapidproxy.png\" alt=\"Rapidproxy\" width=\"150\"></a></td>\n<td><a href=\"https://www.rapidproxy.io/?ref=pann\">RapidProxy</a> 是专为开发者打造的数据采集代理解决方案，提供稳定可靠的住宅代理服务。拥有 9000 万+ 全球住宅 IP，覆盖 200+ 国家和地区，支持智能轮换与精准地理定位，可用于网页抓取、AI 数据采集与训练、SEO 监控、电商数据分析等场景，帮助提升数据采集效率与稳定性。支持 Playwright、Selenium、Puppeteer 等主流自动化框架，流量永久有效，价格低至 $0.55/GB，<a href=\"https://www.rapidproxy.io/?ref=pann\">支持免费测试</a>。</td>\n</tr>\n<tr>\n<td width=\"180\" align=\"center\"><a href=\"https://www.browseract.ai/Agent\"><img src=\"docs/assets/sponsors/browseract.png\" alt=\"BrowserAct\" width=\"150\"></a></td>\n<td><a href=\"https://www.browseract.ai/Agent\">BrowserAct</a> 支持从 Amazon、LinkedIn、X、Google Maps 等复杂网站提取你需要的任意数据。你只需用自然语言描述抓取需求，Agent 就会基于真实浏览器自动探索并测试页面流程，生成可靠、可复用的数据采集 Bot，并返回结构化结果。无需手动构建爬虫，无需编写代码。BrowserAct 内置隐身浏览、验证码处理和高质量住宅代理，帮助你更稳定地完成复杂网页数据采集。新用户注册即送 1000 积分，<a href=\"https://www.browseract.ai/Agent\">立即免费试用</a>。</td>\n</tr>\n<tr>\n<td width=\"180\" align=\"center\"><a href=\"https://www.tencentcloud.com/act/pro/intl-openclaw?referral_code=G76Y819A&amp;lang=zh&amp;pg=\"><img src=\"docs/assets/sponsors/tencent-cloud.svg\" alt=\"腾讯云 OpenClaw\" width=\"150\"></a></td>\n<td>在腾讯云 Lighthouse 秒级部署 OpenClaw 全能助手，可通过对话丝滑接入 Agent Reach，给你的 OpenClaw 一键装上互联网能力。</td>\n</tr>\n<tr>\n<td width=\"180\" align=\"center\"><a href=\"https://www.coreclaw.com/?utm_source=github&amp;utm_medium=referral&amp;utm_campaign=Reach&amp;utm_term=Reach&amp;utm_id=Reach\"><img src=\"docs/assets/sponsors/coreclaw.png\" alt=\"CoreClaw\" width=\"150\"></a></td>\n<td><a href=\"https://www.coreclaw.com/?utm_source=github&amp;utm_medium=referral&amp;utm_campaign=Reach&amp;utm_term=Reach&amp;utm_id=Reach\">CoreClaw</a> | 网页抓取平台与现成数据采集工具，CoreClaw 提供 100+ 现成数据采集工具，支持 Amazon、TikTok、Google Maps、Instagram、Facebook、YouTube 等平台，无需代码，支持 JSON/CSV 导出，仅对成功结果计费。<a href=\"https://www.coreclaw.com/?u"
+  },
+  "linkedin_jobs_page": {
+   "channel": "linkedin",
+   "action": "jobs",
+   "url": "https://www.linkedin.com/jobs/view/senior-python-developer-remote-at-hired-4447811252",
+   "title": "Hired hiring Senior Python Developer (Remote) in United States | LinkedIn",
+   "text": "Hired hiring Senior Python Developer (Remote) in United States | LinkedIn\n\n \n\n# Senior Python Developer (Remote)\n\n Hired United States \n\n 10 hours ago \n\n Be among the first 25 applicants \n\n See who Hired has hired for this role \n\n## Hired provided pay range \n\n This range is provided by Hired. Your actual pay will be based on your skills and experience — talk with your recruiter to learn more. \n\n### Base pay range\n\n $30.00/hr - $90.00/hr \n\n- Role: Senior Python Developer (Remote)\n- Location: Remote (Work from Anywhere)\n- Job Type: Contract\n- Payout: $30 - $90/hour\n\nRole Overview:\n\nWe are hiring for one of our clients, seeking a Python Developer to work on a contract basis. The role involves building and maintaining scalable backend services using Python, with a focus on performance optimization and code quality. Responsibilities include collaborating with cross-functional teams to design, develop, and deploy software solutions that meet business requirements.\n\nKey Responsibilities:\n\n• Develop, test, and deploy Python-based backend services and APIs with a focus on scalability and efficiency.\n\n• Write clean, maintainable, and well-documented code following best practices and design patterns.\n\n• Optimize existing codebases for performance, reliability, and security improvements.\n\n• Participate in code reviews to ensure adherence to coding standards and software quality metrics.\n\n• Troubleshoot and resolve issues in production environments, including debugging and root cause analysis.\n\nRequired Skills & Qualifications:\n\n• Proficiency in Python 3.x and experience with frameworks such as Django or Flask.\n\n• Strong understanding of data structures, algorithms, and object-oriented programming principles.\n\n• Experience with RESTful API development and integration with third-party services.\n\n• Familiarity with databases including SQL (PostgreSQL, MySQL) and NoSQL (MongoDB, Redis).\n\n• Knowledge of version control systems, preferably Git, and CI/CD pipelines.\n\n• Experience with containerization technologies such as Docker and orchestration tools like Kubernetes.\n\n• Understanding of cloud platforms, specifically AWS or Azure, for deployment and infrastructure management.\n\n• Ability to work independently in a remote environment with minimal supervision.\n\n...\n\n- ### Seniority level \n\n Associate \n- ### Employment type \n\n Contract \n- ### Job function \n\n Information Technology, Engineering, and Project Management \n- ### Industries \n\n Software Development, Technology, Information and Media, and IT Services and IT Consulting\n\n---"
+  },
+  "v2ex_user_metadata": {
+   "channel": "v2ex",
+   "action": "user",
+   "url": "https://www.v2ex.com/u/Livid",
+   "title": "Livid",
+   "text": "",
+   "raw": {
+    "id": 1,
+    "username": "Livid",
+    "url": "https://www.v2ex.com/u/Livid",
+    "website": "hub.v2core.com",
+    "twitter": "",
+    "psn": "",
+    "github": "",
+    "btc": "",
+    "location": "",
+    "tagline": "Remember the bigger green",
+    "bio": "",
+    "avatar_mini": "https://cdn.v2ex.com/avatar/c4ca/4238/1_mini.png?m=1791303400",
+    "avatar_normal": "https://cdn.v2ex.com/avatar/c4ca/4238/1_normal.png?m=1791303400",
+    "avatar_large": "https://cdn.v2ex.com/avatar/c4ca/4238/1_large.png?m=1791303400",
+    "avatar_xlarge": "https://cdn.v2ex.com/avatar/c4ca/4238/1_xlarge.png?m=1791303400",
+    "avatar_xxlarge": "https://cdn.v2ex.com/avatar/c4ca/4238/1_xxlarge.png?m=1791303400",
+    "avatar_xxxlarge": "https://cdn.v2ex.com/avatar/c4ca/4238/1_xxxlarge.png?m=1791303400",
+    "created": 1272203146,
+    "last_modified": 1791303400,
+    "pro": 1793187997,
+    "status": "found"
+   }
+  },
+  "bilibili_hot_metadata": {
+   "channel": "bilibili",
+   "action": "hot",
+   "url": "https://www.bilibili.com/video/BV1chxT6xEyo",
+   "title": "奶奶的皱纹里，藏着我一生的甜与暖",
+   "text": "",
+   "raw": {
+    "bvid": "BV1chxT6xEyo",
+    "aid": 117512402370778,
+    "duration": 263,
+    "stat": {
+     "aid": 117512402370778,
+     "view": 869680,
+     "danmaku": 1317,
+     "reply": 4588,
+     "favorite": 6121,
+     "coin": 39843,
+     "share": 563,
+     "now_rank": 0,
+     "his_rank": 35,
+     "like": 94625,
+     "dislike": 0,
+     "vt": 0,
+     "vv": 869680,
+     "fav_g": 0,
+     "like_g": 2
+    },
+    "tname": "小剧场"
+   }
+  },
+  "xueqiu_search_metadata": {
+   "channel": "xueqiu",
+   "action": "search",
+   "url": "https://xueqiu.com/S/SH600519",
+   "title": "贵州茅台 (SH600519)",
+   "text": "",
+   "raw": {
+    "symbol": "SH600519",
+    "name": "贵州茅台",
+    "market": "sh",
+    "type": "GP-A"
+   }
+  }
+ }
+}

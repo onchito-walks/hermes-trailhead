@@ -16,7 +16,7 @@ import shutil
 import subprocess
 import time
 import urllib.request
-from urllib.parse import parse_qs, quote, urlparse
+from urllib.parse import parse_qs, quote, urljoin, urlparse
 from typing import Callable, Literal
 
 from .search import SearchHit
@@ -1127,8 +1127,44 @@ def _github_api_json(api: str, timeout: int = 15):
         return json.loads(resp.read().decode("utf-8", errors="replace"))
 
 
-def _github_repo_metadata(owner: str, repo: str, parts: list[str], timeout: int) -> str:
-    """Repository-level metadata (the best non-auth evidence for a bare repo URL)."""
+def _github_readme_raw(owner: str, repo: str, timeout: int) -> str:
+    """Full README body from GitHub's public README endpoint, unmodified.
+
+    The endpoint accepts ``application/vnd.github.raw`` and then returns the
+    file itself, so the reader gets the README the repository actually ships
+    (install instructions, usage, licence section) instead of the truncated
+    base64 JSON payload.  Response bodies that are really an API error object
+    are rejected so a JSON error never masquerades as README text.
+    """
+    api = f"https://api.github.com/repos/{owner}/{repo}/readme"
+    headers = dict(_github_request_headers())
+    headers["Accept"] = "application/vnd.github.raw"
+    req = urllib.request.Request(api, headers=headers)
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        body = resp.read().decode("utf-8", errors="replace")
+    text = body.replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not text:
+        raise RuntimeError("GitHub readme endpoint returned an empty body")
+    if text.startswith("{") and text.endswith("}"):
+        try:
+            payload = json.loads(text)
+        except ValueError:
+            payload = None
+        if isinstance(payload, dict) and ("message" in payload or "documentation_url" in payload):
+            raise RuntimeError("GitHub readme endpoint returned an API message")
+    return text
+
+
+def _github_repo_metadata(
+    owner: str, repo: str, parts: list[str], timeout: int, *, full_readme: bool = False
+) -> str:
+    """Repository-level metadata (the best non-auth evidence for a bare repo URL).
+
+    ``full_readme`` is set for the exact ``github.com/<owner>/<repo>`` root,
+    where the README *is* the requested artifact: it is fetched whole through
+    the public README endpoint, never sliced down to an excerpt.  Any other
+    page (issues, wiki, ...) keeps the bounded excerpt.
+    """
     api = f"https://api.github.com/repos/{owner}/{repo}"
     data = _github_api_json(api, timeout)
     full_name = data.get('full_name') or f"{owner}/{repo}"
@@ -1142,23 +1178,40 @@ def _github_repo_metadata(owner: str, repo: str, parts: list[str], timeout: int)
     lines.append(
         f"Stars: {data.get('stargazers_count', 0)} | Forks: {data.get('forks_count', 0)} | Open issues: {data.get('open_issues_count', 0)} | Language: {data.get('language') or 'unknown'}"
     )
+    license_info = data.get("license")
+    if isinstance(license_info, dict):
+        license_name = str(
+            license_info.get("name") or license_info.get("spdx_id") or ""
+        ).strip()
+        if license_name:
+            lines.append(f"License: {license_name}")
     if len(parts) >= 3:
         lines.append(f"Requested path: /{'/'.join(parts[2:])}")
-    # README excerpt — real content beyond stats (best-effort, never fatal).
-    try:
-        import base64
+    # README — real content beyond stats (best-effort, never fatal).
+    readme_text = ""
+    if full_readme:
+        try:
+            readme_text = _github_readme_raw(owner, repo, timeout)
+        except Exception:
+            readme_text = ""  # Fall back to the contents API below
+    if not readme_text:
+        try:
+            import base64
 
-        readme = _github_api_json(f"{api}/readme", timeout)
-        raw = base64.b64decode(readme.get("content") or "", validate=False).decode(
-            "utf-8", "replace"
-        )
-        clean = re.sub(r"\n{3,}", "\n\n", raw).strip()
-        if clean:
-            lines.append("")
-            lines.append("README excerpt:")
-            lines.append(clean[:1200])
-    except Exception:
-        pass
+            readme = _github_api_json(f"{api}/readme", timeout)
+            readme_text = base64.b64decode(
+                readme.get("content") or "", validate=False
+            ).decode("utf-8", "replace")
+        except Exception:
+            readme_text = ""
+    if full_readme:
+        readme_text = readme_text.replace("\r\n", "\n").replace("\r", "\n").strip()
+    else:
+        readme_text = re.sub(r"\n{3,}", "\n\n", readme_text).strip()
+    if readme_text:
+        lines.append("")
+        lines.append("README:" if full_readme else "README excerpt:")
+        lines.append(readme_text if full_readme else readme_text[:1200])
     return "\n".join(lines)
 
 
@@ -1244,6 +1297,9 @@ def _fetch_github_summary(url: str, timeout: int = 15) -> str:
     owner, repo = parts[0], parts[1]
     rest = parts[2:]
 
+    if not rest:
+        # Exact repository root: the README is the requested artifact.
+        return _github_repo_metadata(owner, repo, parts, timeout, full_readme=True)
     if rest and rest[0] == "releases":
         return _fetch_github_releases(owner, repo, rest, timeout)
     if len(rest) >= 3 and rest[0] in {"blob", "raw"}:
@@ -1368,6 +1424,10 @@ _HTML_BLOCK_TAG_RE = re.compile(
     r"|figure|figcaption)\b[^>]*>",
     re.I,
 )
+_HTML_ANCHOR_RE = re.compile(r"<a\b(?P<attrs>[^>]*)>(?P<text>.*?)</a\s*>", re.I | re.S)
+_HTML_HREF_RE = re.compile(r"""\bhref\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)""", re.I)
+#: Link targets that carry no addressable destination for a reader.
+_LINKLESS_TARGET_PREFIXES = ("#", "javascript:", "mailto:", "tel:", "data:", "about:")
 _READABLE_TEXT_LIMIT = 20000
 
 
@@ -1392,7 +1452,70 @@ def _looks_like_html(text: str) -> bool:
     return len(_HTML_TAG_RE.findall(raw)) >= 20
 
 
-def _html_to_readable_text(html: str) -> str:
+def _link_target(href: str, base_url: str = "") -> str:
+    """Absolute http(s) destination for an anchor, or ``""`` when unusable.
+
+    Fragments-only, script and mail/tel targets identify no page a reader can
+    follow.  Relative hrefs are resolved against the fetched page's own URL and
+    are dropped when no page URL is known — a guessed host would be invented
+    evidence.
+    """
+    href = (href or "").strip()
+    if len(href) >= 2 and href[0] == href[-1] and href[0] in "\"'":
+        href = href[1:-1].strip()
+    if not href or href.startswith(_LINKLESS_TARGET_PREFIXES):
+        return ""
+    resolved = urljoin(base_url, href) if base_url else href
+    parsed = urlparse(resolved)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return ""
+    return resolved
+
+
+def _expand_anchor_targets(html: str, base_url: str = "") -> str:
+    """Rewrite each anchor as ``label — absolute URL`` before tags are stripped.
+
+    Listings (forum nodes, indexes, changelogs) put the identifier in the href,
+    so a title alone says *what* exists but not *where* it is.  Keeping the
+    destination next to the label preserves both in one line, and repeated
+    anchors still collapse into one line in the dedupe pass that follows.
+
+    Only *identifying* anchors are expanded: a label of pure punctuation or
+    pure digits (arrows, page numbers, reply counts) names navigation, the
+    page's own address is not a destination, and a target already shown on
+    this page is not repeated.  Everything else keeps its plain label, so no
+    destination is ever invented.
+    """
+    page = (base_url or "").split("#", 1)[0]
+    seen: dict[str, set[str]] = {}
+
+    def replace(match: "re.Match[str]") -> str:
+        text = match.group("text") or ""
+        href_match = _HTML_HREF_RE.search(match.group("attrs") or "")
+        if not href_match:
+            return text
+        target = _link_target(href_match.group(1), base_url)
+        if not target or target.split("#", 1)[0] == page:
+            return text
+        label = _clean_html_text(_html_unescape(text))
+        if (
+            not label
+            or label.lower() == target.lower()
+            or not any(ch.isalpha() for ch in label)
+        ):
+            return text
+        labels = seen.setdefault(target, set())
+        if label in labels:
+            # The page repeats this destination under the same label (reply
+            # count, footer copy of a nav link); showing it once is enough.
+            return ""
+        labels.add(label)
+        return f"{text} — {target}"
+
+    return _HTML_ANCHOR_RE.sub(replace, html or "")
+
+
+def _html_to_readable_text(html: str, base_url: str = "") -> str:
     """Convert server-rendered HTML into readable plain text.
 
     Scripts, styles, ``<head>`` and other non-visible bodies are dropped first
@@ -1400,10 +1523,15 @@ def _html_to_readable_text(html: str) -> str:
     paragraphs survive, remaining tags are stripped, entities decoded and
     whitespace normalised.  This turns a plain forum/docs page into text a
     reader can use instead of returning 100k+ chars of markup.
+
+    ``base_url`` is the URL the HTML came from; when given, anchors keep their
+    destination (``label — absolute URL``) so a listing page retains the
+    identifiers a caller needs to act on what it just read.
     """
     text = _HTML_COMMENT_RE.sub(" ", html or "")
     text = _HTML_SCRIPT_STYLE_RE.sub(" ", text)
     text = _HTML_INVISIBLE_RE.sub(" ", text)
+    text = _expand_anchor_targets(text, base_url)
     text = _HTML_BLOCK_TAG_RE.sub("\n", text)
     text = _HTML_TAG_RE.sub("", text)
     text = _html_unescape(text)
@@ -1422,25 +1550,35 @@ def _html_to_readable_text(html: str) -> str:
     return readable
 
 
-def _as_readable_page_text(content: str) -> str:
+def _as_readable_page_text(content: str, base_url: str = "") -> str:
     """Readable text for an HTML page; already-clean text passes through."""
     if not _looks_like_html(content):
         return content or ""
-    return _html_to_readable_text(content)
+    return _html_to_readable_text(content, base_url=base_url)
 
 
-def _readable_page_result(content: str) -> str:
+def _readable_page_result(content: str, base_url: str = "") -> str:
     """Readable page text when ``content`` is usable evidence, else ``""``.
 
     Client-rendered shells are rejected on the *raw* payload (their markup is
     the only shell signal) before cleaning, and the cleaned text must still
     carry readable content — so a JS-only page never becomes "evidence" just
     because stripping tags left a few boilerplate words behind.
+
+    Usability is judged on the *source* text, without the link annotations
+    added for a reader: appended destinations must never lift an interstitial
+    over a length-based block/missing-page threshold.
     """
     if _is_html_shell(content):
         return ""
     text = _as_readable_page_text(content)
-    return text if _is_usable_page_text(text) else ""
+    if not _is_usable_page_text(text):
+        return ""
+    if base_url and _looks_like_html(content):
+        annotated = _as_readable_page_text(content, base_url=base_url)
+        if annotated:
+            return annotated
+    return text
 
 
 def _clean_html_text(text: str) -> str:
@@ -1469,17 +1607,125 @@ def _is_html_shell(content: str) -> bool:
     return (unique / len(words)) < 0.2
 
 
+#: Bodies that mean the fetch was refused by an interstitial, not that the page
+#: was read.  These notices are unambiguous: an article *about* Reddit blocking
+#: is far longer than the notice itself.
+_BLOCKED_PAGE_MARKERS: tuple[str, ...] = (
+    "you've been blocked by network security",
+    "you’ve been blocked by network security",
+    "you have been blocked by network security",
+    "blocked by network security",
+    "access to this page has been denied",
+    "unusual traffic from your computer network",
+    "we've blocked this request",
+)
+
+#: Bodies that mean the target is gone (404 / removed), grouped by language.
+#: LinkedIn, for one, serves every localization of its 404 page in a single
+#: response, so the strongest signal is *several languages* agreeing — not one
+#: English sentence, which a docs page about 404 handling also contains.  The
+#: language tag is what lets a long body be condemned only on corroboration.
+_MISSING_PAGE_MARKERS_BY_LANG: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (
+        "en",
+        (
+            "page not found",
+            "page could not be found",
+            "page cannot be found",
+            "we can't seem to find the page",
+            "we couldn’t find the page",
+            "this page doesn't exist",
+            "this page doesn’t exist",
+            "the page you requested could not be found",
+        ),
+    ),
+    ("zh", ("你访问的页面不见了", "页面不存在", "页面未找到", "頁面不存在", "页面走丢了")),
+    ("ja", ("ページが見つかりません",)),
+    ("ko", ("페이지를 찾을 수 없습니다",)),
+    ("de", ("seite nicht gefunden",)),
+    ("es", ("página no encontrada",)),
+    ("it", ("pagina non trovata",)),
+    ("fr", ("page introuvable", "impossible de trouver cette page")),
+    ("pt", ("página não encontrada",)),
+    ("nl", ("pagina niet gevonden",)),
+    ("da", ("siden blev ikke fundet",)),
+    ("no", ("fant ikke siden",)),
+    ("sv", ("sidan hittades inte",)),
+    ("id", ("halaman ini tidak dapat ditemukan", "halaman tidak ditemukan")),
+    ("ar", ("لم يتم العثور على الصفحة",)),
+    ("tr", ("sayfa bulunamadı",)),
+    ("pl", ("nie znaleziono strony",)),
+    ("ru", ("страница не найдена",)),
+)
+
+#: Flat view, kept for callers that only need the phrases themselves.
+_MISSING_PAGE_MARKERS: tuple[str, ...] = tuple(
+    marker for _lang, markers in _MISSING_PAGE_MARKERS_BY_LANG for marker in markers
+)
+
+#: A shell body is short.  Real prose that merely quotes one of the markers
+#: above keeps substantial unrelated text and is not condemned.
+_SHELL_MAX_CHARS = 800
+_BLOCKED_SHELL_MAX_CHARS = 2000
+
+
+def classify_page_shell(text: str) -> str | None:
+    """Classify fetched page text as a block / missing-page shell.
+
+    Returns ``"blocked"`` when the body is an access interstitial (network
+    security block, traffic challenge), ``"missing_page"`` when the target is
+    gone (404 in any localization), else ``None``.
+
+    Deliberately conservative: a marker alone never condemns a long body,
+    because legitimate articles discuss 404 pages and blocked requests.  A
+    missing-page marker counts when the body is short (a shell has little real
+    prose), or when a long body is *corroborated*: either at least two
+    different languages agree (the shape of LinkedIn's multilingual 404) or at
+    least three distinct phrases appear — a docs page that quotes ``page not
+    found`` and ``this page doesn't exist`` is a page, not a 404 shell.
+    Metadata records (empty text) and discovery snippets are out of scope:
+    callers decide which bodies are supposed to be complete artifacts.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return None
+    normalised = re.sub(r"\s+", " ", raw).lower()
+    length = len(normalised)
+
+    if length <= _BLOCKED_SHELL_MAX_CHARS and any(
+        marker in normalised for marker in _BLOCKED_PAGE_MARKERS
+    ):
+        return "blocked"
+
+    matched = [
+        (lang, marker)
+        for lang, markers in _MISSING_PAGE_MARKERS_BY_LANG
+        for marker in markers
+        if marker in normalised
+    ]
+    if not matched:
+        return None
+    if length <= _SHELL_MAX_CHARS:
+        return "missing_page"
+    if len({lang for lang, _marker in matched}) >= 2 or len(matched) >= 3:
+        return "missing_page"
+    return None
+
+
 def _is_usable_page_text(content: str) -> bool:
     """True when fetched text is genuine, readable source text.
 
-    Rejects the extractor's own failure narration and client-rendered HTML
-    shells so they are never reported (or scored) as successful extraction.
+    Rejects the extractor's own failure narration, client-rendered HTML
+    shells, and block/missing-page interstitials so they are never reported
+    (or scored) as successful extraction.
     """
     if not content or len(content) <= 50:
         return False
     if _looks_like_extraction_error(content):
         return False
     if _is_html_shell(content):
+        return False
+    if classify_page_shell(content) is not None:
         return False
     return True
 
@@ -2479,10 +2725,16 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
         try:
             content = _fetch_github_summary(url, timeout=timeout)
             if content:
+                measured = len(content)
+                returned = content
+                if measured > _READABLE_TEXT_LIMIT:
+                    # Keep the reported length honest: the caller sees that the
+                    # page continued past what was returned.
+                    returned = content[:_READABLE_TEXT_LIMIT].rstrip() + "\n..."
                 return ExtractionResult(
                     status="ok",
-                    content=content,
-                    content_length=len(content),
+                    content=returned,
+                    content_length=measured,
                     source_type=source_type,
                 )
         except Exception:
@@ -2977,7 +3229,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     # Try direct fetch first (fast, no subprocess).
     try:
         content = fetcher(url, timeout)
-        text = _readable_page_result(content)
+        text = _readable_page_result(content, base_url=url)
         if text:
             return ExtractionResult(
                 status="ok",
@@ -2994,7 +3246,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     if fetch is None:  # Only try Jina when not testing
         try:
             content = _fetch_jina(url, timeout=timeout)
-            text = _readable_page_result(content)
+            text = _readable_page_result(content, base_url=url)
             if text:
                 return ExtractionResult(
                     status="ok",
@@ -3010,7 +3262,7 @@ def extract_one(url: str, *, extract: FetchFn | None = None, fetch: FetchFn | No
     # Try Hermes native web_extract last (slow subprocess).
     try:
         content = (extract or _fetch_hermes_web_extract)(url, timeout)
-        text = _readable_page_result(content)
+        text = _readable_page_result(content, base_url=url)
         if text:
             return ExtractionResult(
                 status="ok",

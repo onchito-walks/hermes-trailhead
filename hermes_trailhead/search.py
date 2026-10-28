@@ -87,6 +87,11 @@ class SearchExecution:
     evidence_state: str
     caveat: str
     error: str = ""
+    #: Backend names in the order they were tried.  A lane whose hits came from
+    #: the optional Agent Reach fallback says so here (``agent_reach_*``).
+    attempts: tuple[str, ...] = ()
+    #: Non-empty only when the hits were forwarded from a third-party tool.
+    attribution: str = ""
 
     def to_dict(self) -> dict:
         return {
@@ -102,6 +107,8 @@ class SearchExecution:
             "evidence_state": self.evidence_state,
             "caveat": self.caveat,
             "error": self.error,
+            "attempts": list(self.attempts),
+            "attribution": self.attribution,
         }
 
 
@@ -387,12 +394,29 @@ def search_run(platform: Platform, query: str, *, live: bool = False) -> SearchR
     )
 
 
-def execute_action(action: SearchAction, *, limit: int = 5, fetch: Fetch | None = None) -> SearchExecution:
+def execute_action(
+    action: SearchAction,
+    *,
+    limit: int = 5,
+    fetch: Fetch | None = None,
+    reach_adapter: object | None = None,
+) -> SearchExecution:
     executed_query = action.site_query or action.query
     fetcher = fetch or _fetch_text
     evidence_state = "discovered_links_only" if action.status == "gap" or action.approval_required else "search_hits"
-    allow_native = fetch is None and _fetch_text is _ORIGINAL_FETCH_TEXT
-    backend_result = backends.execute_backend_chain(action.platform, action.query, limit=limit, fetch=fetcher, allow_native=allow_native)
+    # The chain always receives a fetcher (the real default above), so `fetch is
+    # None` cannot be re-derived downstream.  Decide here, where an injected
+    # fixture fetcher is still distinguishable, and pass both signals explicitly.
+    trusted_runtime = fetch is None and _fetch_text is _ORIGINAL_FETCH_TEXT
+    backend_result = backends.execute_backend_chain(
+        action.platform,
+        action.query,
+        limit=limit,
+        fetch=fetcher,
+        allow_native=trusted_runtime,
+        allow_reach=trusted_runtime,
+        reach_adapter=reach_adapter,
+    )
     status: ExecutionStatus = "ok" if backend_result.hits else ("gap" if backend_result.saw_response else "blocked")
     error = "" if backend_result.hits else backend_result.error
     # Stamp the query onto each hit so downstream extraction/scoring can judge
@@ -414,10 +438,23 @@ def execute_action(action: SearchAction, *, limit: int = 5, fetch: Fetch | None 
         evidence_state=evidence_state,
         caveat=action.caveat,
         error=error,
+        attempts=tuple(backend_result.attempts),
+        attribution=backend_result.attribution,
     )
 
 
-def execute_search(platform: Platform, query: str, *, live: bool = False, limit: int = 5, fetch: Fetch | None = None) -> ExecutedSearchRun:
+def execute_search(
+    platform: Platform,
+    query: str,
+    *,
+    live: bool = False,
+    limit: int = 5,
+    fetch: Fetch | None = None,
+    reach_adapter: object | None = None,
+) -> ExecutedSearchRun:
     plan = search_run(platform, query, live=live)
-    executions = tuple(execute_action(action, limit=limit, fetch=fetch) for action in plan.actions)
+    executions = tuple(
+        execute_action(action, limit=limit, fetch=fetch, reach_adapter=reach_adapter)
+        for action in plan.actions
+    )
     return ExecutedSearchRun(plan=plan, executions=executions)

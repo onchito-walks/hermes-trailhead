@@ -11,12 +11,13 @@ from dataclasses import dataclass, field
 import base64
 import html
 import json
+import os
 import re
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Any, Callable, Mapping
 import urllib.request
-from typing import Callable
 from urllib.parse import parse_qs, quote_plus, urlparse
 
 
@@ -892,6 +893,311 @@ class BackendResult:
     attempts: list[str] = field(default_factory=list)
     saw_response: bool = False
     error: str = ""
+    #: Non-empty only when the hits were produced by a third-party tool that
+    #: Trailhead forwarded (never for native lanes).
+    attribution: str = ""
+
+
+# ── Optional Agent Reach search fallback ──────────────────────────────────
+#
+# The native/free chain always runs first and to completion.  Only when it
+# produced no lead does the optional third-party Agent Reach CLI get one chance
+# at the same search — and only when the operator has *explicitly* named the
+# executable in ``TRAILHEAD_AGENT_REACH_BIN``.
+#
+# Deliberate limits:
+# * a bare ``agent-reach`` on ``PATH`` is not configuration; nothing is guessed;
+# * nothing is installed, configured, updated, or logged in to here;
+# * public read-only ``search`` actions only, with
+#   ``allow_authenticated=False``, so a normal search can never reach a
+#   cookie/session route, a transcription action, or a paid/key-consuming call;
+# * forwarded items stay leads: the snippet is a short prefix of upstream text,
+#   never an extraction, and the engine string names Agent Reach.
+#
+# Lanes without a public upstream search route are not mapped: ``tiktok`` has no
+# upstream channel, and ``instagram search`` is login-only upstream, so mapping
+# it would only ever return ``auth_required`` after burning a subprocess.
+
+REACH_SEARCH_ROUTES: dict[str, tuple[str, str]] = {
+    "web": ("web", "search"),
+    "github": ("github", "search"),
+    "reddit": ("reddit", "search"),
+    "x": ("twitter", "search"),
+    "youtube": ("youtube", "search"),
+}
+
+_REACH_URL_ACCEPTORS: dict[str, Callable[[str], bool]] = {
+    "web": _open_web_result_url,
+    "github": _github_result_url,
+    "reddit": _reddit_result_url,
+    "x": _x_result_url,
+    "youtube": _youtube_result_url,
+}
+
+#: One upstream search call, bounded.  ``reach_backend`` clamps it further.
+REACH_SEARCH_TIMEOUT = 20.0
+REACH_SNIPPET_CHARS = 300
+_REACH_LABEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,63}$")
+
+
+def configured_reach_executable(environ: Mapping[str, str] | None = None) -> str | None:
+    """The explicitly configured Agent Reach executable, or ``None``.
+
+    Only ``TRAILHEAD_AGENT_REACH_BIN`` counts.  ``shutil.which`` is
+    deliberately not consulted: an ``agent-reach`` binary that merely happens
+    to be on ``PATH`` must not change what a search run does.
+    """
+    from .reach_backend import AGENT_REACH_ENV
+
+    source = os.environ if environ is None else environ
+    value = (source.get(AGENT_REACH_ENV) or "").strip()
+    return value or None
+
+
+def _reach_item_budget(limit: Any) -> int:
+    """Clamp a requested item budget to what the adapter will forward.
+
+    The adapter rejects ``--limit`` above its own ``MAX_LIMIT`` (50).  A search
+    run may legitimately ask for more hits than that (``--limit 200``), so the
+    fallback must clamp *before* building the upstream request instead of
+    turning a normal search into ``invalid_params``.
+    """
+    from .reach_backend import MAX_LIMIT as _REACH_MAX_LIMIT
+
+    try:
+        value = int(limit)
+    except (TypeError, ValueError, OverflowError):
+        return 5
+    return max(1, min(value, _REACH_MAX_LIMIT))
+
+
+def build_reach_search_adapter(executable: str, *, limit: int = 5):
+    """Build the public-only Agent Reach adapter used by the fallback."""
+    from .reach_backend import AgentReachBackend
+
+    return AgentReachBackend(
+        executable,
+        timeout=REACH_SEARCH_TIMEOUT,
+        allow_authenticated=False,
+        max_items=_reach_item_budget(limit),
+    )
+
+
+def _reach_engine(channel: str, action: str) -> str:
+    return f"agent_reach_{channel}_{action}"
+
+
+def _reach_label(value: Any) -> str | None:
+    if isinstance(value, str) and _REACH_LABEL_RE.match(value):
+        return value
+    return None
+
+
+def _reach_failure(
+    engine: str,
+    *,
+    platform: str,
+    code: str,
+    message: str,
+    attempts: list[str],
+) -> BackendResult:
+    return BackendResult(
+        hits=(),
+        engine=engine,
+        backend_name=engine,
+        attempts=attempts + [f"{engine}_{code}"],
+        saw_response=False,
+        error=f"optional agent-reach fallback for {platform} not used [{code}]: {message}".strip(),
+    )
+
+
+def run_reach_search_fallback(
+    platform: str,
+    query: str,
+    *,
+    limit: int = 5,
+    adapter: Any | None = None,
+) -> BackendResult | None:
+    """Try the optional Agent Reach public search route for ``platform``.
+
+    Returns ``None`` when the fallback simply does not apply: the lane has no
+    public upstream search route, or nothing was explicitly configured and no
+    adapter was injected (tests).
+
+    Never raises.  A missing executable, a broken adapter, a blocked upstream,
+    a route that is not public, and a malformed payload all come back as an
+    empty, attributed ``BackendResult`` whose ``error`` names the cause and the
+    next action, so the surrounding lane still reports honestly.
+    """
+    route = REACH_SEARCH_ROUTES.get(platform)
+    if route is None:
+        return None
+    channel, action = route
+    engine = _reach_engine(channel, action)
+    limit = _reach_item_budget(limit)
+
+    if adapter is None:
+        executable = configured_reach_executable()
+        if not executable:
+            return None
+        try:
+            adapter = build_reach_search_adapter(executable, limit=limit)
+        except Exception as exc:  # pragma: no cover - constructor is pure
+            return _reach_failure(
+                engine,
+                platform=platform,
+                code="adapter_error",
+                message=f"could not build the adapter ({type(exc).__name__}: {exc})",
+                attempts=[engine],
+            )
+
+    params = {"query": query, "limit": limit}
+    try:
+        result = adapter.execute(channel, action, params)
+    except Exception as exc:  # noqa: BLE001 - a broken adapter must not crater the lane
+        return _reach_failure(
+            engine,
+            platform=platform,
+            code="adapter_error",
+            message=f"adapter raised {type(exc).__name__}: {exc}",
+            attempts=[engine],
+        )
+
+    return _interpret_reach_search(
+        result,
+        platform=platform,
+        engine=engine,
+        limit=limit,
+    )
+
+
+def _interpret_reach_search(
+    result: Any,
+    *,
+    platform: str,
+    engine: str,
+    limit: int,
+) -> BackendResult:
+    """Validate one adapter result and convert items into discovery hits."""
+    attempts = [engine]
+    provenance = getattr(result, "provenance", None)
+    if not isinstance(provenance, Mapping):
+        provenance = {}
+
+    # Public gate first: a result that did not run a public-only route is never
+    # forwarded, whatever it contains.  Search never consents to a login.
+    route = provenance.get("route")
+    if provenance.get("public_only") is not True or route == "authenticated":
+        return _reach_failure(
+            engine,
+            platform=platform,
+            code="auth_gate",
+            message=(
+                "the adapter did not report a public-only route "
+                f"(public_only={provenance.get('public_only')!r}, route={route!r}); "
+                "authenticated forwarding is never enabled from a search run"
+            ),
+            attempts=attempts,
+        )
+
+    if getattr(result, "ok", None) is not True:
+        error = getattr(result, "error", None)
+        code = "error"
+        message = "adapter reported failure without details"
+        if isinstance(error, Mapping):
+            raw_code = error.get("code")
+            if isinstance(raw_code, str) and raw_code.strip():
+                code = re.sub(r"[^a-z0-9_]+", "_", raw_code.strip().lower()).strip("_")[:32] or "error"
+            raw_message = error.get("message")
+            if isinstance(raw_message, str) and raw_message.strip():
+                message = raw_message.strip()[:400]
+            upstream_code = error.get("upstream_code")
+            if isinstance(upstream_code, str) and upstream_code.strip():
+                message = f"{message} (upstream: {upstream_code.strip()[:40]})"
+            hint = error.get("hint")
+            if isinstance(hint, str) and hint.strip():
+                message = f"{message} (hint: {hint.strip()[:300]})"
+        return _reach_failure(
+            engine,
+            platform=platform,
+            code=code,
+            message=message,
+            attempts=attempts,
+        )
+
+    items = getattr(result, "items", None)
+    if not isinstance(items, (list, tuple)):
+        return _reach_failure(
+            engine,
+            platform=platform,
+            code="malformed_output",
+            message="adapter reported ok without an item list",
+            attempts=attempts,
+        )
+
+    accept_url = _REACH_URL_ACCEPTORS[platform]
+    hits = []
+    seen: set[str] = set()
+    skipped = 0
+    for item in items:
+        if len(hits) >= limit:
+            break
+        if not isinstance(item, Mapping):
+            skipped += 1
+            continue
+        url = item.get("url")
+        if not isinstance(url, str) or not url:
+            skipped += 1
+            continue
+        if _is_noise_url(url) or not accept_url(url) or url in seen:
+            skipped += 1
+            continue
+        title = item.get("title")
+        if not isinstance(title, str) or not title.strip():
+            title = url
+        text = item.get("text")
+        snippet = text.strip()[:REACH_SNIPPET_CHARS] if isinstance(text, str) else ""
+        seen.add(url)
+        hits.append(_search_hit(title=title.strip(), url=url, snippet=snippet))
+
+    if not hits:
+        return BackendResult(
+            hits=(),
+            engine=engine,
+            backend_name=engine,
+            attempts=attempts + [f"{engine}_no_matching_urls"],
+            saw_response=True,
+            error=(
+                f"optional agent-reach fallback for {platform} returned "
+                f"{len(items)} item(s) but none matched the {platform} lane's URL "
+                f"contract ({skipped} skipped as URL-less, off-lane, or duplicate)."
+            ),
+        )
+
+    reported = _reach_label(getattr(result, "backend", None))
+    if reported:
+        attempts.append(f"{engine}:{reported}")
+    for row in list(getattr(result, "attempts", ()) or ())[:4]:
+        if not isinstance(row, Mapping):
+            continue
+        label = _reach_label(row.get("backend"))
+        outcome = _reach_label(row.get("result"))
+        if label and outcome:
+            attempts.append(f"{engine}:{label}/{outcome}")
+
+    attribution = provenance.get("attribution")
+    if not isinstance(attribution, str) or not attribution.strip():
+        attribution = "Agent Reach (third-party CLI), forwarded by Hermes Trailhead"
+
+    return BackendResult(
+        hits=tuple(hits),
+        engine=engine,
+        backend_name=engine,
+        attempts=attempts,
+        saw_response=True,
+        error="",
+        attribution=attribution.strip(),
+    )
 
 
 def execute_backend_chain(
@@ -901,8 +1207,19 @@ def execute_backend_chain(
     limit: int = 5,
     fetch: FetchFn | None = None,
     allow_native: bool | None = None,
+    allow_reach: bool | None = None,
+    reach_adapter: Any | None = None,
 ) -> BackendResult:
-    """Try each backend in the platform's chain. First success wins."""
+    """Try each backend in the platform's chain. First success wins.
+
+    ``allow_native`` gates lane-native discovery (yt-dlp, GitHub API,
+    social-search).  ``allow_reach`` gates the optional Agent Reach fallback.
+    They are separate because callers legitimately inject a fake ``fetch`` to
+    exercise native discovery, while the fallback must stay closed for
+    fixture-driven runs.  ``search.execute_action`` always passes a fetcher, so
+    it cannot rely on this function re-deriving ``fetch is None``; it passes
+    both signals explicitly.
+    """
     chain = BACKENDS.get(platform, [])
     if not chain:
         return BackendResult(hits=(), engine="none", backend_name="", attempts=[])
@@ -914,6 +1231,11 @@ def execute_backend_chain(
 
     if allow_native is None:
         allow_native = fetch is None
+    if allow_reach is None:
+        # Default stays closed for fixture-driven runs: an injected `fetch` is
+        # an explicit stand-in for the network.  Callers whose fetcher *is* the
+        # real default path (search.execute_action) pass allow_reach=True.
+        allow_reach = fetch is None and allow_native
 
     # Real runtime gets lane-native discovery before generic public-search fallbacks.
     # Tests that inject `fetch` keep the old deterministic HTTP-only path unless
@@ -999,4 +1321,41 @@ def execute_backend_chain(
             return BackendResult(hits=hits, engine=backend_name, backend_name=backend_name, attempts=attempts, saw_response=True, error="")
         last_error = last_error or f"{backend_name} returned no social leads."
 
-    return BackendResult(hits=(), engine=attempts[-1] if attempts else "none", backend_name=attempts[-1] if attempts else "", attempts=attempts, saw_response=saw_response, error=last_error)
+    # Optional third-party fallback, last by design.  It only runs when every
+    # native/free backend above produced nothing AND either an adapter was
+    # deliberately injected or the caller passed the explicit `allow_reach`
+    # signal.  `allow_reach` is not derived from `fetch` here: the real runtime
+    # always hands the chain a fetcher object (search.execute_action), so a
+    # `fetch is None` check would make the fallback unreachable in production.
+    # Fixture-driven runs keep the default (False) and stay deterministic.
+    if reach_adapter is not None or allow_reach:
+        fallback = run_reach_search_fallback(platform, query, limit=limit, adapter=reach_adapter)
+        if fallback is not None:
+            if fallback.hits:
+                for name in fallback.attempts:
+                    if name not in attempts:
+                        attempts.append(name)
+                return BackendResult(
+                    hits=fallback.hits,
+                    engine=fallback.engine,
+                    backend_name=fallback.backend_name,
+                    attempts=attempts,
+                    saw_response=True,
+                    error="",
+                    attribution=fallback.attribution,
+                )
+            # Failed fallback: record the attempt, keep the native diagnosis,
+            # and never let the empty result be credited to the upstream tool.
+            for name in fallback.attempts:
+                if name not in attempts:
+                    attempts.append(name)
+            if fallback.error:
+                last_error = f"{last_error} {fallback.error}" if last_error else fallback.error
+
+    # The reported engine is the last *native* attempt, so an empty result is
+    # never attributed to the optional third-party fallback.
+    final_engine = next(
+        (name for name in reversed(attempts) if not name.startswith("agent_reach")),
+        "none",
+    )
+    return BackendResult(hits=(), engine=final_engine, backend_name=final_engine, attempts=attempts, saw_response=saw_response, error=last_error)

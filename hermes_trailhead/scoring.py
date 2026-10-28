@@ -12,7 +12,7 @@ from enum import Enum
 import re
 from urllib.parse import urlparse
 
-from .extract import ExtractedHit, _is_html_shell, _looks_like_extraction_error
+from .extract import ExtractedHit, _is_html_shell, _looks_like_extraction_error, classify_page_shell
 
 
 def _clean_summary_text(text: str) -> str:
@@ -291,7 +291,11 @@ def assess_evidence(hit: "ScoredHit", *, query: str | None = None) -> EvidenceAs
             ) + rel_reasons,
             transport_ok=True,
         )
-    if _looks_like_extraction_error(hit.summary) or _is_html_shell(hit.summary):
+    if (
+        _looks_like_extraction_error(hit.summary)
+        or _is_html_shell(hit.summary)
+        or classify_page_shell(hit.summary) is not None
+    ):
         return EvidenceAssessment(
             usable=False,
             relevance=relevance,
@@ -628,7 +632,9 @@ def score_hit(hit: ScoredHit, *, query: str | None = None) -> ScoredHit:
     # failure narration or a client-rendered HTML shell is not evidence: never let
     # it inherit the URL's domain quality.
     if hit.extraction_status == "ok" and (
-        _looks_like_extraction_error(hit.summary) or _is_html_shell(hit.summary)
+        _looks_like_extraction_error(hit.summary)
+        or _is_html_shell(hit.summary)
+        or classify_page_shell(hit.summary) is not None
     ):
         return _scored(
             hit,

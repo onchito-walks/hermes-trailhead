@@ -107,6 +107,23 @@ REGISTRY = {
                 },
             ],
         },
+        {
+            "name": "xiaoyuzhou",
+            "description": "podcast",
+            "level": "optional",
+            "login": None,
+            "actions": [
+                {
+                    "name": "transcribe",
+                    "help": "podcast asr",
+                    "params": [
+                        {"name": "target", "help": "url", "required": True, "type": "str", "default": None}
+                    ],
+                    "backends": ["groq-whisper"],
+                    "public_web": [],
+                }
+            ],
+        },
     ],
 }
 
@@ -150,11 +167,29 @@ def test_reach_inventory_json_reports_forwarded_surface(tmp_path, capsys):
     assert rc == 0
     assert payload["found"] is True
     assert payload["engine"] == "agent-reach"
-    pairs = {(row["channel"], row["action"]) for row in payload["capabilities"]}
-    assert ("v2ex", "read") in pairs
-    assert ("web", "read") in pairs
-    # transcribe is paid/key-consuming -> never forwarded
-    assert ("youtube", "transcribe") not in pairs
+    rows = {(row["channel"], row["action"]): row for row in payload["capabilities"]}
+    assert ("v2ex", "read") in rows
+    assert ("web", "read") in rows
+    # Paid transcription is discoverable but blocked and never public.
+    quota = rows[("youtube", "transcribe")]
+    assert quota["gate"] == "quota"
+    assert quota["public"] is False
+    assert quota["quota_consuming"] is True
+    assert quota["blocked_by_default"] is True
+    assert rows[("xiaoyuzhou", "transcribe")]["gate"] == "quota"
+    # The pinned inventory travels with the inventory command.
+    parity = payload["parity"]
+    assert parity["reference"]["commit"] == "14c213405669414492bda0f8d52cc6531d062c45"
+    assert parity["counts"] == {
+        **parity["counts"],
+        "actions": 40,
+        "channels": 14,
+        "gated_quota": 2,
+        "live_verified": 5,
+        "fixture_only": 35,
+    }
+    assert payload["quota_consuming_allowed"] is False
+    assert payload["asr_disabled"] is False
 
 
 def test_reach_inventory_text_marks_auth_gated_actions(tmp_path, capsys):
@@ -164,7 +199,23 @@ def test_reach_inventory_text_marks_auth_gated_actions(tmp_path, capsys):
     assert rc == 0
     assert "public-only" in out
     assert "instagram" in out and "needs --allow-authenticated" in out
-    assert "transcribe" in out  # mentioned in the "not forwarded" line
+    assert "needs --allow-quota-consuming + --allow-authenticated" in out
+    # Parity table is printed even though only a subset exists upstream here.
+    assert "Parity reference: Panniantong/Agent-Reach 1.6.0" in out
+    assert "40/40 inventoried" in out
+    assert "not live runs" in out
+    assert "xiaoyuzhou" in out and "transcribe" in out
+
+
+def test_reach_inventory_parity_survives_a_missing_executable(tmp_path, capsys):
+    rc = main(["reach", "--agent-reach", str(tmp_path / "nope"), "--format", "json"])
+    payload = _json(capsys)
+    assert rc == 0
+    assert payload["found"] is False
+    assert payload["capabilities"] == []
+    # Static pinned inventory is still reported, without pretending it is live.
+    assert payload["parity"]["counts"]["actions"] == 40
+    assert payload["parity"]["counts"]["live_verified"] == 5
 
 
 def test_reach_inventory_reports_missing_cli_honestly(tmp_path, capsys):
@@ -271,14 +322,175 @@ def test_reach_call_forwards_with_consent_flag(tmp_path, capsys):
     assert "--backend" not in payload["argv"]
 
 
-def test_reach_call_rejects_unlisted_action(tmp_path, capsys):
+def test_reach_call_transcription_is_blocked_by_default(tmp_path, capsys):
     exe = _fake_cli(tmp_path)
     rc = main(
         ["reach-call", "youtube", "transcribe", "https://youtu.be/x", "--agent-reach", exe, "--format", "json"]
     )
     payload = _json(capsys)
     assert rc == 1
-    assert payload["error"]["code"] in {"action_not_allowlisted", "unknown_action"}
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == "quota_required"
+    assert "--allow-quota-consuming" in payload["error"]["message"]
+    assert payload["argv"] == []  # nothing spawned
+
+
+def test_reach_call_transcription_needs_both_flags(tmp_path, capsys):
+    exe = _fake_cli(tmp_path)
+    rc = main(
+        [
+            "reach-call",
+            "xiaoyuzhou",
+            "transcribe",
+            "https://www.xiaoyuzhoufm.com/episode/x",
+            "--allow-quota-consuming",
+            "--agent-reach",
+            exe,
+            "--format",
+            "json",
+        ]
+    )
+    payload = _json(capsys)
+    assert rc == 1
+    assert payload["error"]["code"] == "auth_required"
+    assert "allow_authenticated" in payload["error"]["message"]
+    assert payload["argv"] == []
+
+
+def test_reach_call_transcription_runs_with_both_flags(tmp_path, capsys, monkeypatch):
+    monkeypatch.delenv("TRAILHEAD_DISABLE_ASR", raising=False)
+    exe = _fake_cli(tmp_path)
+    rc = main(
+        [
+            "reach-call",
+            "youtube",
+            "transcribe",
+            "https://youtu.be/x",
+            "--allow-quota-consuming",
+            "--allow-authenticated",
+            "--agent-reach",
+            exe,
+            "--format",
+            "json",
+        ]
+    )
+    payload = _json(capsys)
+    assert rc == 0, payload
+    assert payload["ok"] is True
+    assert payload["provenance"]["quota_consuming"] is True
+    assert payload["provenance"]["route"] == "quota"
+    assert payload["provenance"]["public_only"] is False
+    assert "--backend" not in payload["argv"]
+    assert any("quota" in line.lower() for line in payload["limitations"])
+
+
+def test_reach_call_asr_veto_wins_over_both_cli_flags(tmp_path, capsys, monkeypatch):
+    monkeypatch.setenv("TRAILHEAD_DISABLE_ASR", "1")
+    exe = _fake_cli(tmp_path)
+    rc = main(
+        [
+            "reach-call",
+            "youtube",
+            "transcribe",
+            "https://youtu.be/x",
+            "--allow-quota-consuming",
+            "--allow-authenticated",
+            "--agent-reach",
+            exe,
+            "--format",
+            "json",
+        ]
+    )
+    payload = _json(capsys)
+    assert rc == 1
+    assert payload["error"]["code"] == "asr_disabled"
+    assert payload["argv"] == []
+
+
+def test_reach_inventory_reports_quota_consent_and_asr_veto(tmp_path, capsys, monkeypatch):
+    exe = _fake_cli(tmp_path)
+    monkeypatch.setenv("TRAILHEAD_DISABLE_ASR", "1")
+    rc = main(
+        [
+            "reach",
+            "--agent-reach",
+            exe,
+            "--allow-quota-consuming",
+            "--allow-authenticated",
+            "--format",
+            "json",
+        ]
+    )
+    payload = _json(capsys)
+    assert rc == 0
+    assert payload["quota_consuming_allowed"] is True
+    assert payload["asr_disabled"] is True
+    quota = {(r["channel"], r["action"]): r for r in payload["capabilities"]}[
+        ("youtube", "transcribe")
+    ]
+    assert quota["asr_veto"] is True
+
+
+def test_gate_refusals_spawn_no_process_at_all(tmp_path, capsys, monkeypatch):
+    """A refused quota call must not even read the upstream registry."""
+    monkeypatch.delenv("TRAILHEAD_DISABLE_ASR", raising=False)
+    marker = tmp_path / "spawned.txt"
+    script = tmp_path / "agent-reach"
+    script.write_text(
+        f"#!{sys.executable}\n"
+        "import pathlib, sys\n"
+        f"pathlib.Path({str(marker)!r}).write_text(' '.join(sys.argv[1:]))\n"
+        "print('{}')\n"
+    )
+    script.chmod(0o755)
+
+    attempts = [
+        ["reach-call", "youtube", "transcribe", "https://youtu.be/x"],
+        ["reach-call", "youtube", "transcribe", "https://youtu.be/x", "--allow-quota-consuming"],
+        ["reach-call", "xiaoyuzhou", "transcribe", "https://x.test/e", "--allow-authenticated"],
+    ]
+    for argv in attempts:
+        rc = main([*argv, "--agent-reach", str(script), "--format", "json"])
+        payload = _json(capsys)
+        assert rc == 1
+        assert payload["error"]["code"] in {"quota_required", "auth_required"}
+        assert payload["argv"] == []
+        assert not marker.exists(), f"spawned a process for {argv}: {marker.read_text()}"
+        marker.unlink(missing_ok=True)
+
+    monkeypatch.setenv("TRAILHEAD_DISABLE_ASR", "1")
+    rc = main(
+        [
+            "reach-call",
+            "youtube",
+            "transcribe",
+            "https://youtu.be/x",
+            "--allow-quota-consuming",
+            "--allow-authenticated",
+            "--agent-reach",
+            str(script),
+            "--format",
+            "json",
+        ]
+    )
+    payload = _json(capsys)
+    assert rc == 1
+    assert payload["error"]["code"] == "asr_disabled"
+    assert not marker.exists()
+
+
+def test_search_cli_has_no_quota_consent_flag():
+    """A normal search run cannot opt into billable transcription."""
+    import argparse
+
+    from hermes_trailhead.cli import build_parser
+
+    parser = build_parser()
+    sub = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
+    search_parser = sub.choices["search"]
+    options = {opt for action in search_parser._actions for opt in action.option_strings}
+    assert "--allow-quota-consuming" not in options
+    assert "--allow-authenticated" not in options
 
 
 def test_reach_call_missing_executable_is_not_configured(tmp_path, capsys):
@@ -298,6 +510,98 @@ def test_reach_call_text_mode_prints_attribution(tmp_path, capsys):
     assert "Attribution: Agent Reach" in out
     assert "Route:" in out
     assert "Items:" in out
+
+
+def test_reach_inventory_gate_vocabulary_and_quota_readiness(tmp_path, capsys, monkeypatch):
+    """Capabilities and the parity inventory share public/consent/quota, and
+    quota consent is reported separately from quota readiness."""
+    exe = _fake_cli(tmp_path)
+    monkeypatch.delenv("TRAILHEAD_DISABLE_ASR", raising=False)
+    rc = main(
+        [
+            "reach",
+            "--agent-reach",
+            exe,
+            "--allow-quota-consuming",
+            "--allow-authenticated",
+            "--format",
+            "json",
+        ]
+    )
+    payload = _json(capsys)
+    assert rc == 0
+    gates = {row["gate"] for row in payload["capabilities"]}
+    assert gates <= {"public", "consent", "quota"}
+    assert "authenticated" not in gates
+    assert payload["authenticated_allowed"] is True
+    assert payload["quota_consuming_allowed"] is True
+    assert payload["quota_ready"] is True
+    assert payload["asr_disabled"] is False
+    assert payload["credential_source"] == "upstream-home-config"
+
+    monkeypatch.setenv("TRAILHEAD_DISABLE_ASR", "1")
+    rc = main(
+        ["reach", "--agent-reach", exe, "--allow-quota-consuming", "--allow-authenticated"]
+    )
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "Quota now:  not ready" in out
+    assert "auth consent: consented" in out
+    assert "ASR veto (TRAILHEAD_DISABLE_ASR): on" in out
+
+
+def test_search_text_prints_attribution_when_present(monkeypatch, capsys):
+    from types import SimpleNamespace
+
+    from hermes_trailhead import cli as cli_module
+
+    execution = SimpleNamespace(
+        platform="web",
+        status="ok",
+        result_count=0,
+        engine="agent_reach_web",
+        attribution="Agent Reach (third-party CLI), forwarded by Hermes Trailhead",
+        caveat="",
+        error="",
+        hits=[],
+    )
+    executed = SimpleNamespace(
+        plan=SimpleNamespace(query="hermes", paid_api_required=False),
+        executions=(execution,),
+    )
+    monkeypatch.setattr(cli_module, "search_execute_data", lambda *a, **k: executed)
+    rc = main(["search", "web", "hermes", "--execute", "--no-extract"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "Engine: agent_reach_web" in out
+    assert "Attribution: Agent Reach (third-party CLI), forwarded by Hermes Trailhead" in out
+
+
+def test_search_text_omits_attribution_when_absent(monkeypatch, capsys):
+    from types import SimpleNamespace
+
+    from hermes_trailhead import cli as cli_module
+
+    execution = SimpleNamespace(
+        platform="web",
+        status="ok",
+        result_count=0,
+        engine="exa",
+        attribution="",
+        caveat="",
+        error="",
+        hits=[],
+    )
+    executed = SimpleNamespace(
+        plan=SimpleNamespace(query="hermes", paid_api_required=False),
+        executions=(execution,),
+    )
+    monkeypatch.setattr(cli_module, "search_execute_data", lambda *a, **k: executed)
+    rc = main(["search", "web", "hermes", "--execute", "--no-extract"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "Engine: exa" in out
+    assert "Attribution:" not in out
 
 
 def test_reach_call_rejects_bad_param_and_extra_positionals(tmp_path, capsys):

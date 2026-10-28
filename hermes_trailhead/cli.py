@@ -3,9 +3,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import sys
+from contextlib import contextmanager
 from typing import Iterable
 from typing import cast
+from urllib.parse import urlparse
 
 from . import __version__
 from .channels import CHANNELS, Channel, CheckResult, check_all, check_all_live, get_channel
@@ -28,9 +32,9 @@ from .formatters import (
 )
 from .router import all_routes, route_for
 from .router import route_for_with_live, score_route_with_live_state
-from .search import PLATFORMS, Platform, execute_search, search_run, ExecutedSearchRun, SearchRun
+from .search import PLATFORMS, Platform, execute_search, search_run, ExecutedSearchRun, SearchRun, SearchHit
 from .extract import extract_hits
-from .scoring import score_hits, rank_hits, ScoredHit
+from .scoring import score_hits, rank_hits, score_hit, ScoredHit
 from .reliability import record_all_checks, reliability_summary
 from .benchmarks import BENCHMARK_TASKS, run_all_benchmarks, run_benchmark, BenchmarkScore
 from .gauntlet import run_gauntlet
@@ -254,6 +258,72 @@ def cmd_score(args: argparse.Namespace) -> int:
     return 0
 
 
+def _reach_text_parity(payload: dict) -> str:
+    """Pinned 40-action parity table: coverage, gate, evidence — no live claims."""
+    parity = payload.get("parity") or {}
+    reference = parity.get("reference") or {}
+    counts = parity.get("counts") or {}
+    rows = parity.get("actions") or []
+    lines = [
+        "Parity reference: {project} {version} @ {commit} ({actions} actions / {channels} channels, "
+        "measured {measured})".format(
+            project=reference.get("project", "?"),
+            version=reference.get("version", "?"),
+            commit=(reference.get("commit") or "?")[:12],
+            actions=reference.get("actions", "?"),
+            channels=reference.get("channels", "?"),
+            measured=reference.get("measured", "?"),
+        ),
+        "",
+    ]
+    if not rows:
+        lines.append("  (inventory unavailable)")
+        return "\n".join(lines)
+    width = max(len(row["channel"]) for row in rows)
+    awidth = max(len(row["action"]) for row in rows)
+    cwidth = max(len(row["coverage"]) for row in rows)
+    lines.append(f"  {'channel':<{width}}  {'action':<{awidth}}  {'coverage':<{cwidth}}  {'gate':<7}  evidence")
+    for row in rows:
+        gate = row.get("gate") or "?"
+        evidence = ", ".join(row.get("evidence") or [])
+        lines.append(
+            f"  {row['channel']:<{width}}  {row['action']:<{awidth}}  "
+            f"{row['coverage']:<{cwidth}}  {gate:<7}  {evidence}"
+        )
+    lines.append("")
+    lines.append(
+        "  Totals: {actions}/{actions} inventoried; native {native} (+{partial} partial), "
+        "upstream-only {upstream}; public {public}, auth-gated {auth}, quota-gated {quota}.".format(
+            actions=counts.get("actions", 0),
+            native=counts.get("native", 0),
+            partial=counts.get("native_partial", 0),
+            upstream=counts.get("upstream_only", 0),
+            public=counts.get("public", 0),
+            auth=counts.get("gated_auth", 0),
+            quota=counts.get("gated_quota", 0),
+        )
+    )
+    surfaced = counts.get("surfaced", 0)
+    total = counts.get("actions", 0)
+    ratio = counts.get("surfaced_ratio")
+    if ratio is None:
+        ratio = (surfaced / total) if total else 0.0
+    lines.append(
+        "  Surfaced: {surfaced}/{total} inventoried actions (ratio {ratio:.2f}); "
+        "gates are public / consent / quota.".format(
+            surfaced=surfaced, total=total, ratio=ratio
+        )
+    )
+    lines.append(
+        "  Evidence: live-verified {live}; {fixture} rows are fixture/native contract tests only "
+        "— not live runs. See docs/ACTION-PARITY.md.".format(
+            live=counts.get("live_verified", 0),
+            fixture=counts.get("fixture_only", 0),
+        )
+    )
+    return "\n".join(lines)
+
+
 def _reach_text_inventory(payload: dict) -> str:
     lines = ["Agent Reach forwarding layer (optional, read-only, attributed)", ""]
     exe = payload.get("executable") or "(not found)"
@@ -264,26 +334,56 @@ def _reach_text_inventory(payload: dict) -> str:
         lines.append(f"  Status:     available (registry schema {payload.get('schema_version')})")
     mode = "public-only (no browser fallback, no credentials)" if payload.get("public_only") else "authenticated forwarding allowed for this run"
     lines.append(f"  Mode:       {mode}")
+    quota_mode = "consented" if payload.get("quota_consuming_allowed") else "not consented"
+    auth_mode = "consented" if payload.get("authenticated_allowed") else "not consented"
+    veto = "on" if payload.get("asr_vetoed", payload.get("asr_disabled")) else "off"
+    ready = "ready" if payload.get("quota_ready") else "not ready"
+    lines.append(
+        f"  Quota:      {quota_mode} (--allow-quota-consuming) | "
+        f"auth consent: {auth_mode} | ASR veto (TRAILHEAD_DISABLE_ASR): {veto}"
+    )
+    lines.append(
+        f"  Quota now:  {ready} — a quota call needs quota consent AND auth consent "
+        "AND no process-wide ASR veto"
+    )
     caps = payload.get("capabilities") or []
     channels = sorted({row["channel"] for row in caps})
-    lines.append(f"  Forwarded:  {len(caps)} read-only action(s) across {len(channels)} channel(s)")
+    public = sum(1 for row in caps if row.get("gate") == "public")
+    auth_gated = sum(1 for row in caps if row.get("gate") == "consent")
+    quota_gated = sum(1 for row in caps if row.get("gate") == "quota")
+    lines.append(
+        f"  Discoverable: {len(caps)} action(s) across {len(channels)} channel(s): "
+        f"{len(caps) - quota_gated} read-only forwarded ({public} public, "
+        f"{auth_gated} need --allow-authenticated)"
+    )
+    lines.append(
+        f"  Quota-gated: {quota_gated} transcription action(s) — need --allow-quota-consuming "
+        "AND --allow-authenticated; blocked by default"
+    )
     lines.append("")
     if caps:
         width = max(len(row["channel"]) for row in caps)
         awidth = max(len(row["action"]) for row in caps)
         for row in caps:
-            gate = "" if row["public"] else "  [needs --allow-authenticated]"
+            gate = row.get("gate") or ("public" if row["public"] else "consent")
+            marker = {
+                "public": "",
+                "consent": "  [needs --allow-authenticated]",
+                "quota": "  [needs --allow-quota-consuming + --allow-authenticated]",
+            }.get(gate, "")
             backends = ", ".join(row.get("backends") or []) or "-"
             lines.append(
                 f"  {row['channel']:<{width}}  {row['action']:<{awidth}}  "
-                f"{row['mode']:<12} {backends}{gate}"
+                f"{row['mode']:<12} {backends}{marker}"
             )
         lines.append("")
     error = payload.get("error")
     if error:
         lines.append(f"  Error: {error.get('code')}: {error.get('message')}")
-    lines.append("  Not forwarded: transcribe (paid/key-consuming) and every management verb")
-    lines.append("  (setup, add, remove, login, browser, configure, update, uninstall, skill).")
+    lines.append("  Management verbs are never forwarded: setup, add, remove, login, logout,")
+    lines.append("  browser, configure, update, uninstall, skill, doctor, check, version.")
+    lines.append("")
+    lines.append(_reach_text_parity(payload))
     return "\n".join(lines)
 
 
@@ -295,6 +395,7 @@ def cmd_reach(args: argparse.Namespace) -> int:
         args.agent_reach,
         timeout=args.timeout,
         allow_authenticated=args.allow_authenticated,
+        allow_quota_consuming=args.allow_quota_consuming,
     )
     payload = backend.describe()
     if args.format == "json":
@@ -318,6 +419,8 @@ def _reach_text_result(result) -> str:
     lines.append(f"  Route:       {prov.get('route') or 'unknown'}"
                  + (f" | forced backend: {prov['forced_backend']}" if prov.get("forced_backend") else ""))
     lines.append(f"  Backend:     {payload.get('backend') or '(upstream did not report one)'}")
+    if prov.get("quota_consuming"):
+        lines.append("  Quota:       paid/key-consuming call, run only with explicit consent")
     items = payload.get("items") or []
     lines.append(f"  Items:       {len(items)}")
     for index, item in enumerate(items[:5], start=1):
@@ -339,7 +442,7 @@ def _reach_text_result(result) -> str:
 
 def cmd_reach_call(args: argparse.Namespace) -> int:
     """Forward one allowlisted read-only channel/action to Agent Reach."""
-    from .reach_backend import AgentReachBackend, ReachBackendError
+    from .reach_backend import AgentReachBackend, ReachBackendError, asr_disabled
 
     backend = AgentReachBackend(
         args.agent_reach,
@@ -360,16 +463,31 @@ def cmd_reach_call(args: argparse.Namespace) -> int:
     # Positional extras fill the action's required params in declared order.
     if args.arguments:
         declared: list[str] = []
-        try:
-            registry = backend.registry()
-            channel = registry.channels.get(args.channel)
-            action = channel.actions.get(args.action) if channel else None
-            if action is not None:
-                declared = [param.name for param in action.required_params]
-        except ReachBackendError:
-            declared = []
+        # A gated quota action must not even read the registry before its gates
+        # pass: that read is a subprocess.  execute() returns the precise gate
+        # error (quota_required / auth_required / asr_disabled) before params.
+        quota_preflight_blocked = (
+            AgentReachBackend.is_quota_action(args.channel, args.action)
+            and not (
+                args.allow_quota_consuming
+                and args.allow_authenticated
+                and not asr_disabled()
+            )
+        )
+        if not quota_preflight_blocked:
+            try:
+                registry = backend.registry()
+                channel = registry.channels.get(args.channel)
+                action = channel.actions.get(args.action) if channel else None
+                if action is not None:
+                    declared = [param.name for param in action.required_params]
+            except ReachBackendError:
+                declared = []
         extras = list(args.arguments)
-        if declared:
+        if quota_preflight_blocked:
+            # Gate refusal wins over positional mapping; execute() reports it.
+            pass
+        elif declared:
             if len(extras) > len(declared):
                 print(
                     f"{args.channel} {args.action} takes {len(declared)} positional "
@@ -393,6 +511,7 @@ def cmd_reach_call(args: argparse.Namespace) -> int:
         args.action,
         params,
         allow_authenticated=args.allow_authenticated,
+        allow_quota_consuming=args.allow_quota_consuming,
         max_items=args.limit,
     )
     if args.format == "json":
@@ -504,6 +623,9 @@ def cmd_search(args: argparse.Namespace) -> int:
         for execution in executed.executions:
             print(f"## {execution.platform} — {execution.status} ({execution.result_count} hits)\n")
             print(f"Engine: {execution.engine}")
+            attribution = getattr(execution, "attribution", "")
+            if attribution:
+                print(f"Attribution: {attribution}")
             if execution.caveat:
                 print(f"Caveat: {execution.caveat}")
             if execution.error:
@@ -572,6 +694,14 @@ def cmd_report(args: argparse.Namespace) -> int:
         return 0
     path = write_report(report, args.out)
     if args.format == "json":
+        # Attribution travels with the JSON, not only the markdown: a lane fed
+        # by the optional Agent Reach CLI is borrowed evidence, and a machine
+        # consumer must be able to tell it apart from a native Trailhead hit.
+        forwarded = [
+            {"platform": c.platform, "attribution": c.attribution}
+            for c in report.coverage
+            if c.attribution
+        ]
         print(
             json.dumps(
                 {
@@ -587,9 +717,16 @@ def cmd_report(args: argparse.Namespace) -> int:
                             "engine": c.engine,
                             "hit_count": c.hit_count,
                             "extracted_count": c.extracted_count,
+                            "attribution": c.attribution,
                         }
                         for c in report.coverage
                     ],
+                    "attribution": {
+                        "forwarded_lanes": forwarded,
+                        "native_lanes": [
+                            c.platform for c in report.coverage if not c.attribution
+                        ],
+                    },
                     "notable_count": len(report.notable),
                     "caveats_count": len(report.caveats),
                 },
@@ -599,6 +736,394 @@ def cmd_report(args: argparse.Namespace) -> int:
         return 0
     print(path)
     return 0
+
+
+# ── read: known-URL reading (native, public-only, no paid ASR) ──────────────
+#
+# Product gap (acceptance dimension 9): an agent must be able to hand Trailhead
+# one URL it already has and get back evidence without a search query, without
+# the optional Agent Reach CLI, and without a paid transcription call.  This
+# command is a thin, honest presentation layer over the existing extractor
+# (`extract_hits` → `extract_one`); it adds no new fetch connector.
+
+READ_SCHEMA_VERSION = 1
+READ_ASR_ENV = "TRAILHEAD_DISABLE_ASR"
+READ_TIMEOUT_DEFAULT = 15.0
+READ_TIMEOUT_MIN = 1.0
+READ_TIMEOUT_MAX = 120.0
+READ_MIN_USABLE_CHARS = 50
+# `extract._html_to_readable_text` caps clean text here and appends "...".
+_READ_READABLE_CAP_HINT = 20000
+
+#: Fallback plan actually in force for this command.  Reported in the payload so
+#: a consumer never has to guess which tiers were allowed.
+_READ_POLICY: dict[str, str] = {
+    "agent_reach": "not_used",
+    "asr": "disabled",
+    "hermes_web_extract": "disabled",
+    "public_tiers": "direct/proxy HTTP, Jina Reader, native platform public APIs",
+}
+
+
+@contextmanager
+def _asr_forced_off():
+    """Force ``TRAILHEAD_DISABLE_ASR=1`` for the duration of one extraction.
+
+    ``extract._ensure_asr_enabled`` reads the variable at call time, so both the
+    YouTube and TikTok ASR tiers refuse before downloading media or contacting a
+    transcription API.  The previous value is restored exactly, including the
+    unset case, so `read` never changes process-wide behavior for later calls.
+    """
+    previous = os.environ.get(READ_ASR_ENV)
+    os.environ[READ_ASR_ENV] = "1"
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop(READ_ASR_ENV, None)
+        else:
+            os.environ[READ_ASR_ENV] = previous
+
+
+def _read_no_llm_extract(url: str, timeout: int = 15) -> str:
+    """Disabled final tier: the model-backed Hermes ``web_extract`` subprocess.
+
+    `read` must be deterministic and free: it never spawns ``hermes chat``.
+    Raising here is caught by ``extract_one`` like any other failed tier and the
+    result is reported honestly as an extraction failure rather than silently
+    spending a model call.
+    """
+    raise RuntimeError(
+        "read does not use the model-backed Hermes web_extract fallback; "
+        "use 'search ... --execute --extract' when that tier is explicitly wanted"
+    )
+
+
+def _validate_read_url(raw: str) -> tuple[str, str]:
+    """Return ``(normalized_url, error)``; error is ``""`` when valid.
+
+    Only absolute ``http(s)`` URLs are accepted.  Whitespace, embedded
+    credentials and malformed ports are rejected so a URL can never smuggle
+    command/option text or leak a password into output.
+    """
+    url = (raw or "").strip()
+    if not url:
+        return "", "URL is required"
+    if any(ch in url for ch in " \t\r\n"):
+        return "", "URL must not contain whitespace or control characters"
+    try:
+        parsed = urlparse(url)
+        scheme = parsed.scheme.lower()
+        hostname = parsed.hostname
+        embedded_credentials = bool(parsed.username or parsed.password)
+        parsed.port  # property access validates the port
+    except ValueError:
+        # Never interpolate the parser's message: it can quote the input, and
+        # the input can carry a password (``...:secret@host:bad/``).  A generic
+        # message plus the redacted echo in ``_read_display_url`` is the whole
+        # contract.
+        return "", "URL could not be parsed; check the scheme, host, and port"
+    if scheme not in ("http", "https"):
+        return "", "URL must use http:// or https://"
+    if not hostname:
+        return "", "URL must include a host"
+    if embedded_credentials:
+        return "", "URL must not embed credentials"
+    return url, ""
+
+
+def _read_timeout_seconds(value: float) -> int:
+    """Whole-second budget for the payload, safe for nan/inf/odd values.
+
+    Validation rejects anything outside 1–120, but the payload still needs a
+    number for the error report; NaN/Infinity must not raise before the stable
+    JSON error is emitted.
+    """
+    try:
+        if value != value or value in (float("inf"), float("-inf")):
+            return 0
+        return int(round(value))
+    except (TypeError, ValueError, OverflowError):
+        return 0
+
+
+_READ_URL_USERINFO_RE = re.compile(
+    r"(?P<scheme>[A-Za-z][A-Za-z0-9+.\-]*://)[^/?#]*@"
+)
+# A scheme-less ``user:password@host/path`` input parses with an empty netloc,
+# so ``urlparse`` never reports userinfo for it.  Match that leading shape.
+_READ_SCHEMELESS_USERINFO_RE = re.compile(r"^[^/?#\s]*@")
+
+
+def _strip_read_url_credentials(text: str) -> str:
+    """Textually drop ``user:password@`` from a URL-shaped prefix.
+
+    Used when :func:`urlparse` refuses the input, and as a final pass on the
+    echoed value.  The authority segment is matched greedily so a password
+    containing ``@`` is removed whole instead of leaving its tail behind.
+    """
+    stripped = _READ_URL_USERINFO_RE.sub(r"\g<scheme>", text)
+    return _READ_SCHEMELESS_USERINFO_RE.sub("", stripped)
+
+
+def _read_display_url(raw: str) -> str:
+    """The input with any embedded credentials removed, for error output.
+
+    A rejected URL is echoed back so the caller can see what failed, but a
+    password in it must never reach stdout, stderr or an agent transcript.
+    Parsing failures are the dangerous case: the parser raises *because* the
+    authority is malformed, so a parsed rebuild is impossible and the raw
+    string is never returned when it could hold userinfo.
+    """
+    url = (raw or "").strip()
+    if not url:
+        return ""
+    try:
+        parsed = urlparse(url)
+        port = parsed.port
+        username = parsed.username
+        password = parsed.password
+        hostname = parsed.hostname
+    except ValueError:
+        redacted = _strip_read_url_credentials(url)
+        if redacted == url and "@" in url:
+            # Something credential-shaped survived textual stripping; echo
+            # nothing at all rather than risk a secret.
+            return "[unparseable URL]"
+        return redacted
+    if username or password:
+        host = hostname or ""
+        if port is not None:
+            host += f":{port}"
+        url = parsed._replace(netloc=host).geturl()
+    # A scheme-less ``user:password@host`` form parses with no netloc and no
+    # userinfo, so strip it textually before echoing.
+    return _strip_read_url_credentials(url)
+
+
+def _read_base_payload(url: str, timeout_seconds: int, *, error_code: str = "", error_message: str = "") -> dict:
+    """The complete, stable JSON shape shared by every `read` outcome."""
+    return {
+        "command": "read",
+        "schema_version": READ_SCHEMA_VERSION,
+        "ok": False,
+        "url": url,
+        "source_type": "",
+        "timeout_seconds": timeout_seconds,
+        "asr": {
+            "enabled": False,
+            "env": READ_ASR_ENV,
+            "note": "read never invokes paid ASR",
+        },
+        "policy": dict(_READ_POLICY),
+        "extraction_status": "not_attempted",
+        "content_length": 0,
+        "returned_chars": 0,
+        "truncated": False,
+        "truncation_note": "",
+        "content": "",
+        "error": (
+            {"code": error_code, "message": error_message} if error_code else None
+        ),
+        "evidence": {
+            "usable": False,
+            "transport_ok": False,
+            "relevance": "unknown",
+            "reasons": [],
+            "source_quality": None,
+        },
+        "video_evidence": None,
+    }
+
+
+def _read_text(payload: dict) -> str:
+    """Human-readable rendering of the same facts the JSON carries."""
+    quality = payload["evidence"].get("source_quality") or {}
+    quality_text = quality.get("quality") or "unscored"
+    if "score" in quality:
+        quality_text += f" ({quality['score']}/100)"
+    lines = [
+        f"URL: {payload['url'] or '(none)'}",
+        (
+            f"Status: {payload['extraction_status']} | "
+            f"source type: {payload['source_type'] or 'unknown'} | "
+            f"timeout: {payload['timeout_seconds']}s"
+        ),
+        (
+            f"Evidence: usable={'yes' if payload['evidence']['usable'] else 'no'} | "
+            f"quality: {quality_text} | relevance: {payload['evidence']['relevance']}"
+        ),
+        (
+            f"Content: {payload['returned_chars']} chars returned of "
+            f"{payload['content_length']} measured"
+            + (f" — {payload['truncation_note']}" if payload["truncated"] else "")
+        ),
+        "ASR: disabled — read never invokes paid transcription",
+        "Fallbacks: agent-reach not used | hermes web_extract disabled",
+    ]
+    reasons = payload["evidence"].get("reasons") or []
+    if reasons:
+        lines.append("Reasons: " + "; ".join(reasons))
+    video = payload.get("video_evidence")
+    if video:
+        lines.append(
+            "Transcript: caption={} | caption_transcript={} | audio={}".format(
+                video.get("caption_status", "not_attempted"),
+                video.get("caption_transcript_status", "not_attempted"),
+                video.get("audio_transcript_status", "not_configured"),
+            )
+        )
+    error = payload.get("error")
+    if error:
+        lines.append(f"Error: {error['code']}: {error['message']}")
+    if payload["ok"] and payload["content"]:
+        lines.extend(["", payload["content"]])
+    return "\n".join(lines)
+
+
+def _emit_read(payload: dict, fmt: str, *, exit_code: int) -> int:
+    if fmt == "json":
+        print(json.dumps(payload, indent=2, default=str))
+    elif payload["ok"]:
+        print(_read_text(payload))
+    else:
+        print(_read_text(payload), file=sys.stderr)
+    return exit_code
+
+
+def cmd_read(args: argparse.Namespace) -> int:
+    """Read one known public URL and report usable evidence or a stable error."""
+    timeout_seconds = _read_timeout_seconds(args.timeout)
+    url, url_error = _validate_read_url(args.url)
+    if url_error:
+        payload = _read_base_payload(
+            _read_display_url(args.url),
+            timeout_seconds,
+            error_code="invalid_url",
+            error_message=url_error,
+        )
+        return _emit_read(payload, args.format, exit_code=2)
+    if not (READ_TIMEOUT_MIN <= args.timeout <= READ_TIMEOUT_MAX):
+        payload = _read_base_payload(
+            url,
+            timeout_seconds,
+            error_code="invalid_timeout",
+            error_message=(
+                f"--timeout must be between {READ_TIMEOUT_MIN:g} and "
+                f"{READ_TIMEOUT_MAX:g} seconds"
+            ),
+        )
+        return _emit_read(payload, args.format, exit_code=2)
+
+    try:
+        with _asr_forced_off():
+            extracted = extract_hits(
+                (SearchHit(title="", url=url),),
+                limit=1,
+                timeout=timeout_seconds,
+                extract=_read_no_llm_extract,
+            )
+    except Exception as exc:  # extraction is defensive, but never crash the CLI
+        payload = _read_base_payload(
+            url,
+            timeout_seconds,
+            error_code="internal_error",
+            error_message=f"{type(exc).__name__}: {exc}",
+        )
+        return _emit_read(payload, args.format, exit_code=1)
+
+    if not extracted:
+        payload = _read_base_payload(
+            url,
+            timeout_seconds,
+            error_code="internal_error",
+            error_message="extractor returned no result for the URL",
+        )
+        return _emit_read(payload, args.format, exit_code=1)
+
+    extracted_hit = extracted[0]
+    result = extracted_hit.extraction
+    scored = score_hit(ScoredHit.from_extracted_hit(extracted_hit))
+    assessment = scored.assessment
+
+    content = result.content or ""
+    measured = int(result.content_length or 0)
+    returned = len(content)
+    cap_hit = len(content) >= _READ_READABLE_CAP_HINT and content.rstrip().endswith("...")
+    truncated = measured > returned or cap_hit
+    truncation_notes: list[str] = []
+    if measured > returned:
+        truncation_notes.append(
+            f"extractor kept {returned} of {measured} measured characters"
+        )
+    if cap_hit:
+        truncation_notes.append(
+            "extractor hit its readable-text cap; the upstream page may continue"
+        )
+
+    substantial = max(measured, returned) > READ_MIN_USABLE_CHARS and bool(content.strip())
+    usable = bool(result.status == "ok" and substantial and assessment.usable)
+    reasons = list(assessment.reasons)
+    if result.status == "ok" and not substantial:
+        reasons.append(
+            f"extracted text is {max(measured, returned)} chars; "
+            f"usable evidence needs more than {READ_MIN_USABLE_CHARS}"
+        )
+
+    error_code = ""
+    error_message = ""
+    if result.status == "blocked":
+        error_code = "extraction_blocked"
+        error_message = result.error_message or "extraction was blocked"
+    elif result.status == "error":
+        error_code = "extraction_error"
+        error_message = result.error_message or "extraction failed"
+    elif result.status == "not_attempted":
+        error_code = "extraction_not_attempted"
+        error_message = result.error_message or "extraction was not attempted"
+    elif not usable:
+        error_code = "unusable_evidence"
+        error_message = (
+            result.error_message
+            or "; ".join(reasons)
+            or "extracted text is not usable evidence"
+        )
+    if "web_extract" in error_message:
+        # The extractor's generic failure text names its last tier; `read`
+        # disabled that tier, so say so instead of implying it was attempted.
+        error_message += " (Hermes web_extract tier disabled for read)"
+
+    # The base payload already carries command/schema/asr/policy defaults, so
+    # success and failure can never drift apart in shape.
+    payload = _read_base_payload(url, timeout_seconds)
+    payload.update(
+        {
+            "ok": usable and not error_code,
+            "source_type": result.source_type or "",
+            "extraction_status": result.status,
+            "content_length": measured,
+            "returned_chars": returned,
+            "truncated": truncated,
+            "truncation_note": "; ".join(truncation_notes),
+            "content": content,
+            "error": (
+                {"code": error_code, "message": error_message} if error_code else None
+            ),
+            "evidence": {
+                "usable": usable,
+                "transport_ok": assessment.transport_ok,
+                "relevance": assessment.relevance,
+                "reasons": reasons,
+                "source_quality": scored.scoring.to_dict(),
+            },
+            "video_evidence": (
+                result.video_evidence.to_dict()
+                if result.video_evidence is not None
+                else None
+            ),
+        }
+    )
+    return _emit_read(payload, args.format, exit_code=0 if payload["ok"] else 1)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -677,14 +1202,25 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Print which read-only Agent Reach channel/action pairs Trailhead can "
             "forward, how each one can be reached (public API, forced public-web, or "
-            "authenticated with explicit consent), and why the rest are excluded. "
-            "Discovery order: --agent-reach, TRAILHEAD_AGENT_REACH_BIN, PATH. Nothing "
-            "is installed, configured, logged in to, or copied."
+            "authenticated with explicit consent), the pinned 40-action parity "
+            "inventory, and why the rest are excluded. Paid transcription is listed "
+            "but needs --allow-quota-consuming and --allow-authenticated, and "
+            "TRAILHEAD_DISABLE_ASR=1 vetoes it. Discovery order: --agent-reach, "
+            "TRAILHEAD_AGENT_REACH_BIN, PATH. Nothing is installed, configured, "
+            "logged in to, or copied."
         ),
     )
     reach.add_argument("--agent-reach", metavar="PATH", help="Path to an installed agent-reach CLI")
     reach.add_argument("--timeout", type=float, default=30, help="Registry/diagnostic timeout in seconds")
     reach.add_argument("--allow-authenticated", action="store_true", help="Report modes as if authenticated forwarding were consented")
+    reach.add_argument(
+        "--allow-quota-consuming",
+        action="store_true",
+        help=(
+            "Report the paid/key-consuming transcription actions as consented "
+            "(they also need --allow-authenticated; TRAILHEAD_DISABLE_ASR=1 still vetoes)"
+        ),
+    )
     reach.add_argument("--format", choices=["text", "json"], default="text")
     reach.set_defaults(func=cmd_reach)
 
@@ -696,8 +1232,10 @@ def build_parser() -> argparse.ArgumentParser:
             "Agent Reach attribution. Public mode forces --backend public-web where the "
             "upstream declares a public route and never falls back to a browser; "
             "session-only actions return auth_required unless --allow-authenticated is "
-            "passed explicitly. Positional ARGS fill the action's required params in "
-            "declared order; use --param NAME=VALUE for anything else."
+            "passed explicitly. Paid transcription additionally needs "
+            "--allow-quota-consuming plus --allow-authenticated and is vetoed by "
+            "TRAILHEAD_DISABLE_ASR=1. Positional ARGS fill the action's required params "
+            "in declared order; use --param NAME=VALUE for anything else."
         ),
     )
     reach_call.add_argument("channel", help="Channel name, e.g. github, v2ex, web")
@@ -707,6 +1245,15 @@ def build_parser() -> argparse.ArgumentParser:
     reach_call.add_argument("--limit", type=int, default=10, help="Max items returned (default: 10)")
     reach_call.add_argument("--timeout", type=float, default=30, help="Upstream timeout in seconds (default: 30)")
     reach_call.add_argument("--allow-authenticated", action="store_true", help="Consent to use the operator's existing Agent Reach login")
+    reach_call.add_argument(
+        "--allow-quota-consuming",
+        action="store_true",
+        help=(
+            "Consent to a paid/key-consuming transcription (youtube/xiaoyuzhou "
+            "transcribe); also requires --allow-authenticated and is vetoed by "
+            "TRAILHEAD_DISABLE_ASR=1"
+        ),
+    )
     reach_call.add_argument("--agent-reach", metavar="PATH", help="Path to an installed agent-reach CLI")
     reach_call.add_argument("--format", choices=["text", "json"], default="text")
     reach_call.set_defaults(func=cmd_reach_call)
@@ -782,6 +1329,36 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--dry-run", action="store_true", help="Print the markdown report instead of writing a file")
     report.add_argument("--format", choices=["text", "json"], default="text")
     report.set_defaults(func=cmd_report)
+
+    read_parser = sub.add_parser(
+        "read",
+        help="Read one known public URL as evidence (native, no Agent Reach, no paid ASR)",
+        description=(
+            "Read a single known http(s) URL with the native extractor and report "
+            "whether the retrieved text is usable evidence. Works without an Agent "
+            "Reach installation and never forwards to it. Paid ASR is force-disabled "
+            "for this command (TRAILHEAD_DISABLE_ASR=1 for the extraction only) and "
+            "the model-backed Hermes web_extract fallback is not used, so a read is "
+            "deterministic and free. Success (usable evidence) exits 0; blocked, "
+            "failed or unusable extraction exits 1; an invalid URL or timeout exits 2. "
+            "The JSON payload always contains the same keys, with error.code one of "
+            "invalid_url, invalid_timeout, extraction_blocked, extraction_error, "
+            "extraction_not_attempted, unusable_evidence, internal_error."
+        ),
+    )
+    read_parser.add_argument("url", help="Absolute http(s) URL to read")
+    read_parser.add_argument("--format", choices=["text", "json"], default="text")
+    read_parser.add_argument(
+        "--timeout",
+        type=float,
+        default=READ_TIMEOUT_DEFAULT,
+        metavar="SECONDS",
+        help=(
+            "Network timeout per extractor attempt, 1-120s (default: 15). "
+            "The extractor's finite public tier ladder bounds total wall time."
+        ),
+    )
+    read_parser.set_defaults(func=cmd_read)
 
     return parser
 

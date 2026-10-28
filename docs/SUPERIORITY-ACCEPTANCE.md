@@ -8,8 +8,8 @@ Status: **in progress; overall superiority is NOT established**.
 - Agent Reach 1.6.0, commit `14c213405669414492bda0f8d52cc6531d062c45`.
 - Official project: https://github.com/Panniantong/Agent-Reach .
 - `agent-reach channels` measured 14 channels / 40 actions on 2026-10-28.
-- Trailhead's optional forwarding adapter currently allows 38 read-only actions.
-  Two key/quota-consuming transcription actions are excluded by default.
+- Trailhead surfaces all 40 actions: 38 read-only forwarded actions plus two
+  transcription actions gated by separate auth and quota consent. ASR veto wins.
 - An advertised action, a configured action, a successful fixture and repeated
   live success are different states. Never collapse them into “supported.”
 - Upstream reuse is legitimate. Attribute it; do not report borrowed coverage
@@ -60,7 +60,7 @@ Where a dimension is qualitative, publish the criteria and reviewed artifacts.
 Adoption/star counts are observed external outcomes, not something a code change
 can promise. The engineering goal does not exclude broad product usability.
 
-## Current implementation and remaining work
+## Earlier baseline (superseded by the implementation checkpoint below)
 
 Landed locally:
 - Evidence usability separate from extraction transport; multilingual relevance,
@@ -88,3 +88,35 @@ Still required before whole-product completion:
 - Reduce adapter/benchmark complexity where it adds no measured user value.
 
 No task is marked complete merely because this document or a benchmark exists.
+
+## Current implementation checkpoint — 2026-10-28
+
+- Exact 40-action / 14-channel inventory in [ACTION-PARITY.md](ACTION-PARITY.md).
+  Gates: 26 public, 12 authenticated, 2 quota. Both transcription paths now exist
+  behind explicit double consent; neither has been invoked.
+- Optional maintained public backend fallback now participates in normal research,
+  retaining attribution in text/JSON/reports. Native known-URL `read` command has
+  a stable JSON/error contract, ASR/model fallback disabled and redacted invalid URLs.
+- Native repo-root reads fetch full public README plus labeled repo metadata;
+  HTML reading retains actionable topic links. These fix measured artifact gaps,
+  not merely increase response length.
+- Full action sweep attempted all 26 public cases and refused 14 gated cases.
+  Replay under the current normalizer: 17 returned-item rows, 6 upstream failures,
+  3 withheld shell/missing-page rows. Returned items are NOT completeness/relevance
+  proof. Detailed live ledger remains in operator scratch pending sanitized export.
+- [Repeated public evidence](PUBLIC-ACCEPTANCE-EVIDENCE.md): 3 cases × 3 cold +
+  3 warm rounds, 18 paired observations. English/Chinese artifact markers improved
+  after fixes; presence is not full-artifact completeness or overall superiority.
+- [Fresh agent CLI exercise](AGENT-SESSION-EVIDENCE.md), not just direct imports.
+- [Maintenance review](MAINTENANCE-REVIEW.md): bounded live capture, POSIX process
+  group cleanup, finite item limits, empty-body rejection and shell regressions.
+- Parent independently verified 734 tests passing, compilation, diff-check,
+  deterministic gauntlet and live search/read/matched comparison. No pushes.
+
+Still open: authenticated artifacts and account lifecycle (specific consent needed),
+quota-backed live transcription/podcast (separate explicit budget needed), real
+clean-machine macOS/Windows onboarding, human-reviewed multilingual SEARCH
+relevance beyond these URL markers, multi-day reliability/freshness, comparable
+per-tool runtime resource accounting and all-artifact pagination/completeness.
+Linux isolated-wheel verification is useful but is not clean-machine/cross-OS proof.
+The forwarding surface borrows upstream implementation; it is not a superiority win.
